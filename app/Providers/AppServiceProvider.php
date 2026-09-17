@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\SmsSender;
 use App\Services\Sms\LogSmsSender;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // Paginare custom (tema DXA) pentru toate listele.
+        Paginator::defaultView('pagination.dxa');
+        Paginator::defaultSimpleView('pagination.dxa');
     }
 }

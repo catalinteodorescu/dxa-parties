@@ -1,38 +1,59 @@
 <div>
+    @php
+        $cols = 'md:grid-cols-[150px_minmax(0,1fr)_minmax(0,2fr)]';
+    @endphp
+
     <div class="mb-6">
         <h2 class="text-lg font-semibold text-ink">Jurnal activitate</h2>
         <p class="mt-1 text-sm text-ink-soft">Acțiunile importante din panoul de administrare, cele mai recente primele.</p>
     </div>
 
-    <div class="bg-surface border border-border rounded-2xl overflow-hidden">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="border-b border-border text-left text-ink-soft bg-bg">
-                    <th class="px-5 py-3 font-medium whitespace-nowrap">Când</th>
-                    <th class="px-5 py-3 font-medium">Cine</th>
-                    <th class="px-5 py-3 font-medium">Ce s-a întâmplat</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($logs as $log)
-                    <tr class="border-b border-border last:border-0 align-top">
-                        <td class="px-5 py-3 text-ink-soft whitespace-nowrap">{{ $log->created_at->format('d.m.Y H:i') }}</td>
-                        <td class="px-5 py-3 text-ink whitespace-nowrap">{{ $log->actor_label ?? 'Sistem' }}</td>
-                        <td class="px-5 py-3 text-ink">
-                            {{ $log->description }}
-                            <span class="block mt-0.5 text-xs text-ink-soft/60">{{ $log->action }}</span>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="3" class="px-5 py-8 text-center text-ink-soft">Niciun eveniment înregistrat încă.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+    {{-- Lista: pe desktop "tabela" din div-uri cu grid; pe mobil casete stivuite --}}
+    <div class="md:rounded-2xl md:border md:border-border md:bg-surface">
+
+        {{-- Cap de tabel, doar pe desktop --}}
+        <div class="hidden md:grid {{ $cols }} gap-4 px-5 py-3 border-b border-border bg-bg rounded-t-2xl
+                    text-xs font-semibold uppercase tracking-wide text-ink-soft">
+            <div>Când</div>
+            <div>Cine</div>
+            <div>Ce s-a întâmplat</div>
+        </div>
+
+        <div class="space-y-3 md:space-y-0 md:divide-y md:divide-border">
+            @forelse ($logs as $log)
+                <div class="rounded-2xl border border-border bg-surface p-4 space-y-3
+                            md:rounded-none md:border-0 md:bg-transparent md:p-0 md:px-5 md:py-3
+                            md:space-y-0 md:grid {{ $cols }} md:items-start md:gap-4 md:last:rounded-b-2xl">
+
+                    {{-- Când --}}
+                    <div class="flex items-center justify-between gap-3 md:block">
+                        <span class="text-xs font-medium text-ink-soft md:hidden">Când</span>
+                        <span class="text-ink-soft whitespace-nowrap">{{ $log->created_at->format('d.m.Y H:i') }}</span>
+                    </div>
+
+                    {{-- Cine --}}
+                    <div class="flex items-center justify-between gap-3 md:block">
+                        <span class="text-xs font-medium text-ink-soft md:hidden">Cine</span>
+                        <span class="text-ink">{{ $log->actor_label ?? 'Sistem' }}</span>
+                    </div>
+
+                    {{-- Ce s-a întâmplat --}}
+                    <div class="flex flex-col gap-0.5 md:block">
+                        <span class="text-xs font-medium text-ink-soft md:hidden">Ce s-a întâmplat</span>
+                        <span class="text-ink">{{ $log->description }}</span>
+                        <span class="block mt-0.5 text-xs text-ink-soft/60">{{ $log->action }}</span>
+                    </div>
+                </div>
+            @empty
+                <div class="rounded-2xl border border-border bg-surface px-5 py-8 text-center text-ink-soft
+                            md:rounded-none md:border-0 md:bg-transparent">
+                    Niciun eveniment înregistrat încă.
+                </div>
+            @endforelse
+        </div>
     </div>
 
     <div class="mt-4">
-        {{ $logs->links() }}
+        {{ $logs->onEachSide(1)->links('pagination.dxa') }}
     </div>
 </div>

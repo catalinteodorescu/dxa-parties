@@ -4,23 +4,54 @@
     --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
 
     /* fundal & suprafete */
-    --color-bg: #F6F8F6;
+    --color-bg: #F7F5F4;
     --color-surface: #FFFFFF;
-    --color-border: #E3E8E4;
+    --color-border: #EAE4E1;
 
     /* text */
-    --color-ink: #16241C;
-    --color-ink-soft: #5C6B62;
+    --color-ink: #241A16;
+    --color-ink-soft: #6B5D57;
 
-    /* accent verde */
-    --color-primary: #24603F;
-    --color-primary-hover: #1B4A30;
-    --color-primary-soft: #E3F1E8;
+    /* accent principal (terracotta / xplosion) */
+    --color-primary: #DD6441;
+    --color-primary-hover: #C4512F;
+    --color-primary-soft: #FAE6DE;
 
-    /* stari */
-    --color-danger: #B3261E;
+    /* trepte suplimentare de primar */
+    --color-primary-dark: #A83E22;
+    --color-primary-bright: #E8825F;
+
+    /* info (albastru) — vizibilitate */
+    --color-info: #1D6FB8;
+    --color-info-soft: #E3EFF7;
+
+    /* mov — duplicare */
+    --color-purple: #7C4DBC;
+
+    /* stari / actiuni */
+    --color-danger: #DC2626;   /* stergere (rosu viu) */
+    --color-warning: #CA8A04;  /* editare (auriu, distinct de terracotta) */
 }
 
 [x-cloak] {
     display: none !important;
+}
+
+/* Tailwind v4 nu mai pune cursor:pointer implicit pe butoane — il repunem. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label:has(> input[type="checkbox"]),
+summary {
+    cursor: pointer;
+}
+
+/* Accent terracotta pe input-urile native de dată/oră (nu albastru). */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+    accent-color: var(--color-primary);
+    color-scheme: light;
+}
+input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
 }

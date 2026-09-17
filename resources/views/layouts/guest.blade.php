@@ -3,7 +3,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'Admin') }} — Autentificare</title>
+    <title>{{ config('app.name', 'Dance Xplosion Academy') }} — Autentificare</title>
+
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon-32.png') }}" sizes="32x32">
+    <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,11 +20,11 @@
 
     <div class="min-h-screen flex">
 
-        {{-- Panou stanga: brand --}}
+        {{-- Panou stanga: brand (ascuns pe mobil), verde solid --}}
         <div class="hidden lg:flex lg:w-[42%] bg-primary text-white flex-col justify-between p-12 relative overflow-hidden">
 
             <div class="relative z-10">
-                <span class="text-lg font-semibold tracking-tight">{{ config('app.name', 'Dance Party') }}</span>
+                <img src="{{ asset('images/logo-xplosion-white.png') }}" alt="Xplosion Dance Academy" class="h-16 w-auto">
             </div>
 
             <div class="relative z-10 max-w-sm">
@@ -44,8 +48,8 @@
         <div class="flex-1 flex items-center justify-center p-6 sm:p-12">
             <div class="w-full max-w-sm">
 
-                <div class="lg:hidden mb-8 text-center">
-                    <span class="text-lg font-semibold tracking-tight">{{ config('app.name', 'Dance Party') }}</span>
+                <div class="lg:hidden mb-8 flex justify-center">
+                    <img src="{{ asset('images/logo-xplosion.png') }}" alt="Xplosion Dance Academy" class="h-14 w-auto">
                 </div>
 
                 {{ $slot }}
