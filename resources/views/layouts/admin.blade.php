@@ -156,7 +156,7 @@
                 </div>
 
                 {{-- Grup collapsabil: Bar --}}
-                {{-- DXA: adaugat (Bar) — Categorii + Produse; Inventar/Necesare/Rapoarte se adaugă aici mai târziu. --}}
+                {{-- DXA: adaugat (Bar) — Meniu + Categorii + Stocuri; Necesare/Raportări/Rapoarte se adaugă aici mai târziu. --}}
                 <div x-data="{ menuBarOpen: true }" class="pt-4">
                     <button type="button" @click="menuBarOpen = ! menuBarOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -182,7 +182,7 @@
                             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M7 3h10l-1.2 15.5A2 2 0 0 1 13.8 20h-3.6a2 2 0 0 1-2-1.8L7 3z"/><line x1="7.6" y1="9" x2="16.4" y2="9"/>
                             </svg>
-                            Produse
+                            Meniu
                         </a>
 
                         <a href="{{ route('admin.menu-categories.index') }}" wire:navigate @click="sidebarOpen = false"
@@ -192,6 +192,15 @@
                                 <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
                             </svg>
                             Categorii
+                        </a>
+
+                        <a href="{{ route('admin.stock-items.index') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.stock-items.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 7L12 3 4 7m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
+                            Stocuri
                         </a>
                     </div>
                 </div>

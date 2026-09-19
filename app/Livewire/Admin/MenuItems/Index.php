@@ -95,7 +95,7 @@ class Index extends Component
         $query = MenuItem::query()
             ->join('menu_categories', 'menu_categories.id', '=', 'menu_items.menu_category_id')
             ->select('menu_items.*')
-            ->with('category')
+            ->with(['category', 'recipeLines.stockItem'])
             ->when($this->search !== '', fn ($q) => $q->where('menu_items.name', 'like', '%'.$this->search.'%'))
             ->when($this->category !== 'all', fn ($q) => $q->where('menu_items.menu_category_id', $this->category))
             ->when($this->state === 'active', fn ($q) => $q->where('menu_items.is_active', true))

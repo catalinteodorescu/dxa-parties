@@ -3,9 +3,9 @@
     @php $isEditing = $menuItem && $menuItem->exists; @endphp
 
     <div class="mb-6">
-        <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează produsul' : 'Produs nou' }}</h2>
+        <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează articolul de meniu' : 'Articol de meniu nou' }}</h2>
         <p class="mt-1 text-sm text-ink-soft leading-relaxed">
-            Produsele apar în barul general al locației, grupate pe categorie.
+            Articolele de meniu apar în barul general al locației, grupate pe categorie.
         </p>
     </div>
 
@@ -118,13 +118,56 @@
             </div>
         </div>
 
-        {{-- Descriere / rețetă --}}
+        {{-- Descriere --}}
         <div>
-            <label for="description" class="block text-sm font-medium text-ink">Descriere <span class="text-ink-soft/60 font-normal">(opțional — ingrediente, rețetă)</span></label>
+            <label for="description" class="block text-sm font-medium text-ink">Descriere <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
             <textarea id="description" wire:model="description" rows="5"
                       class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                       placeholder="ex. 50ml rom alb, 25ml zeamă de lime, 2 lgț zahăr, mentă, sifon…"></textarea>
             @error('description') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
+        </div>
+
+        {{-- Rețetă (stoc) --}}
+        <div>
+            <label class="block text-sm font-medium text-ink mb-1">Rețetă <span class="text-ink-soft/60 font-normal">(opțional — ce consumă din stoc la o vânzare)</span></label>
+            <p class="text-xs text-ink-soft mb-2">
+                Fără nicio linie completată, produsul nu e legat de gestiunea de stoc. Cu cel puțin o linie, produsul devine "indisponibil" automat dacă vreun ingredient nu are stoc sau cost cunoscut.
+            </p>
+
+            @php $stockItemOptions = $stockItems->mapWithKeys(fn ($s) => [$s->id => $s->name.' ('.$s->unit.')'])->all(); @endphp
+
+            <div class="space-y-2">
+                @foreach ($recipe as $i => $line)
+                    @php $chosenUnit = $line['stock_item_id'] ? optional($stockItems->firstWhere('id', $line['stock_item_id']))->unit : null; @endphp
+                    <div wire:key="recipe-{{ $i }}" class="flex items-start gap-2">
+                        <x-dropdown-select path="recipe.{{ $i }}.stock_item_id" :options="$stockItemOptions" :selected="$line['stock_item_id'] ?? ''" placeholder="Alege ingredient…" class="flex-1" />
+
+                        <div class="w-28 shrink-0">
+                            <div class="relative">
+                                <input type="number" step="0.001" min="0" wire:model="recipe.{{ $i }}.qty" placeholder="Cant."
+                                       class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary {{ $chosenUnit ? 'pr-10' : '' }}">
+                                @if ($chosenUnit)
+                                    <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">{{ $chosenUnit }}</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <button type="button" wire:click="openNewStockItemModal({{ $i }})" title="Produs de stoc nou"
+                                class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg border border-border text-ink-soft hover:bg-bg hover:text-ink">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        </button>
+
+                        @if (! empty($line['stock_item_id']))
+                            <button type="button" wire:click="removeRecipeLine({{ $i }})" title="Elimină linia"
+                                    class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        @endif
+                    </div>
+                    @error('recipe.'.$i.'.stock_item_id') <p class="text-xs text-danger">{{ $message }}</p> @enderror
+                    @error('recipe.'.$i.'.qty') <p class="text-xs text-danger">{{ $message }}</p> @enderror
+                @endforeach
+            </div>
         </div>
 
         {{-- Vizibil --}}
@@ -162,6 +205,99 @@
             <div class="mt-6 flex items-center justify-end gap-3">
                 <button type="button" wire:click="closeNewCategoryModal" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Anulează</button>
                 <x-btn type="button" variant="primary" wire:click="saveNewCategory">Salvează</x-btn>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal: adaugă produs de stoc rapid, fără să părăsești formularul --}}
+    <div x-show="$wire.newStockItemModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-ink/40" wire:click="closeNewStockItemModal"></div>
+        <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-popup w-full p-6">
+            <h3 class="text-base font-semibold text-ink">Produs de stoc nou</h3>
+            <p class="mt-1 text-xs text-ink-soft">Pragul minim de alertă se completează ulterior din Bar → Stocuri.</p>
+
+            <div class="mt-4 grid grid-cols-[1fr_9rem] gap-3">
+                <div>
+                    <label class="block text-sm font-medium text-ink mb-1">Denumire</label>
+                    <input type="text" wire:model="newStockItemName" placeholder="ex. Vodcă"
+                           class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                    @error('newStockItemName') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-ink mb-1">Unitate</label>
+                    <x-select wire:model="newStockItemUnit" live :options="['buc' => 'bucată', 'ml' => 'ml', 'l' => 'litru', 'kg' => 'kg', 'g' => 'g']" />
+                    @error('newStockItemUnit') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            @if ($newStockItemUnit !== 'buc')
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-ink mb-1">Ambalaj de referință <span class="text-ink-soft/60 font-normal">(opțional — doar afișare)</span></label>
+                    <div class="grid grid-cols-[1fr_7rem] gap-2">
+                        <input type="text" wire:model="newStockItemPackageLabel" placeholder="ex. sticlă 700ml"
+                               class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                        <input type="number" step="0.001" min="0" wire:model.live="newStockItemPackageQty" placeholder="{{ $newStockItemUnit }}"
+                               class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                    </div>
+                    @error('newStockItemPackageLabel') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                    @error('newStockItemPackageQty') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                </div>
+            @endif
+
+            <label class="mt-4 flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" wire:model.live="newStockItemHasInitialStock"
+                       class="w-4 h-4 rounded border-border accent-primary cursor-pointer">
+                <span class="text-sm text-ink">Am deja stoc din acest produs</span>
+            </label>
+
+            @if ($newStockItemHasInitialStock)
+                <div class="mt-3 pl-6">
+                    <div class="flex items-center gap-4 text-sm mb-2">
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" wire:model.live="newStockItemInitialCostMode" value="unit" class="w-3.5 h-3.5 accent-primary cursor-pointer">
+                            <span class="text-ink-soft">Am costul pe unitate</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" wire:model.live="newStockItemInitialCostMode" value="total" class="w-3.5 h-3.5 accent-primary cursor-pointer">
+                            <span class="text-ink-soft">Am prețul total plătit</span>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 items-start">
+                        <div>
+                            <label class="block text-sm font-medium text-ink mb-1">Cantitate</label>
+                            <input type="number" step="0.001" min="0" wire:model.live="newStockItemInitialQty"
+                                   class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                            @error('newStockItemInitialQty') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                            @if ($newStockItemUnit !== 'buc')
+                                <x-qty-helper wire:key="qty-helper-newstock-{{ $newStockItemNonce }}" path="newStockItemInitialQty" :unit="$newStockItemUnit" :default-size="$newStockItemPackageQty !== '' ? $newStockItemPackageQty : null" />
+                            @endif
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-ink mb-1">
+                                {{ $newStockItemInitialCostMode === 'total' ? 'Preț plătit' : 'Cost unitar' }}
+                                <span class="text-ink-soft/60 font-normal">(opțional)</span>
+                            </label>
+                            <input type="number" step="0.0001" min="0" wire:model.live="newStockItemInitialCost" placeholder="lei"
+                                   class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                            @error('newStockItemInitialCost') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                            @if ($newStockItemInitialCostMode === 'unit' && $newStockItemUnit !== 'buc')
+                                <x-cost-helper wire:key="cost-helper-newstock-{{ $newStockItemNonce }}" path="newStockItemInitialCost" :unit="$newStockItemUnit" :default-qty="$newStockItemPackageQty !== '' ? $newStockItemPackageQty : null" />
+                            @endif
+                        </div>
+                    </div>
+
+                    @if ($newStockItemInitialCostMode === 'total' && $newStockItemInitialQty !== '' && (float) $newStockItemInitialQty > 0 && $newStockItemInitialCost !== '')
+                        <p class="mt-1.5 text-xs text-ink-soft">
+                            = <span class="font-medium text-ink">{{ number_format(((float) $newStockItemInitialCost) / ((float) $newStockItemInitialQty), 4, ',', '.') }} lei/{{ $newStockItemUnit }}</span> cost unitar (calculat automat)
+                        </p>
+                    @endif
+                </div>
+            @endif
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <button type="button" wire:click="closeNewStockItemModal" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Anulează</button>
+                <x-btn type="button" variant="primary" wire:click="saveNewStockItem">Salvează</x-btn>
             </div>
         </div>
     </div>

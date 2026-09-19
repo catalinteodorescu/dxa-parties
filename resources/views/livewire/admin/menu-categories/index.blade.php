@@ -49,7 +49,7 @@
         <div class="hidden md:grid grid-cols-[2.5rem_1fr_7rem_7rem_11rem] gap-3 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-soft/70 border-b border-border">
             <span>Ordine</span>
             <span>Denumire</span>
-            <span>Produse</span>
+            <span>Articole</span>
             <span>Stare</span>
             <span class="text-right">Acțiuni</span>
         </div>
@@ -90,9 +90,9 @@
                     <span class="font-medium text-ink truncate">{{ $c->name }}</span>
                 </div>
 
-                {{-- Produse (contor) --}}
+                {{-- Articole (contor) --}}
                 <div class="mt-2 md:mt-0">
-                    <span class="md:hidden block text-[11px] uppercase tracking-wide text-ink-soft/60">Produse</span>
+                    <span class="md:hidden block text-[11px] uppercase tracking-wide text-ink-soft/60">Articole</span>
                     <span class="text-sm text-ink-soft">{{ $c->items_count }}</span>
                 </div>
 

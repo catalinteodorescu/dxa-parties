@@ -7,6 +7,7 @@ use App\Models\Announcement;
 use App\Models\MenuCategory;                // DXA: adaugat (Meniu bar)
 use App\Models\MenuItem;                    // DXA: adaugat (Meniu bar - produse)
 use App\Models\Party;                       // DXA: adaugat (Petreceri)
+use App\Models\StockItem;                   // DXA: adaugat (Bar - stocuri)
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -68,6 +69,11 @@ class Dashboard extends Component
             // DXA: adaugat (Meniu bar - produse)
             'menuItemsActiveCount' => MenuItem::where('is_active', true)->count(),
             'menuItemsTotalCount' => MenuItem::count(),
+
+            // DXA: adaugat (Bar - stocuri)
+            'stockItemsLowCount' => StockItem::whereNotNull('min_stock')
+                ->whereColumn('stock_qty', '<=', 'min_stock')
+                ->count(),
         ]);
     }
 }

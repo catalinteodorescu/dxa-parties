@@ -6,6 +6,7 @@ use App\Support\Settings\Settings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MenuItem extends Model
 {
@@ -64,5 +65,97 @@ class MenuItem extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Reteta acestui articol de meniu: ce stock_items consuma si in ce
+     * cantitate la o unitate vanduta. Un articol "simplu" (ex. bere la
+     * sticla, vanduta ca atare) tot are o reteta — o singura linie, qty 1.
+     * Un articol fara nicio linie NU e urmarit la stoc (nu are echivalent
+     * "track_stock" — absenta liniilor de reteta E semnalul).
+     */
+    public function recipeLines(): HasMany
+    {
+        return $this->hasMany(MenuItemRecipe::class);
+    }
+
+    /** Are cel putin o linie de reteta => e legat de gestiunea de stoc. */
+    public function isTracked(): bool
+    {
+        return $this->recipeLines->isNotEmpty();
+    }
+
+    /**
+     * Costul unei unitati vandute, calculat din reteta (suma qty_reteta x
+     * avg_cost al fiecarui ingredient). Null daca articolul nu e urmarit la
+     * stoc, sau daca orice ingredient din reteta are inca cost necunoscut
+     * (avg_cost null pe stock_item).
+     */
+    public function costPerUnit(): ?float
+    {
+        if (! $this->isTracked()) {
+            return null;
+        }
+
+        $total = 0.0;
+
+        foreach ($this->recipeLines as $line) {
+            if (! $line->stockItem->hasKnownCost()) {
+                return null;
+            }
+
+            $total += (float) $line->qty * (float) $line->stockItem->avg_cost;
+        }
+
+        return round($total, 4);
+    }
+
+    /**
+     * Disponibil spre vanzare: fie nu e urmarit la stoc (mereu disponibil),
+     * fie toate ingredientele din reteta au cost cunoscut SI stoc suficient
+     * pt. cel putin o unitate.
+     */
+    public function isAvailable(): bool
+    {
+        return $this->unavailabilityReason() === null;
+    }
+
+    /**
+     * Motivul indisponibilitatii, pt. mesaj clar in UI ("Cost necunoscut
+     * pentru: Sirop de mure" / "Stoc insuficient pentru: Vodcă"). Null daca
+     * articolul e disponibil.
+     */
+    public function unavailabilityReason(): ?string
+    {
+        if (! $this->isTracked()) {
+            return null;
+        }
+
+        $unknownCost = [];
+        $outOfStock = [];
+
+        foreach ($this->recipeLines as $line) {
+            $stockItem = $line->stockItem;
+
+            if (! $stockItem->hasKnownCost()) {
+                $unknownCost[] = $stockItem->name;
+
+                continue;
+            }
+
+            if ((float) $stockItem->stock_qty < (float) $line->qty) {
+                $outOfStock[] = $stockItem->name;
+            }
+        }
+
+        if ($unknownCost) {
+            return 'Cost necunoscut pentru: '.implode(', ', $unknownCost);
+        }
+
+        if ($outOfStock) {
+            return 'Stoc insuficient pentru: '.implode(', ', $outOfStock);
+        }
+
+        return null;
     }
 }

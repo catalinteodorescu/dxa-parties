@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\MenuItems;
 
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
+use App\Models\StockItem; // DXA: adaugat (Bar - stocuri: reteta)
 use App\Services\ActivityLogger;
 use App\Support\HandlesImageUploads;
 use App\Support\Settings\Settings;
@@ -39,6 +40,43 @@ class Form extends Component
     public bool $newCategoryModalOpen = false;
     public string $newCategoryName = '';
 
+    // DXA: adaugat (Bar - stocuri: reteta)
+    // Reteta: [['stock_item_id' => int|null, 'qty' => string], ...]. Ramane
+    // mereu un rand gol la coada pt. adaugare rapida — vezi syncRecipeRows().
+    public array $recipe = [];
+
+    // Adaugare rapida stock_item (popup langa selectul din reteta) - name+unit
+    // + stoc initial optional (cant. + cost, cu acelasi toggle unitar/total ca
+    // la Bar → Stocuri). min_stock ramane de completat ulterior, din Stocuri
+    // (acelasi principiu ca la popup-ul de categorie: rapid, minimal).
+    public bool $newStockItemModalOpen = false;
+
+    // Vezi explicatia din Stocks\Index::$formNonce - forteaza resetarea
+    // calculatoarelor Alpine la fiecare deschidere a popup-ului.
+    public int $newStockItemNonce = 0;
+
+    public ?int $newStockItemTargetIndex = null;
+
+    public string $newStockItemName = '';
+
+    public string $newStockItemUnit = 'buc';
+
+    // DXA: adaugat — la fel ca la ecranul principal Bar → Stocuri: poti
+    // introduce direct cantitatea + costul pe care il ai deja, ca sa nu
+    // trebuiasca sa parasesti formularul de meniu si sa revii aici mai tarziu.
+    public bool $newStockItemHasInitialStock = false;
+
+    public string $newStockItemInitialQty = '';
+
+    public string $newStockItemInitialCost = '';
+
+    public string $newStockItemInitialCostMode = 'unit'; // unit | total
+
+    // Acelasi principiu ca la Bar → Stocuri: ambalaj de referinta, pur informativ.
+    public string $newStockItemPackageLabel = '';
+
+    public string $newStockItemPackageQty = '';
+
     public function mount(?MenuItem $menuItem = null): void
     {
         abort_unless(Auth::guard('admin')->check(), 403);
@@ -54,12 +92,44 @@ class Form extends Component
             $this->description = $menuItem->description;
             $this->is_active = $menuItem->is_active;
             $this->existingImage = $menuItem->image_path;
+
+            // DXA: adaugat (Bar - stocuri: reteta)
+            $this->recipe = $menuItem->recipeLines()->with('stockItem')->get()
+                ->map(fn ($line) => ['stock_item_id' => $line->stock_item_id, 'qty' => (string) $line->qty])
+                ->all();
+        }
+
+        $this->syncRecipeRows();
+    }
+
+    /** Pastreaza mereu un rand gol la coada retetei, pt. adaugare rapida. */
+    private function syncRecipeRows(): void
+    {
+        $last = end($this->recipe);
+
+        if ($last === false || ! empty($last['stock_item_id'])) {
+            $this->recipe[] = ['stock_item_id' => null, 'qty' => ''];
         }
     }
 
     public function usesTokens(): bool
     {
         return (bool) Settings::get('uses_tokens');
+    }
+
+    // DXA: adaugat (Bar - stocuri: reteta)
+    public function updated($name): void
+    {
+        if (preg_match('/^recipe\.\d+\.stock_item_id$/', $name)) {
+            $this->syncRecipeRows();
+        }
+    }
+
+    public function removeRecipeLine(int $i): void
+    {
+        unset($this->recipe[$i]);
+        $this->recipe = array_values($this->recipe);
+        $this->syncRecipeRows();
     }
 
     public function updatedTokens($value): void
@@ -91,6 +161,12 @@ class Form extends Component
             $rules['tokens'] = ['nullable'];
         }
 
+        // DXA: adaugat (Bar - stocuri: reteta) — randurile complet goale (randul
+        // de coada pt. adaugare rapida) sunt permise; daca ai ales un ingredient,
+        // cantitatea devine obligatorie si invers.
+        $rules['recipe.*.stock_item_id'] = ['nullable', 'required_with:recipe.*.qty', 'exists:stock_items,id'];
+        $rules['recipe.*.qty'] = ['nullable', 'required_with:recipe.*.stock_item_id', 'numeric', 'min:0.001'];
+
         return $rules;
     }
 
@@ -106,6 +182,9 @@ class Form extends Component
             'tokens.numeric' => 'Prețul în tokeni trebuie să fie un număr.',
             'image.image' => 'Fișierul trebuie să fie o imagine.',
             'image.max' => 'Imaginea nu poate depăși 8 MB.',
+            'recipe.*.stock_item_id.required_with' => 'Alege ingredientul.',
+            'recipe.*.qty.required_with' => 'Completează cantitatea.',
+            'recipe.*.qty.numeric' => 'Cantitatea trebuie să fie un număr.',
         ];
     }
 
@@ -157,6 +236,88 @@ class Form extends Component
         $this->newCategoryModalOpen = false;
     }
 
+    // DXA: adaugat (Bar - stocuri: reteta)
+    public function openNewStockItemModal(int $targetIndex): void
+    {
+        $this->newStockItemTargetIndex = $targetIndex;
+        $this->newStockItemName = '';
+        $this->newStockItemUnit = 'buc';
+        $this->newStockItemHasInitialStock = false;
+        $this->newStockItemInitialQty = '';
+        $this->newStockItemInitialCost = '';
+        $this->newStockItemInitialCostMode = 'unit';
+        $this->newStockItemPackageLabel = '';
+        $this->newStockItemPackageQty = '';
+        $this->newStockItemNonce++;
+        $this->resetValidation();
+        $this->newStockItemModalOpen = true;
+    }
+
+    public function closeNewStockItemModal(): void
+    {
+        $this->newStockItemModalOpen = false;
+    }
+
+    public function saveNewStockItem(): void
+    {
+        $rules = [
+            'newStockItemName' => [
+                'required', 'string', 'max:120',
+                function ($attribute, $value, $fail) {
+                    $exists = StockItem::whereRaw('LOWER(name) = ?', [mb_strtolower(trim($value))])->exists();
+                    if ($exists) {
+                        $fail('Există deja un produs de stoc cu acest nume.');
+                    }
+                },
+            ],
+            'newStockItemUnit' => ['required', 'string', 'in:buc,ml,l,kg,g'],
+            'newStockItemInitialQty' => [$this->newStockItemHasInitialStock ? 'required' : 'nullable', 'numeric', 'min:0.001'],
+            'newStockItemInitialCost' => ['nullable', 'numeric', 'min:0'],
+            'newStockItemPackageLabel' => ['nullable', 'string', 'max:60', 'required_with:newStockItemPackageQty'],
+            'newStockItemPackageQty' => ['nullable', 'numeric', 'min:0.001', 'required_with:newStockItemPackageLabel'],
+        ];
+
+        $this->validate($rules, [
+            'newStockItemName.required' => 'Numele produsului de stoc este obligatoriu.',
+            'newStockItemInitialQty.required' => 'Completează cantitatea inițială.',
+            'newStockItemPackageLabel.required_with' => 'Completează și denumirea ambalajului.',
+            'newStockItemPackageQty.required_with' => 'Completează și cantitatea per ambalaj.',
+        ]);
+
+        $adminId = Auth::guard('admin')->id();
+
+        $stockItem = StockItem::create([
+            'name' => $this->newStockItemName,
+            'unit' => $this->newStockItemUnit,
+            'package_label' => $this->newStockItemPackageLabel !== '' ? $this->newStockItemPackageLabel : null,
+            'package_qty' => $this->newStockItemPackageQty !== '' ? (float) $this->newStockItemPackageQty : null,
+            'is_active' => true,
+            'created_by' => $adminId,
+        ]);
+
+        if ($this->newStockItemHasInitialStock && $this->newStockItemInitialQty !== '') {
+            $qty = (float) $this->newStockItemInitialQty;
+            $unitCost = null;
+
+            if ($this->newStockItemInitialCost !== '') {
+                $unitCost = $this->newStockItemInitialCostMode === 'total'
+                    ? round(((float) $this->newStockItemInitialCost) / $qty, 4)
+                    : (float) $this->newStockItemInitialCost;
+            }
+
+            $stockItem->recordInitialStock($qty, $unitCost, $adminId, 'Stoc inițial la creare (din formularul de rețetă).');
+        }
+
+        ActivityLogger::log('stock.item_created', 'A adăugat produsul de stoc „'.$stockItem->name.'" (din formularul de rețetă).');
+
+        if ($this->newStockItemTargetIndex !== null) {
+            $this->recipe[$this->newStockItemTargetIndex]['stock_item_id'] = $stockItem->id;
+            $this->syncRecipeRows();
+        }
+
+        $this->newStockItemModalOpen = false;
+    }
+
     public function save(): void
     {
         abort_unless(Auth::guard('admin')->check(), 403);
@@ -205,6 +366,8 @@ class Form extends Component
 
             ActivityLogger::log('menu.item_updated', 'A modificat produsul „'.$this->menuItem->name.'".');
 
+            $this->syncRecipe($this->menuItem);
+
             session()->flash('status', 'Produsul a fost actualizat.');
         } else {
             $payload['created_by'] = Auth::guard('admin')->id();
@@ -213,10 +376,33 @@ class Form extends Component
 
             ActivityLogger::log('menu.item_created', 'A adăugat produsul „'.$item->name.'".');
 
+            $this->syncRecipe($item);
+
             session()->flash('status', 'Produsul a fost creat.');
         }
 
         $this->redirectRoute('admin.menu-items.index', navigate: true);
+    }
+
+    /**
+     * DXA: adaugat (Bar - stocuri: reteta) — sterge toate liniile vechi si
+     * recreeaza doar cele completate (stock_item_id + qty). Simplu si sigur:
+     * o reteta are cateva linii cel mult, nu justifica un diff linie cu linie.
+     */
+    private function syncRecipe(MenuItem $menuItem): void
+    {
+        $menuItem->recipeLines()->delete();
+
+        foreach ($this->recipe as $line) {
+            if (empty($line['stock_item_id']) || $line['qty'] === '' || $line['qty'] === null) {
+                continue;
+            }
+
+            $menuItem->recipeLines()->create([
+                'stock_item_id' => $line['stock_item_id'],
+                'qty' => (float) $line['qty'],
+            ]);
+        }
     }
 
     public function render()
@@ -225,6 +411,8 @@ class Form extends Component
             'categories' => MenuCategory::ordered()->get(),
             'usesTokens' => $this->usesTokens(),
             'tokenRate' => Settings::get('token_rate'),
+            // DXA: adaugat (Bar - stocuri: reteta)
+            'stockItems' => StockItem::active()->ordered()->get(),
         ]);
     }
 }

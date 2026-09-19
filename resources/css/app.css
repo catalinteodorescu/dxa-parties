@@ -31,6 +31,11 @@
     /* stari / actiuni */
     --color-danger: #DC2626;   /* stergere (rosu viu) */
     --color-warning: #CA8A04;  /* editare (auriu, distinct de terracotta) */
+
+    /* latime standard pt. popup-urile de adaugare/editare produs (Stocuri,
+       adaugare rapida stock_item din reteta) - genereaza clasa max-w-popup,
+       namespace-ul --container-* din Tailwind v4 pt. max-w. */
+    --container-popup: 32rem;
 }
 
 [x-cloak] {

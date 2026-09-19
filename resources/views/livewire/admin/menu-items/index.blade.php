@@ -25,8 +25,8 @@
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
         <div>
-            <h2 class="text-lg font-semibold text-ink">Bar — Produse</h2>
-            <p class="mt-1 text-sm text-ink-soft">Produsele afișate în meniul barului din app.</p>
+            <h2 class="text-lg font-semibold text-ink">Bar — Meniu</h2>
+            <p class="mt-1 text-sm text-ink-soft">Articolele afișate în meniul barului din app.</p>
         </div>
         <x-btn variant="primary" :href="route('admin.menu-items.create')" wire:navigate class="self-start">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -98,6 +98,12 @@
                             <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-primary-soft text-primary">Vizibil</span>
                         @else
                             <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-surface border border-border text-ink-soft">Ascuns</span>
+                        @endif
+                        @if (! $item->isAvailable())
+                            <span class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2 py-0.5 bg-danger/10 text-danger" title="{{ $item->unavailabilityReason() }}">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                Indisponibil
+                            </span>
                         @endif
                     </div>
 
