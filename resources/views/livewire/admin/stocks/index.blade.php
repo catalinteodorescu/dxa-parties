@@ -39,30 +39,46 @@
         </x-btn>
     </div>
 
-    {{-- Filtre + căutare --}}
-    <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <div class="relative sm:flex-1 sm:min-w-48">
-            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    {{-- Filtre + căutare — ascunse implicit, deschise automat daca exista filtre active --}}
+    <div x-data="{ filtersOpen: {{ $hasFilters ? 'true' : 'false' }} }" class="mb-4">
+        <button type="button" @click="filtersOpen = !filtersOpen"
+                class="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
             </svg>
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Caută după nume…"
-                   class="w-full rounded-lg border border-border bg-white pl-9 pr-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-        </div>
-        <x-select wire:model="state" live class="sm:w-40"
-                  :options="['all' => 'Toate stările', 'active' => 'Active', 'inactive' => 'Inactive']" />
-        <button type="button" wire:click="$set('lowOnly', {{ $lowOnly ? 'false' : 'true' }})"
-                class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors
-                       {{ $lowOnly ? 'border-danger bg-danger/10 text-danger' : 'border-border text-ink-soft hover:bg-bg' }}">
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            Filtre
+            @if ($hasFilters)
+                <span class="inline-flex items-center rounded-full bg-primary-soft text-primary text-[10px] font-semibold px-1.5 py-0.5">active</span>
+            @endif
+            <svg class="w-3.5 h-3.5 transition-transform" :class="filtersOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
             </svg>
-            Sub stoc minim
         </button>
-        @if ($hasFilters)
-            <button type="button" wire:click="clearFilters" class="text-sm text-ink-soft hover:text-ink px-2 py-2 self-start">
-                Resetează
+
+        <div x-show="filtersOpen" x-cloak class="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div class="relative sm:flex-1 sm:min-w-48">
+                <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Caută după nume…"
+                       class="w-full rounded-lg border border-border bg-white pl-9 pr-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            </div>
+            <x-select wire:model="state" live class="sm:w-40"
+                      :options="['all' => 'Toate stările', 'active' => 'Active', 'inactive' => 'Inactive']" />
+            <button type="button" wire:click="$set('lowOnly', {{ $lowOnly ? 'false' : 'true' }})"
+                    class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors
+                           {{ $lowOnly ? 'border-danger bg-danger/10 text-danger' : 'border-border text-ink-soft hover:bg-bg' }}">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Sub stoc minim
             </button>
-        @endif
+            @if ($hasFilters)
+                <button type="button" wire:click="clearFilters" class="text-sm text-ink-soft hover:text-ink px-2 py-2 self-start">
+                    Resetează
+                </button>
+            @endif
+        </div>
     </div>
 
     @if (session('status'))
@@ -77,17 +93,17 @@
         </div>
     @endif
 
-    {{-- Listă: pe desktop arată ca tabel, pe mobil casete cu label+valoare --}}
-    <div class="rounded-2xl border border-border bg-surface overflow-hidden">
-        <div class="hidden md:grid grid-cols-[1fr_14rem_6rem_15rem] gap-3 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-soft/70 border-b border-border">
-            <span>Denumire</span>
-            <span>Stoc curent</span>
-            <span>Stare</span>
-            <span class="text-right">Acțiuni</span>
-        </div>
+    {{-- Listă: pe desktop arată ca tabel, pe mobil casete cu label+valoare. Fiecare produs = card propriu (spatiat, rotunjit), nu un rand intr-un bloc unic. --}}
+    <div class="hidden md:grid grid-cols-[1fr_14rem_6rem_15rem] gap-3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
+        <span>Denumire</span>
+        <span>Stoc curent</span>
+        <span>Stare</span>
+        <span class="text-right">Acțiuni</span>
+    </div>
 
+    <div class="space-y-3">
         @forelse ($items as $item)
-            <div wire:key="stock-{{ $item->id }}" class="border-b border-border last:border-0">
+            <div wire:key="stock-{{ $item->id }}" class="rounded-2xl border border-border bg-surface overflow-hidden">
                 <div class="p-3 md:px-4 md:py-2.5 md:grid md:grid-cols-[1fr_14rem_6rem_15rem] md:items-center md:gap-3">
 
                     {{-- Denumire --}}
@@ -211,9 +227,8 @@
                             </div>
                         </div>
 
-                        @php $movementCols = 'grid-cols-[10rem_10rem_10rem_1fr]'; @endphp
                         <div class="border-t border-border pt-3">
-                            <div class="hidden sm:grid {{ $movementCols }} gap-3 text-[11px] font-semibold uppercase tracking-wide text-ink-soft/60 pb-2">
+                            <div class="hidden sm:grid grid-cols-[8rem_7rem_9rem_1fr] gap-3 text-[11px] font-semibold uppercase tracking-wide text-ink-soft/60 pb-2">
                                 <span>Istoric mișcări</span>
                                 <span class="text-right">Cantitate</span>
                                 <span class="text-right">Cost/unitate</span>
@@ -226,35 +241,39 @@
                             @else
                                 <div class="space-y-0.5 max-h-64 overflow-y-auto">
                                     @foreach ($movements as $m)
-                                        <div class="grid {{ $movementCols }} gap-3 items-center text-sm py-1.5 border-b border-border/60 last:border-0">
-                                            <span class="inline-flex items-center gap-1.5 min-w-0">
+                                        <div class="py-2 sm:py-1.5 border-b border-border/60 last:border-0 sm:grid sm:grid-cols-[8rem_7rem_9rem_1fr] sm:gap-3 sm:items-center">
+                                            <div class="inline-flex items-center gap-1.5 min-w-0">
                                                 <span class="w-1.5 h-1.5 rounded-full shrink-0 {{ match($m->type) {
                                                     'in' => 'bg-primary',
                                                     'out' => 'bg-danger',
                                                     'initial' => 'bg-info',
                                                     default => 'bg-warning',
                                                 } }}"></span>
-                                                <span class="truncate">{{ $m->typeLabel() }}</span>
-                                            </span>
+                                                <span class="text-sm truncate">{{ $m->typeLabel() }}</span>
+                                            </div>
 
-                                            <span class="text-right text-ink-soft">
+                                            <div class="mt-0.5 sm:mt-0 sm:text-right text-sm text-ink-soft">
+                                                <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Cantitate: </span>
                                                 @if ((float) $m->qty === 0.0)
                                                     —
                                                 @else
                                                     @php $isNegativeMovement = $m->type === 'out' || (float) $m->qty < 0; @endphp
                                                     {{ $isNegativeMovement ? '−' : '+' }}{{ rtrim(rtrim(number_format(abs((float) $m->qty), 3, ',', '.'), '0'), ',') }} {{ $item->unit }}
                                                 @endif
-                                            </span>
+                                            </div>
 
-                                            <span class="text-right text-ink-soft">
+                                            <div class="mt-0.5 sm:mt-0 sm:text-right text-sm text-ink-soft">
+                                                <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Cost/unitate: </span>
                                                 @if ($m->unit_cost !== null)
                                                     {{ number_format((float) $m->unit_cost, 4, ',', '.') }} lei/{{ $item->unit }}
                                                 @else
                                                     —
                                                 @endif
-                                            </span>
+                                            </div>
 
-                                            <span class="text-right text-ink-soft/60 text-xs">{{ $m->created_at->format('d.m.Y H:i') }}</span>
+                                            <div class="mt-0.5 sm:mt-0 sm:text-right text-xs text-ink-soft/60">
+                                                <span class="sm:hidden text-[11px] uppercase text-ink-soft/50 not-italic">Dată: </span>{{ $m->created_at->format('d.m.Y H:i') }}
+                                            </div>
                                         </div>
                                     @endforeach
                                 </div>
@@ -264,7 +283,7 @@
                 @endif
             </div>
         @empty
-            <div class="px-5 py-10 text-center text-ink-soft">
+            <div class="rounded-2xl border border-border bg-surface px-5 py-10 text-center text-ink-soft">
                 @if ($hasFilters)
                     Niciun produs de stoc care să corespundă filtrelor.
                 @else
@@ -272,21 +291,21 @@
                 @endif
             </div>
         @endforelse
-
-        @if ($items->total() > 0)
-            <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-bg border-t border-border text-sm">
-                <span class="text-ink-soft">
-                    Valoare totală stoc{{ $hasFilters ? ' (filtrat)' : '' }}:
-                    <span class="font-semibold text-ink">{{ number_format($totalStockValue, 2, ',', '.') }} lei</span>
-                </span>
-                @if ($unknownCostCount > 0)
-                    <span class="text-xs text-ink-soft/70">
-                        + {{ $unknownCostCount }} {{ $unknownCostCount === 1 ? 'produs cu cost necunoscut, exclus din total' : 'produse cu cost necunoscut, excluse din total' }}
-                    </span>
-                @endif
-            </div>
-        @endif
     </div>
+
+    @if ($items->total() > 0)
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-bg px-4 py-3 text-sm">
+            <span class="text-ink-soft">
+                Valoare totală stoc{{ $hasFilters ? ' (filtrat)' : '' }}:
+                <span class="font-semibold text-ink">{{ number_format($totalStockValue, 2, ',', '.') }} lei</span>
+            </span>
+            @if ($unknownCostCount > 0)
+                <span class="text-xs text-ink-soft/70">
+                    + {{ $unknownCostCount }} {{ $unknownCostCount === 1 ? 'produs cu cost necunoscut, exclus din total' : 'produse cu cost necunoscut, excluse din total' }}
+                </span>
+            @endif
+        </div>
+    @endif
 
     <div class="mt-4">
         {{ $items->onEachSide(1)->links('pagination.dxa') }}
