@@ -144,6 +144,16 @@
 
                     {{-- Acțiuni --}}
                     <div class="mt-3 md:mt-0 flex items-center gap-2 md:justify-end">
+                        {{-- DXA: adaugat (Bar - raportari) — doar pt. necesare deschise: aduce grupul in Raportare --}}
+                        @if ($req->status === 'open')
+                            <x-btn variant="primary" size="icon" outline tooltip="Raportează din acest necesar"
+                                   :href="route('admin.stock-reports.create', ['requisition' => $req->id])" wire:navigate>
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                                </svg>
+                            </x-btn>
+                        @endif
+
                         <x-btn variant="neutral" size="icon" outline
                                tooltip="{{ $expandedId === $req->id ? 'Ascunde detalii' : 'Detalii' }}"
                                wire:click="toggleExpand({{ $req->id }})">

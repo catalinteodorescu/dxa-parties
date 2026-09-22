@@ -1,0 +1,504 @@
+<div>
+    @php
+        $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
+        $money = fn ($n) => number_format((float) $n, 2, ',', '.');
+    @endphp
+
+    {{-- ============================================================= --}}
+    {{-- RAPORT FINALIZAT — read-only, din miscarile reale             --}}
+    {{-- ============================================================= --}}
+    @if ($readOnlyView)
+        <div class="max-w-3xl">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-lg font-semibold text-ink">Raportare {{ $report->date->format('d.m.Y') }}</h2>
+                        <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-info-soft text-info">Finalizat</span>
+                    </div>
+                    <p class="mt-1 text-sm text-ink-soft">
+                        Finalizată {{ $report->finalized_at?->format('d.m.Y H:i') }}
+                        @if ($report->finalizer) de {{ $report->finalizer->name }} @endif
+                        @if ($report->party) <span class="text-ink-soft/50">·</span> {{ $report->party->name }} @endif
+                    </p>
+                </div>
+                <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-sm text-ink-soft hover:text-ink shrink-0">← Înapoi la Raportări</a>
+            </div>
+
+            <x-flash class="mb-4" />
+
+            {{-- Totaluri --}}
+            <div class="grid grid-cols-3 gap-3 mb-5">
+                <x-stat-card label="Venit" :value="$money($revenue).' lei'" accent="primary" />
+                <x-stat-card label="Cost" :value="$money($cost).' lei'" accent="neutral" hint="vânzări + pierderi cunoscute" />
+                <x-stat-card label="Profit" :value="$money($profit).' lei'" :accent="$profit >= 0 ? 'info' : 'danger'" />
+            </div>
+
+            @if ($report->note)
+                <div class="mb-5 rounded-xl border border-border bg-surface p-4">
+                    <span class="block text-[11px] uppercase tracking-wide text-ink-soft/60 mb-1">Notă</span>
+                    <p class="text-sm text-ink whitespace-pre-line">{{ $report->note }}</p>
+                </div>
+            @endif
+
+            {{-- Intrari --}}
+            <div class="mb-5">
+                <h3 class="text-sm font-semibold text-ink mb-2">Intrări</h3>
+                @if ($finalEntries->isEmpty())
+                    <p class="text-sm text-ink-soft/60 italic">Nicio intrare.</p>
+                @else
+                    <div class="space-y-2">
+                        @foreach ($finalEntries as $m)
+                            <div class="rounded-xl border border-border bg-surface px-4 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                                <div class="min-w-0">
+                                    <span class="text-sm text-ink">{{ $m->stockItem->name }}</span>
+                                    @if ($m->requisitionItem)
+                                        <span class="ml-1 text-xs text-primary">· din necesar „{{ $m->requisitionItem->requisition->label }}"</span>
+                                    @endif
+                                </div>
+                                <div class="text-sm text-ink-soft shrink-0">
+                                    <span class="text-ink">{{ $fmt($m->qty) }} {{ $m->stockItem->unit }}</span>
+                                    @if ($m->unit_cost !== null)
+                                        <span class="text-ink-soft/50">·</span> {{ number_format((float) $m->unit_cost, 4, ',', '.') }} lei/{{ $m->stockItem->unit }}
+                                    @else
+                                        <span class="text-ink-soft/50">·</span> <span class="italic">cost necunoscut</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            {{-- Vanzari --}}
+            <div class="mb-5">
+                <h3 class="text-sm font-semibold text-ink mb-2">Vânzări</h3>
+                @if ($finalSales->isEmpty())
+                    <p class="text-sm text-ink-soft/60 italic">Nicio vânzare.</p>
+                @else
+                    <div class="space-y-2">
+                        @foreach ($finalSales as $s)
+                            <div class="rounded-xl border border-border bg-surface px-4 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                                <span class="text-sm text-ink min-w-0">{{ $s->menuItem?->name ?? '—' }}</span>
+                                <div class="text-sm text-ink-soft shrink-0">
+                                    <span class="text-ink">{{ $fmt($s->qty) }} ×</span> {{ $money($s->unit_price) }} lei
+                                    <span class="text-ink-soft/50">=</span> <span class="text-ink font-medium">{{ $money($s->total_price) }} lei</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            {{-- Pierderi --}}
+            <div class="mb-2">
+                <h3 class="text-sm font-semibold text-ink mb-2">Pierderi</h3>
+                @if ($finalLosses->isEmpty())
+                    <p class="text-sm text-ink-soft/60 italic">Nicio pierdere.</p>
+                @else
+                    <div class="space-y-2">
+                        @foreach ($finalLosses as $l)
+                            <div class="rounded-xl border border-border bg-surface px-4 py-2.5">
+                                <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                                    <span class="text-sm text-ink min-w-0">{{ $l->stockItem->name }}</span>
+                                    <span class="text-sm text-ink shrink-0">{{ $fmt($l->qty) }} {{ $l->stockItem->unit }}</span>
+                                </div>
+                                @if ($l->note)
+                                    <p class="mt-0.5 text-xs text-ink-soft">Motiv: {{ $l->note }}</p>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+
+    {{-- ============================================================= --}}
+    {{-- DRAFT — formular editabil cu autosave                         --}}
+    {{-- ============================================================= --}}
+    @else
+        @php
+            $partyOptions = ['' => 'Fără petrecere'] + $parties->mapWithKeys(fn ($p) => [
+                $p->id => $p->name.($p->starts_at ? ' — '.$p->starts_at->format('d.m.Y') : ''),
+            ])->all();
+
+            $stockItemOptions = $stockItems->mapWithKeys(fn ($s) => [$s->id => $s->name.' ('.$s->unit.')'])->all();
+
+            $menuItemOptions = $menuItems->mapWithKeys(fn ($m) => [$m->id => $m->name.' — '.rtrim(rtrim(number_format((float) $m->price, 2, ',', '.'), '0'), ',').' lei'])->all();
+
+            $reqOptions = ['' => 'Alege un necesar…'] + $openRequisitions->mapWithKeys(fn ($r) => [$r->id => $r->label])->all();
+
+            $isEditing = $report && $report->exists;
+
+            // Intrari: separam randurile aduse dintr-un necesar (grupate) de cele libere.
+            $grouped = collect($entries)->filter(fn ($r) => ! empty($r['requisition_item_id']))->groupBy('req_id');
+            $freeEntries = collect($entries)->filter(fn ($r) => empty($r['requisition_item_id']));
+        @endphp
+
+        <div class="max-w-3xl">
+            <div class="mb-5">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează raportarea' : 'Raportare nouă' }}</h2>
+                    <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-primary-soft text-primary">Draft</span>
+                </div>
+                <p class="mt-1 text-sm text-ink-soft leading-relaxed">
+                    Completează intrările, vânzările și pierderile. Se salvează automat pe măsură ce completezi — poți reveni oricând. Stocul nu se modifică până la <span class="font-medium text-ink">Finalizează</span>.
+                </p>
+            </div>
+
+            <x-flash class="mb-4" />
+
+            {{-- Antet: dată + petrecere + notă --}}
+            <div class="bg-surface border border-border rounded-2xl p-5 space-y-4 mb-5">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-ink mb-1.5">Data raportării</label>
+                        <input type="date" id="date" wire:model.live="date"
+                               class="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-ink mb-1.5">Petrecere <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
+                        <x-select wire:model="party_id" live placeholder="Fără petrecere" :options="$partyOptions" />
+                    </div>
+                </div>
+                <div>
+                    <label for="note" class="block text-sm font-medium text-ink mb-1.5">Notă <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
+                    <textarea id="note" wire:model.blur="note" rows="2" placeholder="ex. observații despre seara asta…"
+                              class="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"></textarea>
+                </div>
+            </div>
+
+            {{-- ===================== INTRĂRI ===================== --}}
+            <section class="mb-5">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-soft text-primary shrink-0">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </span>
+                    <h3 class="text-base font-semibold text-ink">Intrări</h3>
+                    <span class="text-xs text-ink-soft">aprovizionare — produs de stoc + cantitate + cost/unitate (opțional)</span>
+                </div>
+
+                {{-- Aducere din necesar deschis --}}
+                @if ($openRequisitions->isNotEmpty())
+                    <div class="rounded-xl border border-dashed border-primary/40 bg-primary-soft/30 p-3.5 mb-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <span class="text-sm font-medium text-ink shrink-0">Adaugă dintr-un necesar:</span>
+                            <div class="sm:flex-1 sm:max-w-xs">
+                                <x-select wire:model="importReqId" live placeholder="Alege un necesar…" :options="$reqOptions" />
+                            </div>
+                        </div>
+
+                        @if ($importRequisition)
+                            @php
+                                $remainingItems = $importRequisition->items
+                                    ->filter(fn ($it) => $it->remainingQty() > 0 && ! in_array($it->id, $importedItemIds, true))
+                                    ->sortBy(fn ($it) => mb_strtolower($it->stockItem->name));
+                            @endphp
+
+                            <div class="mt-3 border-t border-primary/20 pt-3">
+                                @if ($remainingItems->isEmpty())
+                                    <p class="text-sm text-ink-soft">Tot ce lipsea din „{{ $importRequisition->label }}" a fost deja adus sau primit.</p>
+                                @else
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-medium text-ink-soft">{{ $remainingItems->count() }} {{ $remainingItems->count() === 1 ? 'produs de adus' : 'produse de adus' }}</span>
+                                        <x-btn variant="primary" size="sm" wire:click="importRequisition({{ $importRequisition->id }})">Adaugă toate</x-btn>
+                                    </div>
+                                    <div class="space-y-1">
+                                        @foreach ($remainingItems as $it)
+                                            <div wire:key="import-item-{{ $it->id }}" class="flex items-center justify-between gap-3 rounded-lg bg-white border border-border px-3 py-2">
+                                                <div class="min-w-0">
+                                                    <span class="text-sm text-ink">{{ $it->stockItem->name }}</span>
+                                                    <span class="block text-xs text-ink-soft/70">cerut {{ $fmt($it->qty_requested) }} · rămas {{ $fmt($it->remainingQty()) }} {{ $it->stockItem->unit }}</span>
+                                                </div>
+                                                <button type="button" wire:click="importRequisitionItem({{ $it->id }})"
+                                                        class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary-soft text-primary text-xs font-medium px-2.5 py-1.5 hover:bg-primary hover:text-white transition-colors">
+                                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                                    Adaugă
+                                                </button>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
+                @if ($importMessage)
+                    <x-alert type="info" dismiss-prop="importMessage" :dismiss-value="null" class="mb-3">{{ $importMessage }}</x-alert>
+                @endif
+
+                {{-- Grupuri aduse din necesare --}}
+                @foreach ($grouped as $reqId => $groupRows)
+                    @php $reqLabel = $groupRows->first()['req_label'] ?? 'Necesar'; @endphp
+                    <div wire:key="entry-group-{{ $reqId }}" class="rounded-2xl border border-primary/30 bg-surface mb-3 overflow-visible">
+                        <div class="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-primary/20 bg-primary-soft/30 rounded-t-2xl">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <svg class="w-4 h-4 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2" width="6" height="4" rx="1"/></svg>
+                                <span class="text-sm font-medium text-ink truncate">din necesar „{{ $reqLabel }}"</span>
+                            </div>
+                            <button type="button" wire:click="removeRequisitionGroup({{ $reqId }})"
+                                    class="shrink-0 text-xs text-ink-soft/70 hover:text-danger">Șterge tot grupul</button>
+                        </div>
+
+                        <div class="p-3 space-y-3">
+                            @foreach ($groupRows as $i => $line)
+                                @php $si = ! empty($line['stock_item_id']) ? $stockItems->firstWhere('id', (int) $line['stock_item_id']) : null; @endphp
+                                <div wire:key="entry-req-{{ $line['requisition_item_id'] }}">
+                                    <div class="flex items-start gap-2">
+                                        <div class="flex-1 min-w-0 rounded-lg border border-border bg-bg px-3.5 py-2.5 text-sm text-ink truncate">
+                                            {{ $si?->name ?? 'Produs' }} @if ($si)<span class="text-ink-soft/60">({{ $si->unit }})</span>@endif
+                                        </div>
+                                        <div class="w-32 shrink-0">
+                                            <div class="relative">
+                                                <input type="number" step="0.001" min="0" wire:model.live.debounce.500ms="entries.{{ $i }}.qty" placeholder="Cant."
+                                                       class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary {{ $si ? 'pr-10' : '' }}">
+                                                @if ($si)<span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">{{ $si->unit }}</span>@endif
+                                            </div>
+                                        </div>
+                                        <button type="button" wire:click="removeEntry({{ $i }})" title="Elimină"
+                                                class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        </button>
+                                    </div>
+
+                                    <div class="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-ink-soft">
+                                        <span>cerut {{ $fmt($line['req_requested'] ?? 0) }} · rămas {{ $fmt($line['req_remaining'] ?? 0) }} {{ $si?->unit }}</span>
+                                    </div>
+
+                                    {{-- Cost/unitate --}}
+                                    <div class="mt-1.5 flex items-center gap-2">
+                                        <div class="w-40 relative">
+                                            <input type="number" step="0.0001" min="0" wire:model.live.debounce.500ms="entries.{{ $i }}.unit_cost" placeholder="Cost/unit."
+                                                   class="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary pr-12">
+                                            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-soft/60">lei/{{ $si?->unit }}</span>
+                                        </div>
+                                        @if (($line['unit_cost'] ?? '') === '')
+                                            <span class="text-[11px] text-ink-soft/70">cost necunoscut — CMP neschimbat</span>
+                                        @endif
+                                    </div>
+                                    @if ($si && $si->unit !== 'buc')
+                                        <x-cost-helper wire:key="entry-cost-req-{{ $line['requisition_item_id'] }}" path="entries.{{ $i }}.unit_cost" :unit="$si->unit" :default-qty="$si->hasPackage() ? $si->package_qty : null" />
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+
+                {{-- Randuri libere de intrare --}}
+                <div class="space-y-3">
+                    @foreach ($freeEntries as $i => $line)
+                        @php $si = ! empty($line['stock_item_id']) ? $stockItems->firstWhere('id', (int) $line['stock_item_id']) : null; @endphp
+                        <div wire:key="entry-free-{{ $i }}">
+                            <div class="flex items-start gap-2">
+                                <x-dropdown-select path="entries.{{ $i }}.stock_item_id" :options="$stockItemOptions" :selected="$line['stock_item_id'] ?? ''" placeholder="Alege produsul…" class="flex-1" />
+                                <div class="w-32 shrink-0">
+                                    <div class="relative">
+                                        <input type="number" step="0.001" min="0" wire:model.live.debounce.500ms="entries.{{ $i }}.qty" placeholder="Cant."
+                                               class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary {{ $si ? 'pr-10' : '' }}">
+                                        @if ($si)<span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">{{ $si->unit }}</span>@endif
+                                    </div>
+                                </div>
+                                @if (! empty($line['stock_item_id']))
+                                    <button type="button" wire:click="removeEntry({{ $i }})" title="Elimină"
+                                            class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
+                                @endif
+                            </div>
+
+                            @if ($si)
+                                <div class="mt-1.5 flex items-center gap-2">
+                                    <div class="w-40 relative">
+                                        <input type="number" step="0.0001" min="0" wire:model.live.debounce.500ms="entries.{{ $i }}.unit_cost" placeholder="Cost/unit."
+                                               class="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary pr-12">
+                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-soft/60">lei/{{ $si->unit }}</span>
+                                    </div>
+                                    @if (($line['unit_cost'] ?? '') === '')
+                                        <span class="text-[11px] text-ink-soft/70">cost necunoscut — CMP neschimbat</span>
+                                    @endif
+                                </div>
+                                @if ($si->unit !== 'buc')
+                                    <x-cost-helper wire:key="entry-cost-free-{{ $i }}-{{ $line['stock_item_id'] }}" path="entries.{{ $i }}.unit_cost" :unit="$si->unit" :default-qty="$si->hasPackage() ? $si->package_qty : null" />
+                                @endif
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+
+            {{-- ===================== VÂNZĂRI ===================== --}}
+            <section class="mb-5">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-info-soft text-info shrink-0">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    </span>
+                    <h3 class="text-base font-semibold text-ink">Vânzări</h3>
+                    <span class="text-xs text-ink-soft">produs de meniu + cantitate — prețul e cel din meniu</span>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach ($sales as $i => $line)
+                        @php $mi = ! empty($line['menu_item_id']) ? $menuItems->firstWhere('id', (int) $line['menu_item_id']) : null; @endphp
+                        <div wire:key="sale-{{ $i }}">
+                            <div class="flex items-start gap-2">
+                                <x-dropdown-select path="sales.{{ $i }}.menu_item_id" :options="$menuItemOptions" :selected="$line['menu_item_id'] ?? ''" placeholder="Alege produsul de meniu…" class="flex-1" />
+                                <div class="w-28 shrink-0">
+                                    <input type="number" step="0.001" min="0" wire:model.live.debounce.500ms="sales.{{ $i }}.qty" placeholder="Cant."
+                                           class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                                </div>
+                                @if (! empty($line['menu_item_id']))
+                                    <button type="button" wire:click="removeSale({{ $i }})" title="Elimină"
+                                            class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
+                                @endif
+                            </div>
+                            @if ($mi)
+                                <div class="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-ink-soft">
+                                    <span>{{ number_format((float) $mi->price, 2, ',', '.') }} lei/buc</span>
+                                    @if (is_numeric($line['qty']) && (float) $line['qty'] > 0)
+                                        <span class="text-ink font-medium">= {{ $money((float) $line['qty'] * (float) $mi->price) }} lei</span>
+                                    @endif
+                                    @unless ($mi->isTracked())
+                                        <span class="text-warning">nu e legat de stoc (fără rețetă) — doar venit</span>
+                                    @endunless
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+
+            {{-- ===================== PIERDERI ===================== --}}
+            <section class="mb-5">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-danger/10 text-danger shrink-0">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </span>
+                    <h3 class="text-base font-semibold text-ink">Pierderi</h3>
+                    <span class="text-xs text-ink-soft">consum/stricăciune — produs de stoc + cantitate + motiv</span>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach ($losses as $i => $line)
+                        @php
+                            $si = ! empty($line['stock_item_id']) ? $stockItems->firstWhere('id', (int) $line['stock_item_id']) : null;
+                            $needsReason = $si && (! isset($line['note']) || trim((string) $line['note']) === '');
+                        @endphp
+                        <div wire:key="loss-{{ $i }}">
+                            <div class="flex items-start gap-2">
+                                <x-dropdown-select path="losses.{{ $i }}.stock_item_id" :options="$stockItemOptions" :selected="$line['stock_item_id'] ?? ''" placeholder="Alege produsul…" class="flex-1" />
+                                <div class="w-28 shrink-0">
+                                    <div class="relative">
+                                        <input type="number" step="0.001" min="0" wire:model.live.debounce.500ms="losses.{{ $i }}.qty" placeholder="Cant."
+                                               class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary {{ $si ? 'pr-10' : '' }}">
+                                        @if ($si)<span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">{{ $si->unit }}</span>@endif
+                                    </div>
+                                </div>
+                                @if (! empty($line['stock_item_id']))
+                                    <button type="button" wire:click="removeLoss({{ $i }})" title="Elimină"
+                                            class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
+                                @endif
+                            </div>
+                            @if ($si)
+                                <div class="mt-1.5">
+                                    <input type="text" wire:model.blur="losses.{{ $i }}.note" placeholder="Motiv (obligatoriu) — ex. spart, testare rețetă…"
+                                           class="w-full rounded-lg border {{ $needsReason ? 'border-danger/50' : 'border-border' }} bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                                    @if ($needsReason)
+                                        <p class="mt-1 text-[11px] text-danger">Completează motivul — altfel raportarea nu poate fi finalizată.</p>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+
+            {{-- ===================== IMPACT ASUPRA STOCULUI ===================== --}}
+            <section class="mb-6">
+                <div class="rounded-2xl border border-border bg-surface">
+                    <div class="px-4 py-3 border-b border-border">
+                        <h3 class="text-sm font-semibold text-ink">Impact asupra stocului</h3>
+                        <p class="text-xs text-ink-soft mt-0.5">Efectul cumulat al liniilor de mai sus, calculat live. Nu se scrie nimic până la finalizare.</p>
+                    </div>
+
+                    @if (empty($impact))
+                        <p class="px-4 py-5 text-sm text-ink-soft/60 italic">Adaugă intrări, vânzări sau pierderi ca să vezi impactul.</p>
+                    @else
+                        <div class="hidden sm:grid grid-cols-[1fr_8rem_7rem_8rem] gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft/60">
+                            <span>Produs</span>
+                            <span class="text-right">Stoc curent</span>
+                            <span class="text-right">Din raport</span>
+                            <span class="text-right">Stoc estimat</span>
+                        </div>
+                        <div class="divide-y divide-border/60">
+                            @foreach ($impact as $row)
+                                <div class="px-4 py-2 sm:grid sm:grid-cols-[1fr_8rem_7rem_8rem] sm:gap-3 sm:items-center flex flex-wrap justify-between gap-x-3 {{ $row['result'] < 0 ? 'bg-danger/5' : '' }}">
+                                    <span class="text-sm text-ink min-w-0">{{ $row['name'] }}</span>
+                                    <span class="text-sm text-ink-soft sm:text-right"><span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Curent: </span>{{ $fmt($row['current']) }} {{ $row['unit'] }}</span>
+                                    <span class="text-sm sm:text-right {{ $row['net'] < 0 ? 'text-danger' : 'text-primary' }}">
+                                        <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Δ: </span>{{ $row['net'] >= 0 ? '+' : '−' }}{{ $fmt(abs($row['net'])) }} {{ $row['unit'] }}
+                                    </span>
+                                    <span class="text-sm font-medium sm:text-right {{ $row['result'] < 0 ? 'text-danger' : 'text-ink' }}">
+                                        <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Estimat: </span>{{ $fmt($row['result']) }} {{ $row['unit'] }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                        @if (collect($impact)->contains(fn ($r) => $r['result'] < 0))
+                            <div class="px-4 py-2.5 border-t border-border">
+                                <p class="text-xs text-danger">Unele produse ar ajunge pe stoc negativ (roșu). Poți finaliza oricum — e doar un avertisment.</p>
+                            </div>
+                        @endif
+                    @endif
+                </div>
+            </section>
+
+            {{-- ===================== ACȚIUNI ===================== --}}
+            <div
+                x-data="{ finalizeOpen: false, confirmed: false }"
+                class="flex flex-wrap items-center gap-3 pt-1"
+            >
+                <x-btn variant="primary" wire:click="saveDraft" wire:loading.attr="disabled" wire:target="saveDraft">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Salvează draftul
+                </x-btn>
+
+                <x-btn variant="info" @click="finalizeOpen = true; confirmed = false">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Finalizează
+                </x-btn>
+
+                <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-sm text-ink-soft hover:text-ink">Înapoi la listă</a>
+
+                @error('finalize') <p class="w-full text-sm text-danger">{{ $message }}</p> @enderror
+
+                {{-- Dialog de finalizare (confirmare explicită, ireversibilă) --}}
+                <div x-show="finalizeOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-ink/40" @click="finalizeOpen = false"></div>
+                    <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-md w-full p-6">
+                        <h3 class="text-base font-semibold text-ink">Finalizează raportarea</h3>
+                        <p class="mt-2 text-sm text-ink-soft leading-relaxed">
+                            La finalizare se creează mișcările reale de stoc: intrările cresc stocul (și recalculează CMP), vânzările și pierderile îl scad. <span class="font-medium text-ink">Acțiunea nu mai poate fi anulată</span> — raportarea nu va mai putea fi modificată sau ștearsă.
+                        </p>
+                        <label class="mt-4 flex items-start gap-2.5 cursor-pointer">
+                            <input type="checkbox" x-model="confirmed" class="mt-0.5 rounded border-border text-primary focus:ring-primary/40">
+                            <span class="text-sm text-ink">Am înțeles — finalizez, fără posibilitate de modificare ulterioară.</span>
+                        </label>
+                        <div class="mt-6 flex items-center justify-end gap-3">
+                            <button type="button" @click="finalizeOpen = false" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Anulează</button>
+                            <button type="button" :disabled="!confirmed"
+                                    @click="$wire.set('finalizeConfirm', true).then(() => $wire.finalize()); finalizeOpen = false"
+                                    class="rounded-lg px-4 py-2 text-sm font-medium text-white bg-info hover:bg-info/90 disabled:opacity-40 disabled:cursor-not-allowed">
+                                Finalizează
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+</div>

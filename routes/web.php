@@ -17,6 +17,8 @@ use App\Livewire\Admin\Parties\Show as PartiesShow;       // DXA: adaugat (Petre
 use App\Livewire\Admin\ResetPassword;
 use App\Livewire\Admin\Settings\Index as SettingsIndex; // DXA: adaugat (Setari)
 use App\Livewire\Admin\SetupPhone;
+use App\Livewire\Admin\StockReports\Form as StockReportForm;       // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\StockReports\Index as StockReportsIndex;    // DXA: adaugat (Bar - raportari)
 use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm;   // DXA: adaugat (Bar - necesare)
 use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex; // DXA: adaugat (Bar - necesare)
 use App\Livewire\Admin\Stocks\Index as StockItemsIndex; // DXA: adaugat (Bar - stocuri)
@@ -83,6 +85,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/stocks/requisitions', StockRequisitionsIndex::class)->name('stock-requisitions.index');
             Route::get('/stocks/requisitions/create', StockRequisitionForm::class)->name('stock-requisitions.create');
             Route::get('/stocks/requisitions/{requisition}/edit', StockRequisitionForm::class)->name('stock-requisitions.edit');
+
+            // DXA: adaugat (Bar - raportari). 'edit' serveste si vizualizarea unui
+            // raport finalizat (read-only e doar o stare a Form-ului, nu ruta separata).
+            Route::get('/stocks/reports', StockReportsIndex::class)->name('stock-reports.index');
+            Route::get('/stocks/reports/create', StockReportForm::class)->name('stock-reports.create');
+            Route::get('/stocks/reports/{report}/edit', StockReportForm::class)->name('stock-reports.edit');
 
             // DXA: adaugat (Setari)
             Route::get('/settings', SettingsIndex::class)->name('settings.index');

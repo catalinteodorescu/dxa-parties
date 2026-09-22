@@ -25,6 +25,7 @@ class StockMovement extends Model
         'stock_item_id',
         'report_id',
         'sale_id',
+        'requisition_item_id',
         'type',
         'qty',
         'unit_cost',
@@ -55,6 +56,16 @@ class StockMovement extends Model
     public function sale(): BelongsTo
     {
         return $this->belongsTo(StockReportSale::class, 'sale_id');
+    }
+
+    /**
+     * DXA: adaugat (Bar - raportari) — completat DOAR pe intrari (type='in')
+     * provenite dintr-un necesar, ca sa afisam sursa in Istoric mișcări
+     * ("Recepție necesar «...»") si in vizualizarea unei raportari finalizate.
+     */
+    public function requisitionItem(): BelongsTo
+    {
+        return $this->belongsTo(StockRequisitionItem::class, 'requisition_item_id');
     }
 
     public function creator(): BelongsTo

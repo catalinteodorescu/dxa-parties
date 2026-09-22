@@ -81,9 +81,9 @@ class Index extends Component
         $requisition = StockRequisition::findOrFail($id);
 
         // La fel ca la produsele de stoc: blocam doar cand exista istoric REAL,
-        // adica raportari care au rezolvat (macar partial) acest necesar. Fara
-        // raportari, e doar o lista de cumparaturi neonorata - se poate sterge.
-        if ($requisition->reports()->exists()) {
+        // adica cel putin o linie a primit deja marfa printr-o raportare. Fara
+        // asta, e doar o lista de cumparaturi neonorata - se poate sterge.
+        if ($requisition->items()->where('qty_received', '>', 0)->exists()) {
             session()->flash('error', 'Necesarul „'.$requisition->label.'" are deja raportări asociate — nu poate fi șters. Îl poți închide în schimb.');
 
             return;

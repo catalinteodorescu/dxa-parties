@@ -199,15 +199,23 @@ class StockItem extends Model
         return $movement;
     }
 
-    /** Intrare (aprovizionare) prin raportare. Recalculeaza CMP. */
-    public function recordEntry(float $qty, float $unitCost, ?int $reportId, ?int $adminId, ?string $note = null): StockMovement
+    /**
+     * Intrare (aprovizionare) prin raportare. Recalculeaza CMP.
+     *
+     * $unitCost e nullable - daca nu se stie pretul de achizitie la aceasta
+     * intrare, CMP-ul ramane neschimbat (doar cantitatea creste), vezi
+     * applyIncrease(). $requisitionItemId e completat DOAR cand intrarea
+     * provine dintr-un necesar (folosit in Istoric miscari pt. sursa).
+     */
+    public function recordEntry(float $qty, ?float $unitCost, ?int $reportId, ?int $adminId, ?string $note = null, ?int $requisitionItemId = null): StockMovement
     {
         $movement = $this->movements()->create([
             'report_id' => $reportId,
+            'requisition_item_id' => $requisitionItemId,
             'type' => 'in',
             'qty' => $qty,
             'unit_cost' => $unitCost,
-            'total_cost' => round($qty * $unitCost, 2),
+            'total_cost' => $unitCost !== null ? round($qty * $unitCost, 2) : null,
             'note' => $note,
             'created_by' => $adminId,
         ]);

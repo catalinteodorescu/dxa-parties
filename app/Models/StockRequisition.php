@@ -37,11 +37,6 @@ class StockRequisition extends Model
         return $this->hasMany(StockRequisitionItem::class);
     }
 
-    public function reports(): HasMany
-    {
-        return $this->hasMany(StockReport::class, 'requisition_id');
-    }
-
     public function scopeOpen(Builder $query): Builder
     {
         return $query->where('status', 'open');
