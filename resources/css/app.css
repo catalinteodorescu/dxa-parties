@@ -28,6 +28,10 @@
     /* mov — duplicare */
     --color-purple: #7C4DBC;
 
+    /* succes (verde) — alerte de confirmare (<x-alert type="success">) */
+    --color-success: #15803D;
+    --color-success-soft: #DDF3E5;
+
     /* stari / actiuni */
     --color-danger: #DC2626;   /* stergere (rosu viu) */
     --color-warning: #CA8A04;  /* editare (auriu, distinct de terracotta) */
@@ -59,4 +63,21 @@ input[type="time"] {
 }
 input::-webkit-calendar-picker-indicator {
     cursor: pointer;
+}
+
+/* Reordonare prin drag & drop (wire:sort.ghost, ex. Bar → Categorii).
+   .sortable-ghost = elementul tras, in pozitia in care va ateriza: il aratam ca un
+   placeholder (chenar punctat, fundal deschis, continut estompat). CSS-ul de aici e
+   in afara @layer, deci are prioritate fata de utilitarele Tailwind de pe element. */
+.sortable-ghost {
+    border-style: dashed;
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-soft);
+}
+.sortable-ghost > * {
+    opacity: 0.35;
+}
+body.sorting,
+body.sorting * {
+    cursor: grabbing !important;
 }

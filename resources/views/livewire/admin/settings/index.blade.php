@@ -4,11 +4,7 @@
         <p class="mt-1 text-sm text-ink-soft">Configurări generale ale aplicației.</p>
     </div>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
-            {{ session('status') }}
-        </div>
-    @endif
+    <x-flash class="mb-4" />
 
     <form wire:submit="save" class="space-y-5">
         @foreach ($this->sections() as $section)

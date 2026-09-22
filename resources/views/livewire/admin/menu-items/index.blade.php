@@ -55,11 +55,7 @@
         @endif
     </div>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
-            {{ session('status') }}
-        </div>
-    @endif
+    <x-flash class="mb-4" />
 
     <div class="space-y-3">
         @php $lastCategoryId = null; @endphp
@@ -74,24 +70,26 @@
                 </h3>
             @endif
 
+            {{-- Pe mobil (<md): grid cu text + poză inline (poza în dreapta, ~3 rânduri înălțime) și acțiunile pe rândul de dedesubt.
+                 De la md: rând flex — poză (stânga) | detalii | acțiuni. --}}
             <div wire:key="item-{{ $item->id }}"
-                 class="rounded-2xl border border-border bg-surface p-3 md:p-4 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                 class="rounded-2xl border border-border bg-surface p-3 md:p-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-y-3 md:flex md:gap-4">
 
-                {{-- Imagine --}}
-                <div class="shrink-0">
-                    @if ($item->imageUrl())
-                        <img src="{{ $item->imageUrl() }}" alt="" class="w-full h-40 md:w-20 md:h-20 object-cover rounded-xl border border-border">
-                    @else
-                        <div class="w-full h-40 md:w-20 md:h-20 rounded-xl border border-border bg-bg flex items-center justify-center text-ink-soft/40">
-                            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
-                            </svg>
-                        </div>
-                    @endif
-                </div>
+                {{-- Imagine: pe mobil doar dacă există (fără placeholder); pe desktop cu placeholder --}}
+                @if ($item->imageUrl())
+                    <div class="col-start-2 row-start-1 ml-3 md:ml-0 shrink-0">
+                        <img src="{{ $item->imageUrl() }}" alt="" class="size-18 md:size-20 object-cover rounded-xl border border-border">
+                    </div>
+                @else
+                    <div class="hidden md:flex shrink-0 size-20 rounded-xl border border-border bg-bg items-center justify-center text-ink-soft/40">
+                        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                    </div>
+                @endif
 
                 {{-- Detalii --}}
-                <div class="min-w-0 flex-1">
+                <div class="col-start-1 row-start-1 min-w-0 md:flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
                         <h3 class="font-semibold text-ink truncate">{{ $item->name }}</h3>
                         @if ($item->is_active)
@@ -108,7 +106,7 @@
                     </div>
 
                     @if ($item->description)
-                        <p class="mt-0.5 text-sm text-ink-soft line-clamp-2 md:line-clamp-1">{{ $item->description }}</p>
+                        <p class="mt-0.5 text-sm text-ink-soft line-clamp-1">{{ $item->description }}</p>
                     @endif
 
                     <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -127,7 +125,7 @@
                 </div>
 
                 {{-- Acțiuni --}}
-                <div class="flex items-center gap-2 flex-wrap md:flex-nowrap md:shrink-0">
+                <div class="col-span-2 row-start-2 md:col-auto md:row-auto flex items-center gap-2 flex-wrap md:flex-nowrap md:shrink-0">
                     <x-btn variant="info" size="icon" outline
                            tooltip="{{ $item->is_active ? 'Ascunde din meniu' : 'Afișează în meniu' }}"
                            wire:click="toggleActive({{ $item->id }})">

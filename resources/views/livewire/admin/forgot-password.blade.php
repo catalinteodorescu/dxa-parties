@@ -4,9 +4,9 @@
     <p class="mt-1 text-sm text-ink-soft">Introdu numărul de telefon cu care te loghezi.</p>
 
     @if ($sent)
-        <div class="mt-6 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
+        <x-alert type="success" :dismissible="false" class="mt-6">
             Dacă acest număr este înregistrat, vei primi un SMS cu instrucțiuni de resetare.
-        </div>
+        </x-alert>
     @else
         <form wire:submit="send" class="mt-6 space-y-4">
             <div>

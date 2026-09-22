@@ -52,24 +52,13 @@
         @endif
     </div>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
-            {{ session('status') }}
-        </div>
-    @endif
+    <x-flash class="mb-4" />
 
-    @if (session('error'))
-        <div class="mb-4 rounded-lg bg-danger/10 text-danger text-sm px-4 py-3">
-            {{ session('error') }}
-        </div>
-    @endif
+    {{-- Lista: antet de coloane slim (doar desktop) + fiecare admin = card propriu, spațiat --}}
+    <div>
 
-    {{-- Lista: pe desktop o "tabela" din div-uri cu grid; pe mobil casete stivuite --}}
-    <div class="md:rounded-2xl md:border md:border-border md:bg-surface">
-
-        {{-- Cap de tabel, doar pe desktop --}}
-        <div class="hidden md:grid {{ $cols }} gap-4 px-5 py-3 border-b border-border bg-bg rounded-t-2xl
-                    text-xs font-semibold uppercase tracking-wide text-ink-soft">
+        <div class="hidden md:grid {{ $cols }} gap-4 px-5 py-2
+                    text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
             <div>Nume</div>
             <div>Telefon</div>
             @if ($isSuper)<div>Rol</div>@endif
@@ -78,13 +67,11 @@
             @if ($isSuper)<div class="text-right">Acțiuni</div>@endif
         </div>
 
-        <div class="space-y-3 md:space-y-0 md:divide-y md:divide-border">
+        <div class="space-y-3">
             @forelse ($admins as $admin)
                 @php $isSelf = $admin->id === $currentAdmin->id; @endphp
                 <div class="rounded-2xl border border-border bg-surface p-4 space-y-3
-                            md:rounded-none md:border-0 md:bg-transparent md:p-0 md:px-5 md:py-3
-                            md:space-y-0 md:grid {{ $cols }} md:items-center md:gap-4
-                            md:transition-colors md:hover:bg-bg md:last:rounded-b-2xl">
+                            md:px-5 md:py-3 md:space-y-0 md:grid {{ $cols }} md:items-center md:gap-4">
 
                     {{-- Nume --}}
                     <div class="flex items-start justify-between gap-3 md:block">
@@ -233,8 +220,7 @@
                     @endif
                 </div>
             @empty
-                <div class="rounded-2xl border border-border bg-surface px-5 py-8 text-center text-ink-soft
-                            md:rounded-none md:border-0 md:bg-transparent">
+                <div class="rounded-2xl border border-border bg-surface px-5 py-8 text-center text-ink-soft">
                     Niciun admin momentan.
                 </div>
             @endforelse

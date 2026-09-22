@@ -17,6 +17,8 @@ use App\Livewire\Admin\Parties\Show as PartiesShow;       // DXA: adaugat (Petre
 use App\Livewire\Admin\ResetPassword;
 use App\Livewire\Admin\Settings\Index as SettingsIndex; // DXA: adaugat (Setari)
 use App\Livewire\Admin\SetupPhone;
+use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm;   // DXA: adaugat (Bar - necesare)
+use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex; // DXA: adaugat (Bar - necesare)
 use App\Livewire\Admin\Stocks\Index as StockItemsIndex; // DXA: adaugat (Bar - stocuri)
 use App\Livewire\Admin\Users\Create as UsersCreate;
 use App\Livewire\Admin\Users\Index as UsersIndex;
@@ -76,6 +78,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             // DXA: adaugat (Bar - stocuri)
             Route::get('/stocks/items', StockItemsIndex::class)->name('stock-items.index');
+
+            // DXA: adaugat (Bar - necesare)
+            Route::get('/stocks/requisitions', StockRequisitionsIndex::class)->name('stock-requisitions.index');
+            Route::get('/stocks/requisitions/create', StockRequisitionForm::class)->name('stock-requisitions.create');
+            Route::get('/stocks/requisitions/{requisition}/edit', StockRequisitionForm::class)->name('stock-requisitions.edit');
 
             // DXA: adaugat (Setari)
             Route::get('/settings', SettingsIndex::class)->name('settings.index');

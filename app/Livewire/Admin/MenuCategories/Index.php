@@ -134,28 +134,30 @@ class Index extends Component
     }
 
     /**
-     * Reordonare prin drag & drop: muta categoria $draggedId chiar inaintea
-     * lui $targetId, apoi renumeroteaza sort_order pentru toate categoriile
-     * (0, 1, 2, ...) ca sa ramana un ordin curat, fara goluri.
+     * Reordonare prin drag & drop (wire:sort): primeste categoria mutata si POZITIA
+     * (index de la 0) pe care a ajuns in lista, apoi renumeroteaza sort_order pentru
+     * toate categoriile (0, 1, 2, ...) ca sa ramana un ordin curat, fara goluri.
+     * Pozitia ultimului element (= numarul de categorii - 1) e valida, deci se poate
+     * duce o categorie si pe ultimul loc.
      */
-    public function reorder(int $draggedId, int $targetId): void
+    public function reorder(int $id, int $position): void
     {
-        if ($draggedId === $targetId) {
+        $before = array_map('intval', MenuCategory::ordered()->pluck('id')->all());
+
+        if (! in_array($id, $before, true)) {
             return;
         }
 
-        $ids = MenuCategory::ordered()->pluck('id')->all();
-        $ids = array_values(array_filter($ids, fn ($id) => $id !== $draggedId));
+        $ids = array_values(array_filter($before, fn ($x) => $x !== $id));
+        $position = max(0, min($position, count($ids)));
+        array_splice($ids, $position, 0, [$id]);
 
-        $targetIndex = array_search($targetId, $ids, true);
-        if ($targetIndex === false) {
-            return;
+        if ($ids === $before) {
+            return; // eliberat pe acelasi loc: nimic de salvat / de logat
         }
 
-        array_splice($ids, $targetIndex, 0, [$draggedId]);
-
-        foreach ($ids as $index => $id) {
-            MenuCategory::where('id', $id)->update(['sort_order' => $index]);
+        foreach ($ids as $index => $categoryId) {
+            MenuCategory::where('id', $categoryId)->update(['sort_order' => $index]);
         }
 
         ActivityLogger::log('menu.categories_reordered', 'A reordonat categoriile de meniu.');

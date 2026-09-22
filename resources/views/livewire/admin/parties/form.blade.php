@@ -17,9 +17,7 @@
         <p class="mt-1 text-sm text-ink-soft leading-relaxed">Petrecere simplă (o seară) sau festival pe mai multe zile.</p>
     </div>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">{{ session('status') }}</div>
-    @endif
+    <x-flash class="mb-4" />
 
     <form wire:submit="save" class="space-y-4"
           x-data

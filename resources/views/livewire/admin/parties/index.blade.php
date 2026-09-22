@@ -65,11 +65,7 @@
         @endif
     </div>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
-            {{ session('status') }}
-        </div>
-    @endif
+    <x-flash class="mb-4" />
 
     <div class="space-y-3">
         @forelse ($parties as $p)

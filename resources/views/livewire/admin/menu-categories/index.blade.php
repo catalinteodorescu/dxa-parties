@@ -16,7 +16,6 @@
             this.$wire.call(this.confirmMethod, ...this.confirmArgs);
             this.confirmOpen = false;
         },
-        draggedId: null,
     }"
 >
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -32,21 +31,11 @@
         </x-btn>
     </div>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
-            {{ session('status') }}
-        </div>
-    @endif
+    <x-flash class="mb-4" />
 
-    @if (session('error'))
-        <div class="mb-4 rounded-lg bg-danger/10 text-danger text-sm px-4 py-3">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    {{-- Listă: pe desktop arată ca tabel (antet + rânduri într-un card), pe mobil caseta cu label+valoare --}}
-    <div class="rounded-2xl border border-border bg-surface overflow-hidden">
-        <div class="hidden md:grid grid-cols-[2.5rem_1fr_7rem_7rem_11rem] gap-3 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-soft/70 border-b border-border">
+    {{-- Listă: antet de coloane slim (doar desktop) + fiecare categorie = card propriu, spațiat --}}
+    <div>
+        <div class="hidden md:grid grid-cols-[2.5rem_1fr_7rem_7rem_11rem] gap-3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
             <span>Ordine</span>
             <span>Denumire</span>
             <span>Articole</span>
@@ -54,19 +43,16 @@
             <span class="text-right">Acțiuni</span>
         </div>
 
+        {{-- wire:sort.ghost: elementul tras se mută în listă pe măsură ce treci peste celelalte, iar locul lui
+             (clasa .sortable-ghost, vezi app.css) rămâne vizibil ca placeholder până la eliberare. --}}
+        <div class="space-y-3" wire:sort.ghost="reorder">
         @forelse ($categories as $c)
-            <div wire:key="cat-{{ $c->id }}"
-                 draggable="true"
-                 @dragstart="draggedId = {{ $c->id }}"
-                 @dragend="draggedId = null"
-                 @dragover.prevent
-                 @drop.prevent="$wire.call('reorder', draggedId, {{ $c->id }}); draggedId = null"
-                 :class="draggedId === {{ $c->id }} ? 'opacity-40' : ''"
-                 class="border-b border-border last:border-0 p-3 md:px-4 md:py-2.5 md:grid md:grid-cols-[2.5rem_1fr_7rem_7rem_11rem] md:items-center md:gap-3 transition-opacity">
+            <div wire:key="cat-{{ $c->id }}" wire:sort:item="{{ $c->id }}"
+                 class="rounded-2xl border border-border bg-surface p-3 md:px-4 md:py-2.5 md:grid md:grid-cols-[2.5rem_1fr_7rem_7rem_11rem] md:items-center md:gap-3">
 
                 {{-- Maner drag + up/down (mobil) --}}
                 <div class="flex items-center gap-1 md:block">
-                    <span class="hidden md:flex items-center justify-center w-6 h-6 text-ink-soft/40 cursor-grab active:cursor-grabbing" title="Trage ca să reordonezi">
+                    <span wire:sort:handle class="hidden md:flex items-center justify-center w-6 h-6 text-ink-soft/40 cursor-grab active:cursor-grabbing" title="Trage ca să reordonezi">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.3"/><circle cx="15" cy="6" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="18" r="1.3"/><circle cx="15" cy="18" r="1.3"/></svg>
                     </span>
 
@@ -139,10 +125,11 @@
                 </div>
             </div>
         @empty
-            <div class="px-5 py-10 text-center text-ink-soft">
+            <div class="rounded-2xl border border-border bg-surface px-5 py-10 text-center text-ink-soft">
                 Nicio categorie încă. Apasă „Categorie nouă" ca să adaugi prima.
             </div>
         @endforelse
+        </div>
     </div>
 
     {{-- Modal: creare/editare categorie --}}

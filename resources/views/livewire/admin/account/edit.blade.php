@@ -7,9 +7,9 @@
         </div>
 
         @if ($profileUpdated)
-            <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
+            <x-alert type="success" dismiss-prop="profileUpdated" class="mb-4">
                 Datele au fost actualizate cu succes.
-            </div>
+            </x-alert>
         @endif
 
         <form wire:submit="updateProfile" class="bg-surface border border-border rounded-2xl p-6 space-y-4">
@@ -43,9 +43,9 @@
         </div>
 
         @if ($passwordUpdated)
-            <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
+            <x-alert type="success" dismiss-prop="passwordUpdated" class="mb-4">
                 Parola a fost schimbată cu succes.
-            </div>
+            </x-alert>
         @endif
 
         <form wire:submit="updatePassword" class="bg-surface border border-border rounded-2xl p-6 space-y-4">

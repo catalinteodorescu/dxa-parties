@@ -78,14 +78,20 @@ class StockItem extends Model
         return $this->min_stock !== null && (float) $this->stock_qty <= (float) $this->min_stock;
     }
 
-    /** Cat lipseste pana la min_stock (folosit ca sugestie la generarea unui necesar). Min 0. */
+    /**
+     * Cantitatea sugerata la generarea unui necesar pentru un produs aflat la/sub prag:
+     * chiar PRAGUL MINIM, nu doar cat lipseste pana la el. Dupa aprovizionare stocul
+     * urca peste prag cu o marja egala cu pragul, deci o petrecere poate consuma din
+     * el fara sa coboare iar sub prag. Ex.: prag 3, stoc 2 -> se cere 3 (ajungi la 5),
+     * nu 1 (ai fi ramas fix la prag). 0 daca produsul nu are prag setat.
+     */
     public function suggestedRequisitionQty(): float
     {
         if ($this->min_stock === null) {
             return 0.0;
         }
 
-        return max(0.0, (float) $this->min_stock - (float) $this->stock_qty);
+        return max(0.0, (float) $this->min_stock);
     }
 
     // ------------------------------------------------------------------
@@ -113,11 +119,21 @@ class StockItem extends Model
     /** Text gata de afisat, ex. "≈ 2,43 sticle de 700ml". Null daca nu are ambalaj definit. */
     public function packageDisplay(): ?string
     {
+        return $this->packageDisplayFor((float) $this->stock_qty);
+    }
+
+    /**
+     * DXA: adaugat (Bar - necesare) — la fel ca packageDisplay(), dar pentru o
+     * cantitate oarecare (ex. cat cer intr-un necesar, cat intra intr-o
+     * raportare), nu doar pentru stocul curent. Null daca nu are ambalaj definit.
+     */
+    public function packageDisplayFor(float $qty): ?string
+    {
         if (! $this->hasPackage()) {
             return null;
         }
 
-        $count = number_format($this->packageCount(), 2, ',', '.');
+        $count = number_format(round($qty / (float) $this->package_qty, 2), 2, ',', '.');
 
         return '≈ '.$count.' '.$this->package_label;
     }

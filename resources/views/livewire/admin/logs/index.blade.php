@@ -8,22 +8,20 @@
         <p class="mt-1 text-sm text-ink-soft">Acțiunile importante din panoul de administrare, cele mai recente primele.</p>
     </div>
 
-    {{-- Lista: pe desktop "tabela" din div-uri cu grid; pe mobil casete stivuite --}}
-    <div class="md:rounded-2xl md:border md:border-border md:bg-surface">
+    {{-- Lista: antet de coloane slim (doar desktop) + fiecare eveniment = card propriu, spațiat --}}
+    <div>
 
-        {{-- Cap de tabel, doar pe desktop --}}
-        <div class="hidden md:grid {{ $cols }} gap-4 px-5 py-3 border-b border-border bg-bg rounded-t-2xl
-                    text-xs font-semibold uppercase tracking-wide text-ink-soft">
+        <div class="hidden md:grid {{ $cols }} gap-4 px-5 py-2
+                    text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
             <div>Când</div>
             <div>Cine</div>
             <div>Ce s-a întâmplat</div>
         </div>
 
-        <div class="space-y-3 md:space-y-0 md:divide-y md:divide-border">
+        <div class="space-y-3">
             @forelse ($logs as $log)
                 <div class="rounded-2xl border border-border bg-surface p-4 space-y-3
-                            md:rounded-none md:border-0 md:bg-transparent md:p-0 md:px-5 md:py-3
-                            md:space-y-0 md:grid {{ $cols }} md:items-start md:gap-4 md:last:rounded-b-2xl">
+                            md:px-5 md:py-3 md:space-y-0 md:grid {{ $cols }} md:items-start md:gap-4">
 
                     {{-- Când --}}
                     <div class="flex items-center justify-between gap-3 md:block">
@@ -45,8 +43,7 @@
                     </div>
                 </div>
             @empty
-                <div class="rounded-2xl border border-border bg-surface px-5 py-8 text-center text-ink-soft
-                            md:rounded-none md:border-0 md:bg-transparent">
+                <div class="rounded-2xl border border-border bg-surface px-5 py-8 text-center text-ink-soft">
                     Niciun eveniment înregistrat încă.
                 </div>
             @endforelse

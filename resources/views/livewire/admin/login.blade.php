@@ -9,17 +9,7 @@
         @endif
     </p>
 
-    @if (session('status'))
-        <div class="mt-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
-            {{ session('status') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="mt-4 rounded-lg bg-danger/10 text-danger text-sm px-4 py-3">
-            {{ session('error') }}
-        </div>
-    @endif
+    <x-flash class="mt-4" />
 
     <form wire:submit="login" class="mt-6 space-y-4">
 

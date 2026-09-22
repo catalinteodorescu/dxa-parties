@@ -39,10 +39,10 @@
         </x-btn>
     </div>
 
-    {{-- Filtre + căutare — ascunse implicit, deschise automat daca exista filtre active --}}
+    {{-- Filtre + căutare — pe ecrane mici (<md) sunt ascunse într-un toggle (deschis automat dacă există filtre active); de la md în sus sunt mereu vizibile, fără buton. --}}
     <div x-data="{ filtersOpen: {{ $hasFilters ? 'true' : 'false' }} }" class="mb-4">
         <button type="button" @click="filtersOpen = !filtersOpen"
-                class="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink">
+                class="md:hidden inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
             </svg>
@@ -55,7 +55,8 @@
             </svg>
         </button>
 
-        <div x-show="filtersOpen" x-cloak class="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div class="hidden md:block mt-2 md:mt-0" :class="filtersOpen ? 'max-md:block' : ''">
+        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <div class="relative sm:flex-1 sm:min-w-48">
                 <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -79,19 +80,10 @@
                 </button>
             @endif
         </div>
+        </div>
     </div>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg bg-primary-soft text-primary text-sm px-4 py-3">
-            {{ session('status') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="mb-4 rounded-lg bg-danger/10 text-danger text-sm px-4 py-3">
-            {{ session('error') }}
-        </div>
-    @endif
+    <x-flash class="mb-4" />
 
     {{-- Listă: pe desktop arată ca tabel, pe mobil casete cu label+valoare. Fiecare produs = card propriu (spatiat, rotunjit), nu un rand intr-un bloc unic. --}}
     <div class="hidden md:grid grid-cols-[1fr_14rem_6rem_15rem] gap-3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
@@ -103,7 +95,7 @@
 
     <div class="space-y-3">
         @forelse ($items as $item)
-            <div wire:key="stock-{{ $item->id }}" class="rounded-2xl border border-border bg-surface overflow-hidden">
+            <div wire:key="stock-{{ $item->id }}" class="rounded-2xl border border-border bg-surface">
                 <div class="p-3 md:px-4 md:py-2.5 md:grid md:grid-cols-[1fr_14rem_6rem_15rem] md:items-center md:gap-3">
 
                     {{-- Denumire --}}
@@ -196,7 +188,7 @@
 
                 {{-- Panou expandat: prag minim, cost unitar, valoare totala + istoric miscari --}}
                 @if ($expandedId === $item->id)
-                    <div class="px-4 pb-4 pt-1 bg-bg border-t border-border">
+                    <div class="px-4 pb-4 pt-1 border-t border-border">
                         <div class="flex flex-wrap gap-x-10 gap-y-3 py-3">
                             <div>
                                 <span class="block text-[11px] uppercase tracking-wide text-ink-soft/60 mb-0.5">Prag alertă</span>
