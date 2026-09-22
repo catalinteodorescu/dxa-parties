@@ -13,6 +13,7 @@
         'warning' => 'bg-warning/10 text-warning',
         'purple'  => 'bg-purple/10 text-purple',
         'danger'  => 'bg-danger/10 text-danger',
+        'success' => 'bg-success-soft text-success',
         'neutral' => 'bg-bg text-ink-soft',
     ];
     $badge = $accents[$accent] ?? $accents['primary'];

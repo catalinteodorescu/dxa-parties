@@ -2,6 +2,7 @@
     'path',            // calea Livewire (wire model) in care se scrie rezultatul, ex. "initial_qty"
     'unit' => '',      // eticheta unitatii, doar cosmetic (ex. "ml")
     'defaultSize' => null, // daca produsul are deja un ambalaj de referinta definit, preia cantitatea/bucata de acolo
+    'triggerClass' => '', // clasa (de regula latimea, ex. w-28) pusa pe linkul-declansator, ca sa cada exact sub inputul de cantitate de pe randul de deasupra
 ])
 
 {{--
@@ -13,6 +14,14 @@
     ambalaj de referinta salvat (ex. "sticla 700ml"), cantitatea/bucata vine
     precompletata - ramane doar sa introduci numarul de bucati.
 
+    Aliniere pe coloana: vezi explicatia din cost-helper.blade.php — prefix/
+    triggerClass/suffix oglindesc latimile coloanelor din randul de deasupra,
+    ca linkul sa cada exact sub inputul de cantitate; cand triggerClass e
+    setat, butonul devine block+w-full si text-right (altfel <button> are
+    text-align:center implicit din browser, vizibil "centrat" cand textul se
+    rupe pe 2 randuri intr-o coloana ingusta). Panoul extins ramane insa pe
+    toata latimea (copil direct al radacinii, neconstrans).
+
     IMPORTANT: "open" porneste MEREU pe false, indiferent de defaultSize. Daca
     ar porni pe true cand exista un ambalaj, un remount Livewire dupa $wire.set
     (declansat chiar de butonul Aplica) re-evalueaza acest x-data de la zero si
@@ -21,10 +30,16 @@
     baza, inchiderea ramane corecta indiferent de remount.
 --}}
 <div {{ $attributes->merge(['class' => 'mt-1.5']) }} x-data="{ open: false, count: '', size: {{ $defaultSize ? (float) $defaultSize : "''" }} }">
-    <button type="button" @click="open = !open" class="text-xs text-primary hover:underline">
-        <span x-show="!open">Calculează din bucăți/sticle @if($defaultSize) (ai deja {{ rtrim(rtrim(number_format((float) $defaultSize, 3, ',', '.'), '0'), ',') }}{{ $unit ? ' '.$unit : '' }}/bucată) @endif</span>
-        <span x-show="open" x-cloak>Ascunde calculul</span>
-    </button>
+    <div class="flex flex-wrap items-start gap-2">
+        {{ $prefix ?? '' }}
+        <div class="{{ $triggerClass }}">
+            <button type="button" @click="open = !open" class="text-xs text-primary hover:underline {{ $triggerClass ? 'block w-full text-right' : '' }}">
+                <span x-show="!open">Calculează din bucăți/sticle @if($defaultSize) (ai deja {{ rtrim(rtrim(number_format((float) $defaultSize, 3, ',', '.'), '0'), ',') }}{{ $unit ? ' '.$unit : '' }}/bucată) @endif</span>
+                <span x-show="open" x-cloak>Ascunde calculul</span>
+            </button>
+        </div>
+        {{ $suffix ?? '' }}
+    </div>
 
     <div x-show="open" x-cloak class="mt-1.5 rounded-lg border border-border bg-bg p-3">
         <div class="flex items-end gap-2.5">

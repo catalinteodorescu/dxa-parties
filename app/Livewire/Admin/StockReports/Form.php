@@ -11,6 +11,7 @@ use App\Models\StockReportLine;
 use App\Models\StockRequisition;
 use App\Models\StockRequisitionItem;
 use App\Services\ActivityLogger;
+use App\Services\StockReportPdfExporter;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -30,7 +31,7 @@ use Livewire\Component;
  *             pot fi aduse dintr-un necesar deschis (grupate sub numele lui).
  *  - Vanzari  (kind=sale):   produs de meniu + cantitate (pretul e fix, din
  *             MenuItem; consumul de stoc se "explodeaza" prin reteta la finalizare).
- *  - Pierderi (kind=loss):   produs de stoc + cantitate + motiv (obligatoriu la finalizare).
+ *  - Pierderi (kind=loss):   produs de stoc + cantitate + motiv (opțional).
  *
  * Sub formular, panoul "Impact asupra stocului" calculeaza NET, in memorie (fara
  * scriere), efectul cumulat al tuturor liniilor pe fiecare produs atins.
@@ -541,6 +542,14 @@ class Form extends Component
         $this->persistHeader();
     }
 
+    /** Export PDF — disponibil doar pentru raportări finalizate (vezi StockReportPdfExporter). */
+    public function exportPdf()
+    {
+        abort_unless($this->readOnly && $this->report, 404);
+
+        return StockReportPdfExporter::stream($this->report);
+    }
+
     public function finalize(): void
     {
         abort_unless(Auth::guard('admin')->check(), 403);
@@ -555,18 +564,6 @@ class Form extends Component
 
         if (! $this->report || ! $this->report->exists || $this->report->lines()->count() === 0) {
             $this->addError('finalize', 'Adaugă cel puțin o linie înainte de a finaliza.');
-
-            return;
-        }
-
-        // Motiv obligatoriu la pierderi.
-        $missingReason = $this->report->lines()
-            ->where('kind', 'loss')
-            ->where(fn ($q) => $q->whereNull('note')->orWhere('note', ''))
-            ->exists();
-
-        if ($missingReason) {
-            $this->addError('finalize', 'Fiecare pierdere trebuie să aibă un motiv completat.');
 
             return;
         }
@@ -595,7 +592,7 @@ class Form extends Component
      * atins: intrari (+qty), pierderi (-qty), vanzari explodate prin reteta
      * (-qty x reteta pe fiecare ingredient). 100% in memorie - nu scrie nimic.
      *
-     * @return array<int, array{name:string, unit:string, current:float, net:float, result:float}>
+     * @return array<int, array{name:string, unit:string, current:float, net:float, result:float, package:?string}>
      */
     private function computeImpact(): array
     {
@@ -651,12 +648,14 @@ class Form extends Component
             }
 
             $current = (float) $si->stock_qty;
+            $result = $current + $net;
             $rows[] = [
                 'name' => $si->name,
                 'unit' => $si->unit,
                 'current' => $current,
                 'net' => $net,
-                'result' => $current + $net,
+                'result' => $result,
+                'package' => $si->hasPackage() ? $si->packageDisplayFor($result) : null,
             ];
         }
 

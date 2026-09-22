@@ -58,7 +58,7 @@
 
         <div class="flex items-center justify-between">
             <label class="flex items-center gap-2 text-sm text-ink-soft">
-                <input type="checkbox" wire:model="remember" class="rounded border-border text-primary focus:ring-primary/40">
+                <input type="checkbox" wire:model="remember" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                 Ține-mă minte
             </label>
 

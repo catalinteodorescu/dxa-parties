@@ -128,7 +128,7 @@ it('finalizes a draft: creates real movements, recalculates CMP and clears stagi
     expect($report->totalRevenue())->toBe(60.0);
 });
 
-it('blocks finalize when a loss has no reason', function () {
+it('allows finalize when a loss has no reason (motiv opțional)', function () {
     $admin = admin();
     $this->actingAs($admin, 'admin');
     $beer = stockItem('Bere', 'buc', 20, 5.0, $admin->id);
@@ -139,10 +139,10 @@ it('blocks finalize when a loss has no reason', function () {
         // fara motiv
         ->set('finalizeConfirm', true)
         ->call('finalize')
-        ->assertHasErrors('finalize');
+        ->assertHasNoErrors('finalize');
 
-    expect(StockReport::first()->status)->toBe('draft');
-    expect((float) $beer->fresh()->stock_qty)->toBe(20.0);
+    expect(StockReport::first()->status)->toBe('finalized');
+    expect((float) $beer->fresh()->stock_qty)->toBe(19.0);
 });
 
 it('imports open requisition items as grouped entries and updates qty_received on finalize', function () {

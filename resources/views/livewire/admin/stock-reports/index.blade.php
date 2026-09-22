@@ -89,13 +89,14 @@
                     <div class="mt-2 md:mt-0">
                         <span class="md:hidden block text-[11px] uppercase tracking-wide text-ink-soft/60">Rezumat</span>
                         @if ($report->isFinalized())
+                            @php $profit = $report->totalProfit(); @endphp
                             <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
                                 <span class="text-ink">{{ $money($report->totalRevenue()) }} <span class="text-ink-soft/60 text-xs">venit</span></span>
-                                <span class="{{ $report->totalProfit() >= 0 ? 'text-info' : 'text-danger' }}">{{ $money($report->totalProfit()) }} <span class="text-ink-soft/60 text-xs">profit</span></span>
+                                <span class="{{ $profit > 0 ? 'text-success' : ($profit < 0 ? 'text-danger' : 'text-ink') }}">{{ $money($profit) }} <span class="text-ink-soft/60 text-xs">profit</span></span>
                             </div>
                         @else
                             <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                                <span class="inline-flex items-center rounded-full bg-primary-soft text-primary px-2 py-0.5">{{ $report->entry_count }} intrări</span>
+                                <span class="inline-flex items-center rounded-full bg-success-soft text-success px-2 py-0.5">{{ $report->entry_count }} intrări</span>
                                 <span class="inline-flex items-center rounded-full bg-info-soft text-info px-2 py-0.5">{{ $report->sale_count }} vânzări</span>
                                 <span class="inline-flex items-center rounded-full bg-danger/10 text-danger px-2 py-0.5">{{ $report->loss_count }} pierderi</span>
                             </div>
@@ -117,6 +118,9 @@
                         @if ($report->isFinalized())
                             <x-btn variant="info" size="icon" outline tooltip="Vezi detalii" :href="route('admin.stock-reports.edit', $report)" wire:navigate>
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </x-btn>
+                            <x-btn variant="neutral" size="icon" outline tooltip="Export PDF" wire:click="exportPdf({{ $report->id }})" wire:loading.attr="disabled" wire:target="exportPdf({{ $report->id }})">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             </x-btn>
                         @else
                             <x-btn variant="warning" size="icon" outline tooltip="Continuă editarea" :href="route('admin.stock-reports.edit', $report)" wire:navigate>

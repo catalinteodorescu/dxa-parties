@@ -8,6 +8,8 @@ use App\Models\MenuCategory;                // DXA: adaugat (Meniu bar)
 use App\Models\MenuItem;                    // DXA: adaugat (Meniu bar - produse)
 use App\Models\Party;                       // DXA: adaugat (Petreceri)
 use App\Models\StockItem;                   // DXA: adaugat (Bar - stocuri)
+use App\Models\StockReport;                 // DXA: adaugat (Bar - raportari)
+use App\Models\StockRequisition;            // DXA: adaugat (Bar - necesare)
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -46,6 +48,24 @@ class Dashboard extends Component
             ->where('starts_at', '>', $now)
             ->count();
 
+        // DXA: adaugat (Bar - necesare + raportari)
+        $requisitionsOpenCount = StockRequisition::where('status', 'open')->count();
+
+        $lastReportsList = StockReport::with('party')
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->limit(2)
+            ->get();
+        $lastReport = $lastReportsList->first();
+
+        // Draft "uitat" - are data raportului cu mai mult de 2 zile in urma si tot nu s-a finalizat.
+        $lastReportStale = $lastReport && $lastReport->isDraft() && $lastReport->date->lt($now->copy()->subDays(2));
+
+        $reportsLast30Days = StockReport::where('status', 'finalized')
+            ->where('date', '>=', $now->copy()->subDays(30))
+            ->get();
+        $profitLast30Days = round($reportsLast30Days->sum(fn ($r) => $r->totalProfit()), 2);
+
         return view('livewire.admin.dashboard', [
             'liveCount' => $liveCount,
             'scheduledCount' => $publishedActive()->whereNotNull('starts_at')->where('starts_at', '>', $now)->count(),
@@ -74,6 +94,15 @@ class Dashboard extends Component
             'stockItemsLowCount' => StockItem::whereNotNull('min_stock')
                 ->whereColumn('stock_qty', '<=', 'min_stock')
                 ->count(),
+
+            // DXA: adaugat (Bar - necesare)
+            'requisitionsOpenCount' => $requisitionsOpenCount,
+
+            // DXA: adaugat (Bar - raportari)
+            'lastReportsList' => $lastReportsList,
+            'lastReport' => $lastReport,
+            'lastReportStale' => $lastReportStale,
+            'profitLast30Days' => $profitLast30Days,
         ]);
     }
 }

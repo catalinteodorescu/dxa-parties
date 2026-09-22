@@ -15,6 +15,13 @@
             'inactive' => ['Dezactivată', 'bg-surface border border-border text-ink-soft'],
             'draft'    => ['Ciornă',      'bg-info-soft text-info'],
         ];
+
+        // DXA: adaugat (Bar - raportari) — stari pentru pill-ul din widget-ul de raportari
+        $reportStates = [
+            'draft'     => ['Draft',      'bg-primary-soft text-primary'],
+            'finalized' => ['Finalizat',  'bg-info-soft text-info'],
+        ];
+        $money = fn ($n) => number_format((float) $n, 2, ',', '.');
     @endphp
 
     <div>
@@ -179,6 +186,26 @@
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></x-slot:icon>
             </x-stat-card>
 
+            {{-- DXA: adaugat (Bar - necesare) --}}
+            <x-stat-card :value="$requisitionsOpenCount" label="Necesare deschise" hint="așteaptă recepție" accent="{{ $requisitionsOpenCount > 0 ? 'warning' : 'neutral' }}" :href="route('admin.stock-requisitions.index', ['state' => 'open'])">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2" width="6" height="4" rx="1"/></svg></x-slot:icon>
+            </x-stat-card>
+
+            {{-- DXA: adaugat (Bar - raportari) --}}
+            @if ($lastReport)
+                <x-stat-card :value="$lastReport->date->format('d.m.y')" label="Ultima raportare" :hint="$lastReportStale ? 'draft neatins de câteva zile' : ($lastReport->isDraft() ? 'draft, în lucru' : 'finalizată')" accent="{{ $lastReportStale ? 'warning' : ($lastReport->isDraft() ? 'primary' : 'info') }}" :href="route('admin.stock-reports.edit', $lastReport)">
+                    <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></x-slot:icon>
+                </x-stat-card>
+            @else
+                <x-stat-card value="—" label="Ultima raportare" hint="nicio raportare încă" accent="neutral">
+                    <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></x-slot:icon>
+                </x-stat-card>
+            @endif
+
+            <x-stat-card :value="$money($profitLast30Days).' lei'" label="Profit (30 zile)" hint="raportări finalizate" accent="{{ $profitLast30Days > 0 ? 'success' : ($profitLast30Days < 0 ? 'danger' : 'neutral') }}" :href="route('admin.stock-reports.index')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></x-slot:icon>
+            </x-stat-card>
+
             <x-action-card label="Produs nou" accent="primary" :href="route('admin.menu-items.create')">
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></x-slot:icon>
             </x-action-card>
@@ -186,6 +213,37 @@
             <x-action-card label="Categorie nouă" accent="neutral" :href="route('admin.menu-categories.index')">
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></x-slot:icon>
             </x-action-card>
+
+            {{-- DXA: adaugat (Bar - raportari) --}}
+            <x-action-card label="Raportare nouă" accent="primary" :href="route('admin.stock-reports.create')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></x-slot:icon>
+            </x-action-card>
+        </div>
+
+        {{-- DXA: adaugat (Bar - raportari) — Widget: ultimele raportări (până la 2), lat cât 2 carduri --}}
+        <div class="mt-3 grid grid-cols-1 lg:grid-cols-6 gap-3">
+            <div class="lg:col-span-2 rounded-xl border border-border bg-surface p-4">
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/80 mb-1">Ultimele raportări</div>
+                @forelse ($lastReportsList as $r)
+                    @php [$sl, $sc] = $reportStates[$r->status] ?? ['—', 'bg-ink/5 text-ink-soft']; @endphp
+                    <a href="{{ route('admin.stock-reports.edit', $r) }}" wire:navigate
+                       class="group flex items-center justify-between gap-3 py-2 border-b border-border last:border-0">
+                        <span class="text-sm text-ink group-hover:text-primary truncate">
+                            {{ $r->date->format('d.m.Y') }}
+                            @if ($r->party) <span class="text-ink-soft/60 font-normal">· {{ $r->party->name }}</span> @endif
+                        </span>
+                        <span class="flex items-center gap-2 shrink-0">
+                            @if ($r->isFinalized())
+                                @php $p = $r->totalProfit(); @endphp
+                                <span class="text-xs whitespace-nowrap {{ $p > 0 ? 'text-success' : ($p < 0 ? 'text-danger' : 'text-ink-soft') }}">{{ $money($p) }} lei</span>
+                            @endif
+                            <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $sc }}">{{ $sl }}</span>
+                        </span>
+                    </a>
+                @empty
+                    <p class="text-sm text-ink-soft mt-1">Nicio raportare încă.</p>
+                @endforelse
+            </div>
         </div>
     </section>
 

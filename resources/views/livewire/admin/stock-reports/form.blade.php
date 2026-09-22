@@ -21,7 +21,13 @@
                         @if ($report->party) <span class="text-ink-soft/50">·</span> {{ $report->party->name }} @endif
                     </p>
                 </div>
-                <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-sm text-ink-soft hover:text-ink shrink-0">← Înapoi la Raportări</a>
+                <div class="flex items-center gap-3 shrink-0">
+                    <x-btn variant="neutral" size="sm" outline wire:click="exportPdf" wire:loading.attr="disabled" wire:target="exportPdf">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export PDF
+                    </x-btn>
+                    <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-sm text-ink-soft hover:text-ink">← Înapoi la Raportări</a>
+                </div>
             </div>
 
             <x-flash class="mb-4" />
@@ -55,12 +61,17 @@
                                         <span class="ml-1 text-xs text-primary">· din necesar „{{ $m->requisitionItem->requisition->label }}"</span>
                                     @endif
                                 </div>
-                                <div class="text-sm text-ink-soft shrink-0">
-                                    <span class="text-ink">{{ $fmt($m->qty) }} {{ $m->stockItem->unit }}</span>
-                                    @if ($m->unit_cost !== null)
-                                        <span class="text-ink-soft/50">·</span> {{ number_format((float) $m->unit_cost, 4, ',', '.') }} lei/{{ $m->stockItem->unit }}
-                                    @else
-                                        <span class="text-ink-soft/50">·</span> <span class="italic">cost necunoscut</span>
+                                <div class="text-sm text-ink-soft shrink-0 text-right">
+                                    <div>
+                                        <span class="text-ink">{{ $fmt($m->qty) }} {{ $m->stockItem->unit }}</span>
+                                        @if ($m->unit_cost !== null)
+                                            <span class="text-ink-soft/50">·</span> {{ number_format((float) $m->unit_cost, 4, ',', '.') }} lei/{{ $m->stockItem->unit }}
+                                        @else
+                                            <span class="text-ink-soft/50">·</span> <span class="italic">cost necunoscut</span>
+                                        @endif
+                                    </div>
+                                    @if ($m->stockItem->hasPackage())
+                                        <span class="block text-xs text-ink-soft/70">{{ $m->stockItem->packageDisplayFor((float) $m->qty) }}</span>
                                     @endif
                                 </div>
                             </div>
@@ -98,9 +109,14 @@
                     <div class="space-y-2">
                         @foreach ($finalLosses as $l)
                             <div class="rounded-xl border border-border bg-surface px-4 py-2.5">
-                                <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                                <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                                     <span class="text-sm text-ink min-w-0">{{ $l->stockItem->name }}</span>
-                                    <span class="text-sm text-ink shrink-0">{{ $fmt($l->qty) }} {{ $l->stockItem->unit }}</span>
+                                    <div class="text-right shrink-0">
+                                        <span class="text-sm text-ink">{{ $fmt($l->qty) }} {{ $l->stockItem->unit }}</span>
+                                        @if ($l->stockItem->hasPackage())
+                                            <span class="block text-xs text-ink-soft/70">{{ $l->stockItem->packageDisplayFor((float) $l->qty) }}</span>
+                                        @endif
+                                    </div>
                                 </div>
                                 @if ($l->note)
                                     <p class="mt-0.5 text-xs text-ink-soft">Motiv: {{ $l->note }}</p>
@@ -123,18 +139,22 @@
 
             $stockItemOptions = $stockItems->mapWithKeys(fn ($s) => [$s->id => $s->name.' ('.$s->unit.')'])->all();
 
-            $menuItemOptions = $menuItems->mapWithKeys(fn ($m) => [$m->id => $m->name.' — '.rtrim(rtrim(number_format((float) $m->price, 2, ',', '.'), '0'), ',').' lei'])->all();
+            $menuItemOptions = $menuItems->mapWithKeys(fn ($m) => [$m->id => $m->name])->all();
 
             $reqOptions = ['' => 'Alege un necesar…'] + $openRequisitions->mapWithKeys(fn ($r) => [$r->id => $r->label])->all();
 
             $isEditing = $report && $report->exists;
 
             // Intrari: separam randurile aduse dintr-un necesar (grupate) de cele libere.
-            $grouped = collect($entries)->filter(fn ($r) => ! empty($r['requisition_item_id']))->groupBy('req_id');
+            // preserveKeys=true — critic: fara el, groupBy reindexeaza randurile in
+            // fiecare grup (0,1,2...) si wire:model="entries.{{ $i }}.qty" ar lega
+            // inputul de POZITIA GRESITA din $entries (bug confirmat: cantitatile
+            // aparute pe randul urmator, ca un shift).
+            $grouped = collect($entries)->filter(fn ($r) => ! empty($r['requisition_item_id']))->groupBy('req_id', true);
             $freeEntries = collect($entries)->filter(fn ($r) => empty($r['requisition_item_id']));
         @endphp
 
-        <div class="max-w-3xl">
+        <div class="max-w-6xl">
             <div class="mb-5">
                 <div class="flex items-center gap-2">
                     <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează raportarea' : 'Raportare nouă' }}</h2>
@@ -146,6 +166,9 @@
             </div>
 
             <x-flash class="mb-4" />
+
+            <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-6">
+            <div class="min-w-0 max-w-3xl">
 
             {{-- Antet: dată + petrecere + notă --}}
             <div class="bg-surface border border-border rounded-2xl p-5 space-y-4 mb-5">
@@ -162,19 +185,19 @@
                 </div>
                 <div>
                     <label for="note" class="block text-sm font-medium text-ink mb-1.5">Notă <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
-                    <textarea id="note" wire:model.blur="note" rows="2" placeholder="ex. observații despre seara asta…"
+                    <textarea id="note" wire:model.blur="note" rows="2" placeholder="ex. observații despre raportare…"
                               class="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"></textarea>
                 </div>
             </div>
 
             {{-- ===================== INTRĂRI ===================== --}}
-            <section class="mb-5">
+            <section class="mb-5 rounded-2xl border border-border border-l-2 border-l-success bg-surface p-4">
                 <div class="flex items-center gap-2 mb-3">
-                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-soft text-primary shrink-0">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-success-soft text-success shrink-0">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </span>
                     <h3 class="text-base font-semibold text-ink">Intrări</h3>
-                    <span class="text-xs text-ink-soft">aprovizionare — produs de stoc + cantitate + cost/unitate (opțional)</span>
+                    <span class="text-xs text-ink-soft">aprovizionare — produs de stoc + cantitate + cost/unitate (opțional — dacă lipsește, CMP rămâne neschimbat)</span>
                 </div>
 
                 {{-- Aducere din necesar deschis --}}
@@ -244,7 +267,7 @@
                             @foreach ($groupRows as $i => $line)
                                 @php $si = ! empty($line['stock_item_id']) ? $stockItems->firstWhere('id', (int) $line['stock_item_id']) : null; @endphp
                                 <div wire:key="entry-req-{{ $line['requisition_item_id'] }}">
-                                    <div class="flex items-start gap-2">
+                                    <div class="flex flex-wrap items-start gap-2">
                                         <div class="flex-1 min-w-0 rounded-lg border border-border bg-bg px-3.5 py-2.5 text-sm text-ink truncate">
                                             {{ $si?->name ?? 'Produs' }} @if ($si)<span class="text-ink-soft/60">({{ $si->unit }})</span>@endif
                                         </div>
@@ -255,29 +278,37 @@
                                                 @if ($si)<span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">{{ $si->unit }}</span>@endif
                                             </div>
                                         </div>
+                                        @if ($si)
+                                            <div class="w-40 shrink-0">
+                                                <div class="relative">
+                                                    <input type="number" step="0.0001" min="0" wire:model.live.debounce.500ms="entries.{{ $i }}.unit_cost" placeholder="Cost/unit."
+                                                           class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary pr-12">
+                                                    <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-soft/60">lei/{{ $si->unit }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
                                         <button type="button" wire:click="removeEntry({{ $i }})" title="Elimină"
                                                 class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
                                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                         </button>
                                     </div>
 
-                                    <div class="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-ink-soft">
-                                        <span>cerut {{ $fmt($line['req_requested'] ?? 0) }} · rămas {{ $fmt($line['req_remaining'] ?? 0) }} {{ $si?->unit }}</span>
-                                    </div>
-
-                                    {{-- Cost/unitate --}}
-                                    <div class="mt-1.5 flex items-center gap-2">
-                                        <div class="w-40 relative">
-                                            <input type="number" step="0.0001" min="0" wire:model.live.debounce.500ms="entries.{{ $i }}.unit_cost" placeholder="Cost/unit."
-                                                   class="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary pr-12">
-                                            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-soft/60">lei/{{ $si?->unit }}</span>
-                                        </div>
-                                        @if (($line['unit_cost'] ?? '') === '')
-                                            <span class="text-[11px] text-ink-soft/70">cost necunoscut — CMP neschimbat</span>
-                                        @endif
-                                    </div>
                                     @if ($si && $si->unit !== 'buc')
-                                        <x-cost-helper wire:key="entry-cost-req-{{ $line['requisition_item_id'] }}" path="entries.{{ $i }}.unit_cost" :unit="$si->unit" :default-qty="$si->hasPackage() ? $si->package_qty : null" />
+                                        <x-cost-helper wire:key="entry-cost-req-{{ $line['requisition_item_id'] }}" path="entries.{{ $i }}.unit_cost" :unit="$si->unit" :default-qty="$si->hasPackage() ? $si->package_qty : null" trigger-class="w-40 shrink-0" class="!mt-1.5">
+                                            <x-slot:prefix>
+                                                <div class="flex-1 min-w-0 flex items-center">
+                                                    <span class="text-xs text-ink-soft">cerut {{ $fmt($line['req_requested'] ?? 0) }} · rămas {{ $fmt($line['req_remaining'] ?? 0) }} {{ $si->unit }}</span>
+                                                </div>
+                                                <div class="w-32 shrink-0"></div>
+                                            </x-slot:prefix>
+                                            <x-slot:suffix>
+                                                <div class="w-[42px] shrink-0"></div>
+                                            </x-slot:suffix>
+                                        </x-cost-helper>
+                                    @else
+                                        <div class="mt-1.5 text-xs text-ink-soft">
+                                            cerut {{ $fmt($line['req_requested'] ?? 0) }} · rămas {{ $fmt($line['req_remaining'] ?? 0) }} {{ $si?->unit }}
+                                        </div>
                                     @endif
                                 </div>
                             @endforeach
@@ -290,7 +321,7 @@
                     @foreach ($freeEntries as $i => $line)
                         @php $si = ! empty($line['stock_item_id']) ? $stockItems->firstWhere('id', (int) $line['stock_item_id']) : null; @endphp
                         <div wire:key="entry-free-{{ $i }}">
-                            <div class="flex items-start gap-2">
+                            <div class="flex flex-wrap items-start gap-2">
                                 <x-dropdown-select path="entries.{{ $i }}.stock_item_id" :options="$stockItemOptions" :selected="$line['stock_item_id'] ?? ''" placeholder="Alege produsul…" class="flex-1" />
                                 <div class="w-32 shrink-0">
                                     <div class="relative">
@@ -299,6 +330,15 @@
                                         @if ($si)<span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">{{ $si->unit }}</span>@endif
                                     </div>
                                 </div>
+                                @if ($si)
+                                    <div class="w-40 shrink-0">
+                                        <div class="relative">
+                                            <input type="number" step="0.0001" min="0" wire:model.live.debounce.500ms="entries.{{ $i }}.unit_cost" placeholder="Cost/unit."
+                                                   class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary pr-12">
+                                            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-soft/60">lei/{{ $si->unit }}</span>
+                                        </div>
+                                    </div>
+                                @endif
                                 @if (! empty($line['stock_item_id']))
                                     <button type="button" wire:click="removeEntry({{ $i }})" title="Elimină"
                                             class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
@@ -306,21 +346,16 @@
                                     </button>
                                 @endif
                             </div>
-
-                            @if ($si)
-                                <div class="mt-1.5 flex items-center gap-2">
-                                    <div class="w-40 relative">
-                                        <input type="number" step="0.0001" min="0" wire:model.live.debounce.500ms="entries.{{ $i }}.unit_cost" placeholder="Cost/unit."
-                                               class="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary pr-12">
-                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-soft/60">lei/{{ $si->unit }}</span>
-                                    </div>
-                                    @if (($line['unit_cost'] ?? '') === '')
-                                        <span class="text-[11px] text-ink-soft/70">cost necunoscut — CMP neschimbat</span>
-                                    @endif
-                                </div>
-                                @if ($si->unit !== 'buc')
-                                    <x-cost-helper wire:key="entry-cost-free-{{ $i }}-{{ $line['stock_item_id'] }}" path="entries.{{ $i }}.unit_cost" :unit="$si->unit" :default-qty="$si->hasPackage() ? $si->package_qty : null" />
-                                @endif
+                            @if ($si && $si->unit !== 'buc')
+                                <x-cost-helper wire:key="entry-cost-free-{{ $i }}-{{ $line['stock_item_id'] }}" path="entries.{{ $i }}.unit_cost" :unit="$si->unit" :default-qty="$si->hasPackage() ? $si->package_qty : null" trigger-class="w-40 shrink-0">
+                                    <x-slot:prefix>
+                                        <div class="flex-1 min-w-0"></div>
+                                        <div class="w-32 shrink-0"></div>
+                                    </x-slot:prefix>
+                                    <x-slot:suffix>
+                                        <div class="w-[42px] shrink-0"></div>
+                                    </x-slot:suffix>
+                                </x-cost-helper>
                             @endif
                         </div>
                     @endforeach
@@ -328,7 +363,7 @@
             </section>
 
             {{-- ===================== VÂNZĂRI ===================== --}}
-            <section class="mb-5">
+            <section class="mb-5 rounded-2xl border border-border border-l-2 border-l-info bg-surface p-4">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-info-soft text-info shrink-0">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -371,7 +406,7 @@
             </section>
 
             {{-- ===================== PIERDERI ===================== --}}
-            <section class="mb-5">
+            <section class="mb-5 rounded-2xl border border-border border-l-2 border-l-danger bg-surface p-4">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-danger/10 text-danger shrink-0">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -384,7 +419,6 @@
                     @foreach ($losses as $i => $line)
                         @php
                             $si = ! empty($line['stock_item_id']) ? $stockItems->firstWhere('id', (int) $line['stock_item_id']) : null;
-                            $needsReason = $si && (! isset($line['note']) || trim((string) $line['note']) === '');
                         @endphp
                         <div wire:key="loss-{{ $i }}">
                             <div class="flex items-start gap-2">
@@ -404,56 +438,23 @@
                                 @endif
                             </div>
                             @if ($si)
+                                @if ($si->unit !== 'buc')
+                                    <x-qty-helper wire:key="loss-qty-{{ $i }}-{{ $line['stock_item_id'] }}" path="losses.{{ $i }}.qty" :unit="$si->unit" :default-size="$si->hasPackage() ? $si->package_qty : null" trigger-class="w-28 shrink-0">
+                                        <x-slot:prefix>
+                                            <div class="flex-1 min-w-0"></div>
+                                        </x-slot:prefix>
+                                        <x-slot:suffix>
+                                            <div class="w-[42px] shrink-0"></div>
+                                        </x-slot:suffix>
+                                    </x-qty-helper>
+                                @endif
                                 <div class="mt-1.5">
-                                    <input type="text" wire:model.blur="losses.{{ $i }}.note" placeholder="Motiv (obligatoriu) — ex. spart, testare rețetă…"
-                                           class="w-full rounded-lg border {{ $needsReason ? 'border-danger/50' : 'border-border' }} bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-                                    @if ($needsReason)
-                                        <p class="mt-1 text-[11px] text-danger">Completează motivul — altfel raportarea nu poate fi finalizată.</p>
-                                    @endif
+                                    <input type="text" wire:model.blur="losses.{{ $i }}.note" placeholder="Motiv (opțional) — ex. spart, testare rețetă…"
+                                           class="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
                                 </div>
                             @endif
                         </div>
                     @endforeach
-                </div>
-            </section>
-
-            {{-- ===================== IMPACT ASUPRA STOCULUI ===================== --}}
-            <section class="mb-6">
-                <div class="rounded-2xl border border-border bg-surface">
-                    <div class="px-4 py-3 border-b border-border">
-                        <h3 class="text-sm font-semibold text-ink">Impact asupra stocului</h3>
-                        <p class="text-xs text-ink-soft mt-0.5">Efectul cumulat al liniilor de mai sus, calculat live. Nu se scrie nimic până la finalizare.</p>
-                    </div>
-
-                    @if (empty($impact))
-                        <p class="px-4 py-5 text-sm text-ink-soft/60 italic">Adaugă intrări, vânzări sau pierderi ca să vezi impactul.</p>
-                    @else
-                        <div class="hidden sm:grid grid-cols-[1fr_8rem_7rem_8rem] gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft/60">
-                            <span>Produs</span>
-                            <span class="text-right">Stoc curent</span>
-                            <span class="text-right">Din raport</span>
-                            <span class="text-right">Stoc estimat</span>
-                        </div>
-                        <div class="divide-y divide-border/60">
-                            @foreach ($impact as $row)
-                                <div class="px-4 py-2 sm:grid sm:grid-cols-[1fr_8rem_7rem_8rem] sm:gap-3 sm:items-center flex flex-wrap justify-between gap-x-3 {{ $row['result'] < 0 ? 'bg-danger/5' : '' }}">
-                                    <span class="text-sm text-ink min-w-0">{{ $row['name'] }}</span>
-                                    <span class="text-sm text-ink-soft sm:text-right"><span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Curent: </span>{{ $fmt($row['current']) }} {{ $row['unit'] }}</span>
-                                    <span class="text-sm sm:text-right {{ $row['net'] < 0 ? 'text-danger' : 'text-primary' }}">
-                                        <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Δ: </span>{{ $row['net'] >= 0 ? '+' : '−' }}{{ $fmt(abs($row['net'])) }} {{ $row['unit'] }}
-                                    </span>
-                                    <span class="text-sm font-medium sm:text-right {{ $row['result'] < 0 ? 'text-danger' : 'text-ink' }}">
-                                        <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Estimat: </span>{{ $fmt($row['result']) }} {{ $row['unit'] }}
-                                    </span>
-                                </div>
-                            @endforeach
-                        </div>
-                        @if (collect($impact)->contains(fn ($r) => $r['result'] < 0))
-                            <div class="px-4 py-2.5 border-t border-border">
-                                <p class="text-xs text-danger">Unele produse ar ajunge pe stoc negativ (roșu). Poți finaliza oricum — e doar un avertisment.</p>
-                            </div>
-                        @endif
-                    @endif
                 </div>
             </section>
 
@@ -485,7 +486,7 @@
                             La finalizare se creează mișcările reale de stoc: intrările cresc stocul (și recalculează CMP), vânzările și pierderile îl scad. <span class="font-medium text-ink">Acțiunea nu mai poate fi anulată</span> — raportarea nu va mai putea fi modificată sau ștearsă.
                         </p>
                         <label class="mt-4 flex items-start gap-2.5 cursor-pointer">
-                            <input type="checkbox" x-model="confirmed" class="mt-0.5 rounded border-border text-primary focus:ring-primary/40">
+                            <input type="checkbox" x-model="confirmed" class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                             <span class="text-sm text-ink">Am înțeles — finalizez, fără posibilitate de modificare ulterioară.</span>
                         </label>
                         <div class="mt-6 flex items-center justify-end gap-3">
@@ -499,6 +500,79 @@
                     </div>
                 </div>
             </div>
+
+            </div>{{-- /min-w-0 (coloană formular) --}}
+
+            <div class="mt-5 lg:mt-0">
+                <section class="lg:sticky lg:top-6">
+                    <div class="rounded-2xl border border-border bg-surface">
+                        <div class="px-4 py-3 border-b border-border">
+                            <h3 class="text-sm font-semibold text-ink">Impact asupra stocului</h3>
+                            <p class="text-xs text-ink-soft mt-0.5">Efectul cumulat al liniilor de mai sus, calculat live. Nu se scrie nimic până la finalizare.</p>
+                        </div>
+
+                        @if (empty($impact))
+                            <p class="px-4 py-5 text-sm text-ink-soft/60 italic">Adaugă intrări, vânzări sau pierderi ca să vezi impactul.</p>
+                        @else
+                            {{-- Sub lg: aici e loc pe lățime, tabel complet cu antet de coloane --}}
+                            <div class="lg:hidden">
+                                <div class="hidden sm:grid grid-cols-[1fr_8rem_7rem_8rem] gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft/60">
+                                    <span>Produs</span>
+                                    <span class="text-right">Stoc curent</span>
+                                    <span class="text-right">Din raport</span>
+                                    <span class="text-right">Stoc estimat</span>
+                                </div>
+                                <div class="divide-y divide-border/60">
+                                    @foreach ($impact as $row)
+                                        <div class="px-4 py-2 sm:grid sm:grid-cols-[1fr_8rem_7rem_8rem] sm:gap-3 sm:items-center flex flex-wrap justify-between gap-x-3 {{ $row['result'] < 0 ? 'bg-danger/5' : '' }}">
+                                            <span class="text-sm text-ink min-w-0">{{ $row['name'] }}</span>
+                                            <span class="text-sm text-ink-soft sm:text-right"><span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Curent: </span>{{ $fmt($row['current']) }} {{ $row['unit'] }}</span>
+                                            <span class="text-sm sm:text-right {{ $row['net'] < 0 ? 'text-danger' : 'text-success' }}">
+                                                <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Δ: </span>{{ $row['net'] >= 0 ? '+' : '−' }}{{ $fmt(abs($row['net'])) }} {{ $row['unit'] }}
+                                            </span>
+                                            <div class="text-sm font-medium sm:text-right {{ $row['result'] < 0 ? 'text-danger' : 'text-ink' }}">
+                                                <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Estimat: </span>{{ $fmt($row['result']) }} {{ $row['unit'] }}
+                                                @if ($row['package'])
+                                                    <span class="block text-[11px] font-normal text-ink-soft/70">{{ $row['package'] }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            {{-- lg+: coloană laterală îngustă — un rând compact per produs --}}
+                            <div class="hidden lg:block divide-y divide-border/60">
+                                @foreach ($impact as $row)
+                                    <div class="px-4 py-2.5 {{ $row['result'] < 0 ? 'bg-danger/5' : '' }}">
+                                        <span class="block text-sm text-ink truncate">{{ $row['name'] }}</span>
+                                        <div class="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-ink-soft">
+                                            <span>{{ $fmt($row['current']) }} {{ $row['unit'] }}</span>
+                                            <span class="text-ink-soft/40">·</span>
+                                            <span class="{{ $row['net'] < 0 ? 'text-danger' : 'text-success' }}">{{ $row['net'] >= 0 ? '+' : '−' }}{{ $fmt(abs($row['net'])) }}</span>
+                                            <span class="text-ink-soft/40">·</span>
+                                            <div class="font-medium {{ $row['result'] < 0 ? 'text-danger' : 'text-ink' }}">
+                                                = {{ $fmt($row['result']) }} {{ $row['unit'] }}
+                                                @if ($row['package'])
+                                                    <span class="block text-[11px] font-normal text-ink-soft/70">{{ $row['package'] }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if (collect($impact)->contains(fn ($r) => $r['result'] < 0))
+                                <div class="px-4 py-2.5 border-t border-border">
+                                    <p class="text-xs text-danger">Unele produse ar ajunge pe stoc negativ (roșu). Poți finaliza oricum — e doar un avertisment.</p>
+                                </div>
+                            @endif
+                        @endif
+                    </div>
+                </section>
+            </div>
+
+            </div>{{-- /grid --}}
         </div>
     @endif
 </div>

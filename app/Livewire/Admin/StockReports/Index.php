@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\StockReports;
 use App\Models\Party;
 use App\Models\StockReport;
 use App\Services\ActivityLogger;
+use App\Services\StockReportPdfExporter;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -69,6 +70,12 @@ class Index extends Component
 
         ActivityLogger::log('stock.report_deleted', 'A șters raportarea (draft) din '.$date.'.');
         session()->flash('status', 'Draftul de raportare a fost șters.');
+    }
+
+    /** Export PDF — disponibil doar pentru raportări finalizate (vezi StockReportPdfExporter). */
+    public function exportPdf(int $id)
+    {
+        return StockReportPdfExporter::stream(StockReport::findOrFail($id));
     }
 
     public function render()
