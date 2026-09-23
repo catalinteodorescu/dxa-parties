@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 class Party extends Model
@@ -97,6 +98,12 @@ class Party extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(Admin::class, 'created_by');
+    }
+
+    /** DXA: adaugat — inversul lui StockReport::party() (belongsTo). Nu era folosita pana acum, dar ne trebuie explicit acum. */
+    public function stockReports(): HasMany
+    {
+        return $this->hasMany(StockReport::class);
     }
 
     public function imageUrl(): ?string

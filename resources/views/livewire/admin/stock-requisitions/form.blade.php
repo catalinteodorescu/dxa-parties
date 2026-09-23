@@ -47,7 +47,7 @@
             {{-- Petrecere (opțional) --}}
             <div>
                 <label class="block text-sm font-medium text-ink mb-1.5">Petrecere <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
-                <x-select wire:model="party_id" placeholder="Fără petrecere" :options="$partyOptions" />
+                <x-select wire:model="party_id" placeholder="Fără petrecere" :options="$partyOptions" live />
                 @error('party_id') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
             </div>
 
@@ -55,14 +55,28 @@
             <div>
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <label class="block text-sm font-medium text-ink">Produse</label>
-                    <x-btn variant="neutral" size="sm" wire:click="addLowStock" wire:loading.attr="disabled" wire:target="addLowStock"
-                           title="Adaugă produsele la/sub pragul minim, cu cantitatea egală cu pragul">
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
-                        Adaugă produsele sub minim
-                    </x-btn>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <x-btn variant="neutral" size="sm" wire:click="suggestFromHistory" wire:loading.attr="disabled" wire:target="suggestFromHistory"
+                               :disabled="$party_id === ''"
+                               :tooltip="$party_id === '' ? 'Alege întâi o petrecere' : 'Sugerează cantități pe baza mediei de consum din petrecerile anterioare de același tip'">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20v-6M12 14l-4-4M12 14l4-4M12 4v4"/><path d="M5 20h14"/>
+                            </svg>
+                            Sugerează cantități
+                        </x-btn>
+                        <x-btn variant="neutral" size="sm" wire:click="addLowStock" wire:loading.attr="disabled" wire:target="addLowStock"
+                               title="Adaugă produsele la/sub pragul minim, cu cantitatea egală cu pragul">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Adaugă produsele sub minim
+                        </x-btn>
+                    </div>
                 </div>
+
+                @if ($suggestQtyMessage)
+                    <x-alert type="info" dismiss-prop="suggestQtyMessage" :dismiss-value="null" class="mb-3">{{ $suggestQtyMessage }}</x-alert>
+                @endif
 
                 @if ($lowStockMessage)
                     <x-alert type="info" dismiss-prop="lowStockMessage" :dismiss-value="null" class="mb-3">{{ $lowStockMessage }}</x-alert>

@@ -5,6 +5,8 @@ namespace App\Livewire\Admin\StockRequisitions;
 use App\Livewire\Admin\Stocks\Index as StocksIndex;
 use App\Models\Party;
 use App\Models\StockItem;
+use App\Models\StockMovement;
+use App\Models\StockReport;
 use App\Models\StockRequisition;
 use App\Services\ActivityLogger;
 use App\Services\StockRequisitionPdfExporter;
@@ -37,6 +39,9 @@ class Form extends Component
 
     // Mesaj informativ dupa "Adauga produsele sub minim" (ex. nu e nimic de adaugat).
     public ?string $lowStockMessage = null;
+
+    // Mesaj informativ dupa "Sugereaza cantitati" (ex. nu exista istoric).
+    public ?string $suggestQtyMessage = null;
 
     public function mount(?StockRequisition $requisition = null): void
     {
@@ -81,6 +86,7 @@ class Form extends Component
     public function updated($name): void
     {
         $this->lowStockMessage = null;
+        $this->suggestQtyMessage = null;
 
         if (preg_match('/^lines\.\d+\.stock_item_id$/', $name)) {
             $this->syncLineRows();
@@ -160,6 +166,124 @@ class Form extends Component
         }
 
         $this->lowStockMessage = 'Am adăugat '.$low->count().($low->count() === 1 ? ' produs' : ' produse').' aflate la sau sub pragul minim, cu cantitatea egală cu pragul.';
+
+        $this->syncLineRows();
+    }
+
+    /** Rotunjire cu marjă (10%) peste media brută de consum, ca necesarul să nu iasă chiar "pe muchie". */
+    private function suggestedQtyFromAverage(float $avg, string $unit): float
+    {
+        if ($avg <= 0) {
+            return 0.0;
+        }
+
+        $withMargin = $avg * 1.1;
+
+        return match ($unit) {
+            // "buc" e discret - nu are sens 3,2 bucati.
+            'buc' => ceil($withMargin),
+            // l/kg au de obicei cantitati mari - o zecime e o granularitate rezonabila.
+            'l', 'kg' => ceil($withMargin * 10) / 10,
+            // ml/g raman intregi (cantitatile tipice sunt oricum in sute/mii).
+            default => ceil($withMargin),
+        };
+    }
+
+    /**
+     * DXA: adaugat (Bar - necesare) — "Sugerează cantități" pe baza istoricului
+     * de consum (vânzări + pierderi din raportări FINALIZATE) al TUTUROR
+     * petrecerilor anterioare de același `kind` (basic/festival) ca petrecerea
+     * aleasă pe acest necesar. Cantitatea sugerată = media de consum per
+     * produs (peste toate petrecerile calificate, chiar dacă un produs
+     * lipsește din unele) + marjă de 10%, rotunjită sensibil pe unitate.
+     *
+     * Nu suprascrie liniile deja completate manual (la fel ca addLowStock()).
+     * Un produs cu istoric care rotunjește totuși la 0 rămâne cu cantitate
+     * goală, nu 0 (validarea cere min:0.001).
+     */
+    public function suggestFromHistory(): void
+    {
+        if ($this->party_id === '') {
+            return;
+        }
+
+        $party = Party::find((int) $this->party_id);
+
+        if (! $party) {
+            $this->suggestQtyMessage = 'Petrecerea aleasă nu mai există.';
+
+            return;
+        }
+
+        // Alte petreceri (nu aceasta), de acelasi tip, care au macar o raportare finalizata.
+        $reports = StockReport::query()
+            ->where('status', 'finalized')
+            ->whereNotNull('party_id')
+            ->where('party_id', '!=', $party->id)
+            ->whereHas('party', fn ($q) => $q->where('kind', $party->kind))
+            ->get(['id', 'party_id']);
+
+        $partyCount = $reports->pluck('party_id')->unique()->count();
+
+        if ($partyCount === 0) {
+            $this->suggestQtyMessage = 'Nu există raportări finalizate pentru alte petreceri de tipul „'
+                .($party->kind === 'festival' ? 'festival' : 'petrecere').'" — nu am de unde calcula o medie.';
+
+            return;
+        }
+
+        // Consum real = iesiri (out) din raportarile calificate: vanzari explodate prin reteta + pierderi.
+        // NU intrari (in) - alea sunt aprovizionare, nu ce s-a consumat efectiv.
+        $consumedByItem = StockMovement::query()
+            ->where('type', 'out')
+            ->whereIn('report_id', $reports->pluck('id'))
+            ->selectRaw('stock_item_id, SUM(qty) as total_qty')
+            ->groupBy('stock_item_id')
+            ->pluck('total_qty', 'stock_item_id');
+
+        if ($consumedByItem->isEmpty()) {
+            $this->suggestQtyMessage = 'Petrecerile anterioare de acest tip nu au niciun consum înregistrat — nu am de unde calcula o medie.';
+
+            return;
+        }
+
+        $chosen = collect($this->lines)
+            ->pluck('stock_item_id')
+            ->filter()
+            ->map(fn ($v) => (int) $v)
+            ->all();
+
+        $stockItems = StockItem::query()
+            ->whereIn('id', $consumedByItem->keys())
+            ->whereNotIn('id', $chosen)
+            ->ordered()
+            ->get();
+
+        if ($stockItems->isEmpty()) {
+            $this->suggestQtyMessage = 'Toate produsele din istoricul acestui tip de petrecere sunt deja în listă.';
+
+            return;
+        }
+
+        // Scoatem randul (complet) gol de la coada; syncLineRows() il repune dupa adaugare.
+        $this->lines = array_values(array_filter(
+            $this->lines,
+            fn ($l) => ! empty($l['stock_item_id']) || ($l['qty'] ?? '') !== ''
+        ));
+
+        foreach ($stockItems as $stockItem) {
+            $avg = (float) $consumedByItem[$stockItem->id] / $partyCount;
+            $suggested = $this->suggestedQtyFromAverage($avg, $stockItem->unit);
+
+            $this->lines[] = [
+                'stock_item_id' => $stockItem->id,
+                'qty' => $suggested > 0 ? $this->plain($suggested) : '',
+            ];
+        }
+
+        $this->suggestQtyMessage = 'Am adăugat '.$stockItems->count().($stockItems->count() === 1 ? ' produs' : ' produse')
+            .', cu cantitatea sugerată pe baza mediei de consum din '.$partyCount
+            .($partyCount === 1 ? ' petrecere anterioară' : ' petreceri anterioare').' de același tip.';
 
         $this->syncLineRows();
     }

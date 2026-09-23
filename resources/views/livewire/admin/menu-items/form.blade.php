@@ -144,7 +144,7 @@
 
                         <div class="w-28 shrink-0">
                             <div class="relative">
-                                <input type="number" step="0.001" min="0" wire:model="recipe.{{ $i }}.qty" placeholder="Cant."
+                                <input type="number" step="0.001" min="0" wire:model.live.blur="recipe.{{ $i }}.qty" placeholder="Cant."
                                        class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary {{ $chosenUnit ? 'pr-10' : '' }}">
                                 @if ($chosenUnit)
                                     <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">{{ $chosenUnit }}</span>
