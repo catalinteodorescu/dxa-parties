@@ -12,11 +12,26 @@
             $stockItemOptions = $stockItems->mapWithKeys(fn ($s) => [$s->id => $s->name.' ('.$s->unit.')'])->all();
         @endphp
 
-        <div class="mb-6">
-            <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează necesarul' : 'Necesar nou' }}</h2>
-            <p class="mt-1 text-sm text-ink-soft leading-relaxed">
-                Lista de produse de stoc pe care trebuie să le cumperi. Când intră marfa, o treci în Raportări, iar necesarul se bifează singur.
-            </p>
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează necesarul' : 'Necesar nou' }}</h2>
+                <p class="mt-1 text-sm text-ink-soft leading-relaxed">
+                    Lista de produse de stoc pe care trebuie să le cumperi. Când intră marfa, o treci în Raportări, iar necesarul se bifează singur.
+                </p>
+            </div>
+
+            @if ($isEditing)
+                <div class="flex items-center gap-3 shrink-0">
+                    <x-btn variant="neutral" size="sm" outline wire:click="exportPdf" wire:loading.attr="disabled" wire:target="exportPdf">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export PDF
+                    </x-btn>
+                    <x-btn variant="success" size="sm" outline :href="$requisition->whatsAppUrl()" target="_blank" rel="noopener">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-11.98 7.76L3 21l1.83-6.02A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 10.5c.3 2.5 2.5 4.7 5 5"/></svg>
+                        WhatsApp
+                    </x-btn>
+                </div>
+            @endif
         </div>
 
         <form wire:submit="save" class="bg-surface border border-border rounded-2xl p-6 space-y-5">

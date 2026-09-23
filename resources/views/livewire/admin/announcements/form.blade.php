@@ -95,11 +95,11 @@
             <span class="block text-sm font-medium text-ink">Plasare</span>
             <div class="mt-2 space-y-2">
                 <label class="flex items-center gap-2.5 text-sm text-ink">
-                    <input type="checkbox" wire:model="in_carousel" class="w-4 h-4 rounded border-border accent-primary">
+                    <input type="checkbox" wire:model="in_carousel" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                     Carusel <span class="text-ink-soft/70">— vizual, în partea de sus a app-ului</span>
                 </label>
                 <label class="flex items-center gap-2.5 text-sm text-ink">
-                    <input type="checkbox" wire:model="in_list" class="w-4 h-4 rounded border-border accent-primary">
+                    <input type="checkbox" wire:model="in_list" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                     Zona de anunțuri <span class="text-ink-soft/70">— card cu detalii</span>
                 </label>
             </div>
@@ -131,7 +131,7 @@
 
         {{-- Vizibil --}}
         <label class="flex items-center gap-2.5 text-sm text-ink">
-            <input type="checkbox" wire:model="is_active" class="w-4 h-4 rounded border-border accent-primary">
+            <input type="checkbox" wire:model="is_active" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
             Vizibil în app <span class="text-ink-soft/70">— pentru anunțurile publicate; debifat = ascuns temporar</span>
         </label>
 

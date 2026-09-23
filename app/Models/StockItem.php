@@ -172,6 +172,42 @@ class StockItem extends Model
         return round((float) $this->stock_qty * (float) $this->avg_cost, 2);
     }
 
+    /**
+     * DXA: adaugat (Bar - stocuri, alertă stoc negativ persistent) — de cand
+     * e produsul in stoc negativ FARA intrerupere pana acum (nu doar data
+     * ultimei miscari). Reconstituie soldul mergand INAPOI de la stock_qty
+     * curent prin istoricul de miscari (cele mai noi primele), pana gaseste
+     * prima miscare dupa care soldul a ramas sub 0 continuu — timestamp-ul
+     * acelei miscari e momentul in care a "cazut" in negativ. Null daca stocul
+     * curent nu e negativ.
+     */
+    public function negativeSinceAt(): ?\Illuminate\Support\Carbon
+    {
+        if ((float) $this->stock_qty >= 0) {
+            return null;
+        }
+
+        $running = (float) $this->stock_qty;
+        $since = $this->created_at;
+
+        foreach ($this->movements()->latestFirst()->get() as $movement) {
+            // Aceeasi conventie de semn ca in recordExit/applyIncrease/
+            // recordQuantityAdjustment: "out" scade, restul (initial/in/
+            // adjustment) aduna direct qty (delta-ul e deja calculat la adjustment).
+            $delta = $movement->type === 'out' ? -(float) $movement->qty : (float) $movement->qty;
+            $before = $running - $delta;
+
+            if ($before >= 0) {
+                return $movement->created_at;
+            }
+
+            $running = $before;
+            $since = $movement->created_at;
+        }
+
+        return $since;
+    }
+
     // ------------------------------------------------------------------
     // Miscari de stoc - singurul loc care scrie in stock_movements si
     // actualizeaza cache-ul stock_qty/avg_cost. Nu manipula aceste coloane
@@ -263,11 +299,11 @@ class StockItem extends Model
      * Corectie manuala de CANTITATE, oricand disponibila (ex. ai gresit stocul
      * initial la creare, sau un inventar fizic descopera o diferenta). Setezi
      * direct valoarea corecta - nu adaugi/scazi manual delta. Nu schimba
-     * avg_cost. Motivul e obligatoriu, pt. audit. Miscarea rezultata e tot
-     * tip "adjustment" (ca la cost), dar cu qty = delta (poate fi negativ),
+     * avg_cost. Motivul e opțional (pt. audit, cand exista). Miscarea rezultata
+     * e tot tip "adjustment" (ca la cost), dar cu qty = delta (poate fi negativ),
      * ca sa se vada in istoric ce s-a schimbat, nu doar cat a ajuns sa fie.
      */
-    public function recordQuantityAdjustment(float $newQty, int $adminId, string $reason): StockMovement
+    public function recordQuantityAdjustment(float $newQty, int $adminId, ?string $reason = null): StockMovement
     {
         $delta = $newQty - (float) $this->stock_qty;
 
@@ -289,9 +325,9 @@ class StockItem extends Model
     /**
      * Corectie manuala de cost, oricand disponibila (ex. produs cu stoc initial
      * fara pret, sau alinierea cu o factura primita mai tarziu). Nu schimba
-     * cantitatea - doar avg_cost. Motivul e obligatoriu, pt. audit.
+     * cantitatea - doar avg_cost. Motivul e opțional (pt. audit, cand exista).
      */
-    public function recordCostAdjustment(float $newUnitCost, int $adminId, string $reason): StockMovement
+    public function recordCostAdjustment(float $newUnitCost, int $adminId, ?string $reason = null): StockMovement
     {
         $movement = $this->movements()->create([
             'type' => 'adjustment',

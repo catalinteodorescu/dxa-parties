@@ -22,6 +22,8 @@
             'finalized' => ['Finalizat',  'bg-info-soft text-info'],
         ];
         $money = fn ($n) => number_format((float) $n, 2, ',', '.');
+        // DXA: adaugat (Bar - stocuri, alertă stoc negativ persistent) — cantitate fara zerouri de prisos.
+        $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
     @endphp
 
     <div>
@@ -186,8 +188,13 @@
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></x-slot:icon>
             </x-stat-card>
 
+            {{-- DXA: adaugat (Bar - stocuri, alertă stoc negativ persistent) --}}
+            <x-stat-card :value="$negativeStockItems->count()" label="Stoc negativ" hint="{{ $negativeStockItems->isNotEmpty() ? 'de peste '.$negativeStockDaysThreshold.' zile' : 'nimic persistent' }}" accent="{{ $negativeStockItems->isNotEmpty() ? 'danger' : 'neutral' }}" :href="route('admin.stock-items.index')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg></x-slot:icon>
+            </x-stat-card>
+
             {{-- DXA: adaugat (Bar - necesare) --}}
-            <x-stat-card :value="$requisitionsOpenCount" label="Necesare deschise" hint="așteaptă recepție" accent="{{ $requisitionsOpenCount > 0 ? 'warning' : 'neutral' }}" :href="route('admin.stock-requisitions.index', ['state' => 'open'])">
+            <x-stat-card :value="$requisitionsOpenCount" label="Necesare deschise" :hint="$requisitionStale ? 'cel mai vechi, uitat de câteva zile' : 'așteaptă recepție'" accent="{{ $requisitionStale ? 'danger' : ($requisitionsOpenCount > 0 ? 'warning' : 'neutral') }}" :href="route('admin.stock-requisitions.index', ['state' => 'open'])">
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2" width="6" height="4" rx="1"/></svg></x-slot:icon>
             </x-stat-card>
 
@@ -220,7 +227,7 @@
             </x-action-card>
         </div>
 
-        {{-- DXA: adaugat (Bar - raportari) — Widget: ultimele raportări (până la 2), lat cât 2 carduri --}}
+        {{-- DXA: adaugat (Bar - raportari / stocuri) — Widget-uri: ultimele raportări +, daca exista, stoc negativ persistent --}}
         <div class="mt-3 grid grid-cols-1 lg:grid-cols-6 gap-3">
             <div class="lg:col-span-2 rounded-xl border border-border bg-surface p-4">
                 <div class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/80 mb-1">Ultimele raportări</div>
@@ -244,7 +251,84 @@
                     <p class="text-sm text-ink-soft mt-1">Nicio raportare încă.</p>
                 @endforelse
             </div>
+
+            {{-- DXA: adaugat (Bar - stocuri, alertă stoc negativ persistent) — apare doar cand exista ceva de semnalat. --}}
+            @if ($negativeStockItems->isNotEmpty())
+                <div class="lg:col-span-2 rounded-xl border border-danger/30 bg-surface p-4">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-danger/80 mb-1">Stoc negativ persistent</div>
+                    @foreach ($negativeStockItems as $row)
+                        @php
+                            $si = $row['item'];
+                            $days = $row['since']->diffInDays(now());
+                        @endphp
+                        <a href="{{ route('admin.stock-items.index', ['q' => $si->name]) }}" wire:navigate
+                           class="group flex items-center justify-between gap-3 py-2 border-b border-border last:border-0">
+                            <span class="text-sm text-ink group-hover:text-primary truncate">{{ $si->name }}</span>
+                            <span class="flex items-center gap-2 shrink-0">
+                                <span class="text-xs text-danger whitespace-nowrap">{{ $fmt($si->stock_qty) }} {{ $si->unit }}</span>
+                                <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 bg-danger/10 text-danger">de {{ $days }} {{ $days === 1 ? 'zi' : 'zile' }}</span>
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
         </div>
+
+        {{-- DXA: adaugat (Bar - dashboard, widget comparație ultimele 2 petreceri) — apare doar cand exista cel putin 2 petreceri cu raportare finalizata; sub 2 nu are ce compara. Petrecerile sunt RANDURI (una sub alta), metricile sunt COLOANE, ca valorile sa se urmareasca vertical (nu side-by-side pe coloane per petrecere). --}}
+        @if ($lastTwoPartiesComparison->count() === 2)
+            @php
+                [$cmpA, $cmpB] = $lastTwoPartiesComparison->values();
+                $higherProfitPartyId = $cmpA->profit === $cmpB->profit
+                    ? null
+                    : ($cmpA->profit > $cmpB->profit ? $cmpA->party->id : $cmpB->party->id);
+            @endphp
+            <div class="mt-3 grid grid-cols-1 lg:grid-cols-6 gap-3">
+                <div class="lg:col-span-3 rounded-xl border border-border bg-surface p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/80">Comparație — ultimele 2 petreceri</div>
+                        <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-xs text-primary hover:underline">Vezi raportările</a>
+                    </div>
+
+                    <div class="hidden sm:grid grid-cols-[1fr_6rem_6rem_6rem_5rem] gap-2 text-[10px] font-semibold uppercase tracking-wide text-ink-soft/60 pb-1.5 border-b border-border">
+                        <span>Petrecere</span>
+                        <span class="text-right">Vânzări</span>
+                        <span class="text-right">Cost</span>
+                        <span class="text-right">Profit</span>
+                        <span class="text-right">Marjă</span>
+                    </div>
+
+                    <div class="divide-y divide-border">
+                        @foreach ([$cmpA, $cmpB] as $cmp)
+                            <div class="py-2 sm:grid sm:grid-cols-[1fr_6rem_6rem_6rem_5rem] sm:gap-2 sm:items-center">
+                                <div class="min-w-0">
+                                    <a href="{{ route('admin.parties.edit', $cmp->party) }}" wire:navigate class="text-sm font-medium text-ink hover:text-primary truncate block">{{ $cmp->party->name }}</a>
+                                    <span class="text-xs text-ink-soft/70">{{ $cmp->party->starts_at?->format('d.m.Y') ?? '—' }}</span>
+                                </div>
+
+                                <div class="mt-1 sm:mt-0 sm:text-right text-sm text-ink">
+                                    <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Vânzări: </span>{{ $money($cmp->revenue) }} lei
+                                </div>
+
+                                <div class="mt-0.5 sm:mt-0 sm:text-right text-sm text-ink-soft">
+                                    <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Cost: </span>{{ $money($cmp->cost) }} lei
+                                </div>
+
+                                <div class="mt-0.5 sm:mt-0 sm:text-right text-sm font-semibold {{ $cmp->profit > 0 ? 'text-success' : ($cmp->profit < 0 ? 'text-danger' : 'text-ink') }}">
+                                    <span class="sm:hidden text-[11px] uppercase text-ink-soft/50 font-normal">Profit: </span>{{ $money($cmp->profit) }} lei
+                                    @if ($higherProfitPartyId === $cmp->party->id)
+                                        <span class="ml-0.5 text-success">▲</span>
+                                    @endif
+                                </div>
+
+                                <div class="mt-0.5 sm:mt-0 sm:text-right text-sm text-ink-soft">
+                                    <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Marjă: </span>{{ $cmp->margin !== null ? number_format($cmp->margin, 1, ',', '.').'%' : '—' }}
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endif
     </section>
 
     {{-- ============ Secțiune modul: Administratori (doar superadmin) ============ --}}

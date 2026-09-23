@@ -147,7 +147,7 @@
 
             <label class="mt-4 flex items-center gap-2.5 cursor-pointer">
                 <input type="checkbox" wire:model="is_active"
-                       class="w-4 h-4 rounded border-border text-primary focus:ring-primary/40">
+                       class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                 <span class="text-sm text-ink">Vizibilă în meniu</span>
             </label>
 

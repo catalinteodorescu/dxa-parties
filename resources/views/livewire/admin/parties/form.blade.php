@@ -274,7 +274,7 @@
         <div class="{{ $card }}">
             <h3 class="text-sm font-semibold text-ink">Preț</h3>
             <label class="flex items-center gap-2.5 text-sm text-ink">
-                <input type="checkbox" wire:model.live="is_free" class="w-4 h-4 rounded border-border accent-primary">
+                <input type="checkbox" wire:model.live="is_free" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                 Intrare gratuită
             </label>
 
@@ -328,7 +328,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 @foreach ($paymentMethods as $key => $label)
                     <label class="flex items-center gap-2.5 text-sm text-ink">
-                        <input type="checkbox" wire:model="payment_predefined.{{ $key }}" class="w-4 h-4 rounded border-border accent-primary">
+                        <input type="checkbox" wire:model="payment_predefined.{{ $key }}" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                         {{ $label }}
                     </label>
                 @endforeach
@@ -440,7 +440,7 @@
                 <x-select wire:model="audience" :options="['all' => 'Toți (inclusiv nelogați)', 'auth' => 'Doar utilizatorii logați']" />
             </div>
             <label class="flex items-center gap-2.5 text-sm text-ink">
-                <input type="checkbox" wire:model="in_carousel" class="w-4 h-4 rounded border-border accent-primary">
+                <input type="checkbox" wire:model="in_carousel" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                 În carusel <span class="text-ink-soft/70">— apare și în caruselul din partea de sus a app-ului</span>
             </label>
             <div>
@@ -448,7 +448,7 @@
                 <x-select wire:model="status" class="sm:max-w-xs" :options="['published' => 'Publicată', 'draft' => 'Ciornă (nu apare în app)']" />
             </div>
             <label class="flex items-center gap-2.5 text-sm text-ink">
-                <input type="checkbox" wire:model="is_active" class="w-4 h-4 rounded border-border accent-primary">
+                <input type="checkbox" wire:model="is_active" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                 Vizibilă în app <span class="text-ink-soft/70">— debifat = ascunsă temporar</span>
             </label>
         </div>

@@ -53,7 +53,7 @@
             @if ($usesTokens)
                 <div>
                     <label for="tokens" class="block text-sm font-medium text-ink">Preț <span class="text-ink-soft/60 font-normal">(tokeni)</span></label>
-                    <input type="number" id="tokens" wire:model.live.blur="tokens" step="0.5" min="0" placeholder="0"
+                    <input type="number" id="tokens" wire:model.live.blur="tokens" step="1" min="0" placeholder="0"
                            class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
                     @error('tokens') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
                 </div>
@@ -168,11 +168,35 @@
                     @error('recipe.'.$i.'.qty') <p class="text-xs text-danger">{{ $message }}</p> @enderror
                 @endforeach
             </div>
+
+            {{-- Cost din rețetă + marjă fața de preț, calculate live pe masura ce completezi rețeta --}}
+            @if ($recipeCost !== null)
+                @php
+                    $marginClass = match (true) {
+                        $marginAmount === null => 'text-ink-soft',
+                        $marginAmount > 0 => 'text-success',
+                        $marginAmount < 0 => 'text-danger',
+                        default => 'text-ink',
+                    };
+                @endphp
+                <p class="mt-2 text-xs text-ink-soft">
+                    Cost din rețetă: <span class="font-medium text-ink">{{ number_format($recipeCost, 2, ',', '.') }} lei</span>
+                    @if ($marginAmount !== null)
+                        <span class="mx-1 text-ink-soft/40">·</span>
+                        marjă <span class="{{ $marginClass }} font-medium">{{ number_format($marginAmount, 2, ',', '.') }} lei ({{ number_format($marginPercent, 1, ',', '.') }}%)</span>
+                    @else
+                        <span class="mx-1 text-ink-soft/40">·</span>
+                        <span class="italic">completează prețul ca să vezi marja</span>
+                    @endif
+                </p>
+            @elseif (collect($recipe)->contains(fn ($l) => ! empty($l['stock_item_id']) && $l['qty'] !== null && $l['qty'] !== ''))
+                <p class="mt-2 text-xs text-ink-soft/60 italic">Cost necunoscut — unul sau mai multe ingrediente din rețetă nu au încă un cost setat (Bar → Stocuri).</p>
+            @endif
         </div>
 
         {{-- Vizibil --}}
         <label class="flex items-center gap-2.5 text-sm text-ink">
-            <input type="checkbox" wire:model="is_active" class="w-4 h-4 rounded border-border accent-primary">
+            <input type="checkbox" wire:model="is_active" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
             Vizibil în meniu <span class="text-ink-soft/70">— debifat = ascuns temporar (ex. stoc epuizat)</span>
         </label>
 
@@ -246,7 +270,7 @@
 
             <label class="mt-4 flex items-center gap-2.5 cursor-pointer">
                 <input type="checkbox" wire:model.live="newStockItemHasInitialStock"
-                       class="w-4 h-4 rounded border-border accent-primary cursor-pointer">
+                       class="w-4 h-4 rounded border-border accent-primary cursor-pointer" style="accent-color: var(--color-primary);">
                 <span class="text-sm text-ink">Am deja stoc din acest produs</span>
             </label>
 

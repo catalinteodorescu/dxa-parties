@@ -81,7 +81,7 @@
     <x-flash class="mb-4" />
 
     {{-- Antet de coloane (doar desktop). Fiecare necesar = card propriu, spatiat. --}}
-    <div class="hidden md:grid grid-cols-[1fr_13rem_6rem_11rem] gap-3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
+    <div class="hidden md:grid grid-cols-[1fr_13rem_6rem_20rem] gap-3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
         <span>Necesar</span>
         <span>Progres</span>
         <span>Stare</span>
@@ -107,7 +107,7 @@
             @endphp
 
             <div wire:key="requisition-{{ $req->id }}" class="rounded-2xl border border-border bg-surface">
-                <div class="p-3 md:px-4 md:py-2.5 md:grid md:grid-cols-[1fr_13rem_6rem_11rem] md:items-center md:gap-3">
+                <div class="p-3 md:px-4 md:py-2.5 md:grid md:grid-cols-[1fr_13rem_6rem_20rem] md:items-center md:gap-3">
 
                     {{-- Denumire --}}
                     <div class="min-w-0">
@@ -143,7 +143,7 @@
                     </div>
 
                     {{-- Acțiuni --}}
-                    <div class="mt-3 md:mt-0 flex items-center gap-2 md:justify-end">
+                    <div class="mt-3 md:mt-0 flex flex-wrap items-center gap-2 md:justify-end">
                         {{-- DXA: adaugat (Bar - raportari) — doar pt. necesare deschise: aduce grupul in Raportare --}}
                         @if ($req->status === 'open')
                             <x-btn variant="primary" size="icon" outline tooltip="Raportează din acest necesar"
@@ -166,6 +166,25 @@
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>
+                            </svg>
+                        </x-btn>
+
+                        <x-btn variant="purple" size="icon" outline tooltip="Duplică" wire:click="duplicate({{ $req->id }})">
+                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="12" height="12" rx="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                        </x-btn>
+
+                        <x-btn variant="neutral" size="icon" outline tooltip="Export PDF" wire:click="exportPdf({{ $req->id }})" wire:loading.attr="disabled" wire:target="exportPdf({{ $req->id }})">
+                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </x-btn>
+
+                        <x-btn variant="success" size="icon" outline tooltip="Trimite pe WhatsApp" :href="$req->whatsAppUrl()" target="_blank" rel="noopener">
+                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.5 8.5 0 0 1-11.98 7.76L3 21l1.83-6.02A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 10.5c.3 2.5 2.5 4.7 5 5"/>
                             </svg>
                         </x-btn>
 

@@ -154,7 +154,7 @@ class Form extends Component
         ];
 
         if ($this->usesTokens()) {
-            $rules['tokens'] = ['required', 'numeric', 'min:0', 'max:99999.99'];
+            $rules['tokens'] = ['required', 'integer', 'min:0', 'max:99999'];
             $rules['price'] = ['nullable', 'numeric', 'min:0'];
         } else {
             $rules['price'] = ['required', 'numeric', 'min:0', 'max:99999.99'];
@@ -179,7 +179,7 @@ class Form extends Component
             'price.required' => 'Prețul este obligatoriu.',
             'price.numeric' => 'Prețul trebuie să fie un număr.',
             'tokens.required' => 'Prețul în tokeni este obligatoriu.',
-            'tokens.numeric' => 'Prețul în tokeni trebuie să fie un număr.',
+            'tokens.integer' => 'Prețul în tokeni trebuie să fie un număr întreg.',
             'image.image' => 'Fișierul trebuie să fie o imagine.',
             'image.max' => 'Imaginea nu poate depăși 8 MB.',
             'recipe.*.stock_item_id.required_with' => 'Alege ingredientul.',
@@ -407,12 +407,54 @@ class Form extends Component
 
     public function render()
     {
+        $stockItems = StockItem::active()->ordered()->get();
+        $recipeCost = $this->recipeCostPreview($stockItems);
+        $price = $this->price !== null && $this->price !== '' ? (float) $this->price : null;
+        $marginAmount = ($recipeCost !== null && $price !== null) ? round($price - $recipeCost, 2) : null;
+        $marginPercent = ($marginAmount !== null && $price > 0) ? round($marginAmount / $price * 100, 1) : null;
+
         return view('livewire.admin.menu-items.form', [
             'categories' => MenuCategory::ordered()->get(),
             'usesTokens' => $this->usesTokens(),
             'tokenRate' => Settings::get('token_rate'),
             // DXA: adaugat (Bar - stocuri: reteta)
-            'stockItems' => StockItem::active()->ordered()->get(),
+            'stockItems' => $stockItems,
+            // DXA: adaugat (Bar - meniu: marja) - cost/marja calculate live din
+            // liniile de reteta completate in formular (nu neaparat cele
+            // salvate in DB - reflecta editarile curente, chiar nesalvate).
+            'recipeCost' => $recipeCost,
+            'marginAmount' => $marginAmount,
+            'marginPercent' => $marginPercent,
         ]);
+    }
+
+    /**
+     * Cost estimat per unitate, calculat live din liniile de rețetă
+     * completate in formular (stock_item_id + qty), nu din MenuItem::
+     * costPerUnit() - acela citeste din DB, ceea ce ar ignora modificari
+     * nesalvate ale retetei. Null daca reteta e goala (nicio linie
+     * completata) sau vreun ingredient din ea are cost necunoscut.
+     */
+    private function recipeCostPreview($stockItems): ?float
+    {
+        $total = 0.0;
+        $hasLine = false;
+
+        foreach ($this->recipe as $line) {
+            if (empty($line['stock_item_id']) || $line['qty'] === '' || $line['qty'] === null) {
+                continue;
+            }
+
+            $hasLine = true;
+            $stockItem = $stockItems->firstWhere('id', (int) $line['stock_item_id']);
+
+            if (! $stockItem || ! $stockItem->hasKnownCost()) {
+                return null;
+            }
+
+            $total += (float) $line['qty'] * (float) $stockItem->avg_cost;
+        }
+
+        return $hasLine ? round($total, 4) : null;
     }
 }

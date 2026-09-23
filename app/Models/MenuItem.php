@@ -26,7 +26,7 @@ class MenuItem extends Model
     {
         return [
             'price' => 'decimal:2',
-            'tokens' => 'decimal:2',
+            'tokens' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -108,6 +108,38 @@ class MenuItem extends Model
         }
 
         return round($total, 4);
+    }
+
+    /**
+     * Marja absoluta (lei) = pret de vanzare - cost din reteta. Null daca
+     * costul e necunoscut (vezi costPerUnit()).
+     */
+    public function marginAmount(): ?float
+    {
+        $cost = $this->costPerUnit();
+
+        if ($cost === null) {
+            return null;
+        }
+
+        return round((float) $this->price - $cost, 2);
+    }
+
+    /**
+     * Marja procentuala = marja absoluta / pret de vanzare * 100 (cat din
+     * pretul platit de client ramane profit, dupa scaderea costului de
+     * reteta). Null daca lipseste costul sau pretul e 0 (nu se poate imparti).
+     */
+    public function marginPercent(): ?float
+    {
+        $margin = $this->marginAmount();
+        $price = (float) $this->price;
+
+        if ($margin === null || $price <= 0) {
+            return null;
+        }
+
+        return round($margin / $price * 100, 1);
     }
 
     /**

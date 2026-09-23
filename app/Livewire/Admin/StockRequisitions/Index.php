@@ -4,7 +4,10 @@ namespace App\Livewire\Admin\StockRequisitions;
 
 use App\Models\StockRequisition;
 use App\Services\ActivityLogger;
+use App\Services\StockRequisitionPdfExporter;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -74,6 +77,49 @@ class Index extends Component
 
         ActivityLogger::log('stock.requisition_reopened', 'A redeschis necesarul „'.$requisition->label.'".');
         session()->flash('status', 'Necesarul a fost redeschis.');
+    }
+
+    /**
+     * DXA: adaugat (Bar - necesare, duplicare)
+     *
+     * Porneste un necesar nou, deschis, cu aceleasi produse+cantitati CERUTE
+     * (nu si cele primite - e un necesar nou, fara istoric). Util pt. un
+     * necesar recurent: dupa duplicare, admin-ul e dus direct in formularul
+     * de editare ca sa ajusteze cantitatile inainte de a-l folosi. Nu legam
+     * copia de aceeasi petrecere ca originalul - e un necesar independent
+     * (analog cu Anunturi, unde titlul/starea se reseteaza, nu si legaturile).
+     */
+    public function duplicate(int $id): void
+    {
+        $original = StockRequisition::with('items')->findOrFail($id);
+
+        $copy = DB::transaction(function () use ($original) {
+            $copy = StockRequisition::create([
+                'label' => Str::limit($original->label, 110, '').' (copie)',
+                'status' => 'open',
+                'party_id' => null,
+                'created_by' => Auth::guard('admin')->id(),
+            ]);
+
+            foreach ($original->items as $item) {
+                $copy->items()->create([
+                    'stock_item_id' => $item->stock_item_id,
+                    'qty_requested' => $item->qty_requested,
+                ]);
+            }
+
+            return $copy;
+        });
+
+        ActivityLogger::log('stock.requisition_duplicated', 'A duplicat necesarul „'.$original->label.'".');
+
+        $this->redirectRoute('admin.stock-requisitions.edit', ['requisition' => $copy->id], navigate: true);
+    }
+
+    /** Export PDF — lista de produse a necesarului, de tipărit/trimis furnizorului (vezi StockRequisitionPdfExporter). */
+    public function exportPdf(int $id)
+    {
+        return StockRequisitionPdfExporter::stream(StockRequisition::findOrFail($id));
     }
 
     public function delete(int $id): void

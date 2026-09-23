@@ -7,6 +7,7 @@ use App\Models\Party;
 use App\Models\StockItem;
 use App\Models\StockRequisition;
 use App\Services\ActivityLogger;
+use App\Services\StockRequisitionPdfExporter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
@@ -188,6 +189,18 @@ class Form extends Component
             'lines.*.qty.numeric' => 'Cantitatea trebuie să fie un număr.',
             'lines.*.qty.min' => 'Cantitatea trebuie să fie mai mare ca 0.',
         ];
+    }
+
+    /**
+     * Export PDF — disponibil doar la editare (un necesar nesalvat inca nu are
+     * ce exporta; vezi StockRequisitionPdfExporter). Butonul apare doar atunci
+     * in formular.
+     */
+    public function exportPdf()
+    {
+        abort_unless($this->requisition && $this->requisition->exists, 404);
+
+        return StockRequisitionPdfExporter::stream($this->requisition);
     }
 
     public function save(): void

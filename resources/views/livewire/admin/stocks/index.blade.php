@@ -220,28 +220,66 @@
                         </div>
 
                         <div class="border-t border-border pt-3">
-                            <div class="hidden sm:grid grid-cols-[8rem_7rem_9rem_1fr] gap-3 text-[11px] font-semibold uppercase tracking-wide text-ink-soft/60 pb-2">
+                            <div class="hidden sm:grid grid-cols-[8rem_10rem_7rem_9rem_1fr] gap-3 text-[11px] font-semibold uppercase tracking-wide text-ink-soft/60 pb-2">
                                 <span>Istoric mișcări</span>
+                                <span>Sursă</span>
                                 <span class="text-right">Cantitate</span>
                                 <span class="text-right">Cost/unitate</span>
                                 <span class="text-right">Dată</span>
                             </div>
 
-                            @php $movements = $item->movements()->latestFirst()->limit(20)->get(); @endphp
+                            @php
+                                $movementsTotal = $item->movements()->count();
+                                $movements = $item->movements()
+                                    ->with(['requisitionItem.requisition', 'report', 'sale.menuItem'])
+                                    ->latestFirst()
+                                    ->limit($movementsLimit)
+                                    ->get();
+                            @endphp
                             @if ($movements->isEmpty())
                                 <p class="text-sm text-ink-soft">Nicio mișcare înregistrată încă.</p>
                             @else
                                 <div class="space-y-0.5 max-h-64 overflow-y-auto">
                                     @foreach ($movements as $m)
-                                        <div class="py-2 sm:py-1.5 border-b border-border/60 last:border-0 sm:grid sm:grid-cols-[8rem_7rem_9rem_1fr] sm:gap-3 sm:items-center">
-                                            <div class="inline-flex items-center gap-1.5 min-w-0">
-                                                <span class="w-1.5 h-1.5 rounded-full shrink-0 {{ match($m->type) {
-                                                    'in' => 'bg-primary',
-                                                    'out' => 'bg-danger',
-                                                    'initial' => 'bg-info',
-                                                    default => 'bg-warning',
-                                                } }}"></span>
-                                                <span class="text-sm truncate">{{ $m->typeLabel() }}</span>
+                                        @php
+                                            // Sursa afisata in coloana dedicata "Sursă" - doar pt. intrari/
+                                            // iesiri legate de un necesar/vanzare/raportare (vezi StockMovement::
+                                            // requisitionItem()/report(), StockReportSale, StockReport::
+                                            // addSale()/addLoss()). Restul (stoc initial, corectii) raman
+                                            // fara sursa, ca si acum (coloana goala).
+                                            $source = null;
+                                            if ($m->type === 'in') {
+                                                if ($m->requisitionItem) {
+                                                    $source = 'din necesar „'.$m->requisitionItem->requisition->label.'"';
+                                                } elseif ($m->report) {
+                                                    $source = 'din raportare '.$m->report->created_at->format('d.m.Y');
+                                                }
+                                            } elseif ($m->type === 'out') {
+                                                if ($m->sale?->menuItem) {
+                                                    $source = 'vânzare „'.$m->sale->menuItem->name.'"';
+                                                } elseif ($m->report) {
+                                                    $source = 'pierdere din raportare '.$m->report->created_at->format('d.m.Y');
+                                                }
+                                            }
+                                        @endphp
+                                        <div class="py-2 sm:py-1.5 border-b border-border/60 last:border-0 sm:grid sm:grid-cols-[8rem_10rem_7rem_9rem_1fr] sm:gap-3 sm:items-center">
+                                            <div class="min-w-0">
+                                                <div class="inline-flex items-center gap-1.5 min-w-0">
+                                                    <span class="w-1.5 h-1.5 rounded-full shrink-0 {{ match($m->type) {
+                                                        'in' => 'bg-success',
+                                                        'out' => 'bg-danger',
+                                                        'initial' => 'bg-info',
+                                                        default => 'bg-warning',
+                                                    } }}"></span>
+                                                    <span class="text-sm truncate">{{ $m->typeLabel() }}</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-0.5 sm:mt-0 min-w-0">
+                                                @if ($source)
+                                                    <span class="sm:hidden text-[11px] uppercase text-ink-soft/50">Sursă: </span>
+                                                    <span class="text-xs text-ink-soft/70 truncate" @if ($m->note) title="{{ $m->note }}" @endif>{{ $source }}</span>
+                                                @endif
                                             </div>
 
                                             <div class="mt-0.5 sm:mt-0 sm:text-right text-sm text-ink-soft">
@@ -251,6 +289,9 @@
                                                 @else
                                                     @php $isNegativeMovement = $m->type === 'out' || (float) $m->qty < 0; @endphp
                                                     {{ $isNegativeMovement ? '−' : '+' }}{{ rtrim(rtrim(number_format(abs((float) $m->qty), 3, ',', '.'), '0'), ',') }} {{ $item->unit }}
+                                                    @if ($item->hasPackage())
+                                                        <span class="block text-[11px] text-ink-soft/50">{{ $item->packageDisplayFor(abs((float) $m->qty)) }}</span>
+                                                    @endif
                                                 @endif
                                             </div>
 
@@ -269,6 +310,13 @@
                                         </div>
                                     @endforeach
                                 </div>
+                                @if ($movements->count() < $movementsTotal)
+                                    <div class="pt-2 text-center">
+                                        <button type="button" wire:click="loadMoreMovements" wire:loading.attr="disabled" class="text-xs text-primary hover:underline disabled:opacity-50">
+                                            Vezi încă {{ min(20, $movementsTotal - $movements->count()) }} mai vechi
+                                        </button>
+                                    </div>
+                                @endif
                             @endif
                         </div>
                     </div>
@@ -353,7 +401,7 @@
             @unless ($editingId)
                 <label class="mt-4 flex items-center gap-2.5 cursor-pointer">
                     <input type="checkbox" wire:model.live="hasInitialStock"
-                           class="w-4 h-4 rounded border-border accent-primary cursor-pointer">
+                           class="w-4 h-4 rounded border-border accent-primary cursor-pointer" style="accent-color: var(--color-primary);">
                     <span class="text-sm text-ink">Am deja stoc din acest produs</span>
                 </label>
 
@@ -410,7 +458,7 @@
 
             <label class="mt-4 flex items-center gap-2.5 cursor-pointer">
                 <input type="checkbox" wire:model="is_active"
-                       class="w-4 h-4 rounded border-border accent-primary cursor-pointer">
+                       class="w-4 h-4 rounded border-border accent-primary cursor-pointer" style="accent-color: var(--color-primary);">
                 <span class="text-sm text-ink">Activ</span>
             </label>
 
@@ -439,7 +487,7 @@
             </div>
 
             <div class="mt-4">
-                <label class="block text-sm font-medium text-ink mb-1">Motiv (pentru audit)</label>
+                <label class="block text-sm font-medium text-ink mb-1">Motiv <span class="text-ink-soft/60 font-normal">(opțional, pentru audit)</span></label>
                 <input type="text" wire:model="qty_reason" placeholder="ex. Am greșit cantitatea la stocul inițial"
                        class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
                 @error('qty_reason') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
@@ -498,7 +546,7 @@
             @endif
 
             <div class="mt-4">
-                <label class="block text-sm font-medium text-ink mb-1">Motiv (pentru audit)</label>
+                <label class="block text-sm font-medium text-ink mb-1">Motiv <span class="text-ink-soft/60 font-normal">(opțional, pentru audit)</span></label>
                 <input type="text" wire:model="cost_reason" placeholder="ex. Aliniere la factura din 12.10"
                        class="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
                 @error('cost_reason') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror

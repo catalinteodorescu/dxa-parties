@@ -121,6 +121,26 @@
                                 {{ number_format((float) $item->price, 2, ',', '.') }} lei
                             @endif
                         </span>
+
+                        {{-- Cost din rețetă + marjă (vezi MenuItem::costPerUnit/marginAmount/marginPercent) --}}
+                        @if ($item->isTracked())
+                            @php
+                                $cost = $item->costPerUnit();
+                                $margin = $item->marginAmount();
+                                $marginPct = $item->marginPercent();
+                            @endphp
+                            @if ($cost !== null)
+                                <span class="inline-flex items-center rounded-full bg-bg text-ink-soft text-xs px-2 py-0.5">
+                                    cost {{ number_format($cost, 2, ',', '.') }} lei
+                                    @if ($margin !== null)
+                                        <span class="mx-1 text-ink-soft/40">·</span>
+                                        marjă {{ number_format($margin, 2, ',', '.') }} lei ({{ number_format($marginPct, 1, ',', '.') }}%)
+                                    @endif
+                                </span>
+                            @else
+                                <span class="text-xs text-ink-soft/60 italic">cost necunoscut</span>
+                            @endif
+                        @endif
                     </div>
                 </div>
 

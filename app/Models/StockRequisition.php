@@ -67,4 +67,53 @@ class StockRequisition extends Model
             $this->save();
         }
     }
+
+    /** Cantitate formatata (virgula zecimala, fara zerouri de prisos) — acelasi stil ca in PDF-uri. */
+    private function plain(float $n): string
+    {
+        return rtrim(rtrim(number_format($n, 3, ',', '.'), '0'), ',');
+    }
+
+    /**
+     * DXA: adaugat (Bar - necesare) — text formatat pt. trimis pe WhatsApp
+     * (buton „Trimite pe WhatsApp" din listă și din formular, wa.me/?text=...
+     * fără număr, ca să aleagă adminul contactul/furnizorul direct din
+     * WhatsApp). Doar rezumatul text — wa.me nu suportă atașamente, deci
+     * PDF-ul se exportă/trimite separat daca e nevoie de el ca fișier.
+     */
+    public function whatsAppMessage(): string
+    {
+        $lines = $this->items->sortBy(fn (StockRequisitionItem $item) => mb_strtolower($item->stockItem->name));
+
+        $text = 'Necesar: '.$this->label."\n";
+
+        if ($this->party) {
+            $text .= 'Petrecere: '.$this->party->name."\n";
+        }
+
+        $text .= "\n";
+
+        foreach ($lines as $item) {
+            $text .= '- '.$item->stockItem->name.': '.$this->plain((float) $item->qty_requested).' '.$item->stockItem->unit;
+
+            if ($item->stockItem->hasPackage()) {
+                $package = $item->stockItem->packageDisplayFor((float) $item->qty_requested);
+
+                if ($package) {
+                    $text .= ' ('.$package.')';
+                }
+            }
+
+            $text .= "\n";
+        }
+
+        $text .= "\nDance Xplosion Academy — Panou admin";
+
+        return $text;
+    }
+
+    public function whatsAppUrl(): string
+    {
+        return 'https://wa.me/?text='.rawurlencode($this->whatsAppMessage());
+    }
 }

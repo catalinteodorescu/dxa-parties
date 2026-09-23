@@ -38,9 +38,20 @@ class Index extends Component
     // singur produs deodata, ca sa nu incarcam miscari pt. toata pagina.
     public ?int $expandedId = null;
 
+    // Cate miscari sunt incarcate in panoul expandat (istoric miscari) -
+    // pornim de la 20, "Vezi mai vechi" adauga cate 20. Resetat la fiecare
+    // expand/collapse ca sa nu ramana "extins" cand treci la alt produs.
+    public int $movementsLimit = 20;
+
     public function toggleExpand(int $id): void
     {
         $this->expandedId = $this->expandedId === $id ? null : $id;
+        $this->movementsLimit = 20;
+    }
+
+    public function loadMoreMovements(): void
+    {
+        $this->movementsLimit += 20;
     }
 
     // --- Modal creare/editare ---
@@ -303,10 +314,9 @@ class Index extends Component
         if ($this->new_cost_mode === 'total') {
             $this->validate([
                 'new_cost_total' => ['required', 'numeric', 'min:0'],
-                'cost_reason' => ['required', 'string', 'max:255'],
+                'cost_reason' => ['nullable', 'string', 'max:255'],
             ], [
                 'new_cost_total.required' => 'Completează valoarea totală a stocului curent.',
-                'cost_reason.required' => 'Motivul corecției este obligatoriu (pentru audit).',
             ]);
 
             if ((float) $item->stock_qty <= 0) {
@@ -319,18 +329,18 @@ class Index extends Component
         } else {
             $this->validate([
                 'new_cost' => ['required', 'numeric', 'min:0'],
-                'cost_reason' => ['required', 'string', 'max:255'],
+                'cost_reason' => ['nullable', 'string', 'max:255'],
             ], [
                 'new_cost.required' => 'Completează costul nou.',
-                'cost_reason.required' => 'Motivul corecției este obligatoriu (pentru audit).',
             ]);
 
             $unitCost = (float) $this->new_cost;
         }
 
-        $item->recordCostAdjustment($unitCost, Auth::guard('admin')->id(), $this->cost_reason);
+        $costReason = $this->cost_reason !== '' ? $this->cost_reason : null;
+        $item->recordCostAdjustment($unitCost, Auth::guard('admin')->id(), $costReason);
 
-        ActivityLogger::log('stock.item_cost_adjusted', 'A corectat manual costul produsului de stoc „'.$item->name.'" ('.$this->cost_reason.').');
+        ActivityLogger::log('stock.item_cost_adjusted', 'A corectat manual costul produsului de stoc „'.$item->name.'"'.($costReason !== null ? ' ('.$costReason.').' : '.'));
 
         $this->costModalOpen = false;
         session()->flash('status', 'Costul a fost corectat.');
@@ -360,16 +370,16 @@ class Index extends Component
     {
         $this->validate([
             'new_qty' => ['required', 'numeric', 'min:0'],
-            'qty_reason' => ['required', 'string', 'max:255'],
+            'qty_reason' => ['nullable', 'string', 'max:255'],
         ], [
             'new_qty.required' => 'Completează cantitatea corectă.',
-            'qty_reason.required' => 'Motivul corecției este obligatoriu (pentru audit).',
         ]);
 
         $item = StockItem::findOrFail($this->qtyEditingId);
-        $item->recordQuantityAdjustment((float) $this->new_qty, Auth::guard('admin')->id(), $this->qty_reason);
+        $qtyReason = $this->qty_reason !== '' ? $this->qty_reason : null;
+        $item->recordQuantityAdjustment((float) $this->new_qty, Auth::guard('admin')->id(), $qtyReason);
 
-        ActivityLogger::log('stock.item_qty_adjusted', 'A corectat manual cantitatea produsului de stoc „'.$item->name.'" ('.$this->qty_reason.').');
+        ActivityLogger::log('stock.item_qty_adjusted', 'A corectat manual cantitatea produsului de stoc „'.$item->name.'"'.($qtyReason !== null ? ' ('.$qtyReason.').' : '.'));
 
         $this->qtyModalOpen = false;
         session()->flash('status', 'Cantitatea a fost corectată.');

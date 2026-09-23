@@ -1,5 +1,5 @@
 @props([
-    'variant' => 'primary',  // primary | danger | warning | info | purple | neutral
+    'variant' => 'primary',  // primary | danger | warning | info | purple | success | neutral
     'size' => 'md',          // md | sm | icon
     'href' => null,
     'tooltip' => null,
@@ -13,6 +13,7 @@
         'warning' => 'bg-warning hover:bg-warning/90 text-white',
         'info'    => 'bg-info hover:bg-info/90 text-white',
         'purple'  => 'bg-purple hover:bg-purple/90 text-white',
+        'success' => 'bg-success hover:bg-success/90 text-white',
         'neutral' => 'bg-surface border border-border text-ink-soft hover:bg-bg',
     ];
 
@@ -22,6 +23,7 @@
         'warning' => 'bg-surface border border-warning text-warning hover:bg-warning hover:text-white',
         'info'    => 'bg-surface border border-info text-info hover:bg-info hover:text-white',
         'purple'  => 'bg-surface border border-purple text-purple hover:bg-purple hover:text-white',
+        'success' => 'bg-surface border border-success text-success hover:bg-success hover:text-white',
         'neutral' => 'bg-surface border border-border text-ink-soft hover:bg-ink-soft hover:text-white',
     ];
 
