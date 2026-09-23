@@ -11,6 +11,8 @@ class StockReportSale extends Model
     protected $fillable = [
         'report_id',
         'menu_item_id',
+        'sales_group_id',
+        'is_loose',
         'qty',
         'unit_price',
         'total_price',
@@ -21,6 +23,7 @@ class StockReportSale extends Model
     protected function casts(): array
     {
         return [
+            'is_loose' => 'boolean',
             'qty' => 'decimal:3',
             'unit_price' => 'decimal:2',
             'total_price' => 'decimal:2',
@@ -32,6 +35,12 @@ class StockReportSale extends Model
     public function report(): BelongsTo
     {
         return $this->belongsTo(StockReport::class, 'report_id');
+    }
+
+    /** Sesiunea de vanzari din care provine randul (null = vanzare manuala sau simpla). */
+    public function salesGroup(): BelongsTo
+    {
+        return $this->belongsTo(SalesGroup::class, 'sales_group_id');
     }
 
     public function menuItem(): BelongsTo

@@ -48,6 +48,8 @@
         <x-select wire:model="category" live class="sm:w-48" :options="$categoryOptions" />
         <x-select wire:model="state" live class="sm:w-40"
                   :options="['all' => 'Toate stările', 'active' => 'Vizibile', 'inactive' => 'Ascunse']" />
+        <x-select wire:model="view" live class="sm:w-56" :options="$viewOptions" />
+
         @if ($hasFilters)
             <button type="button" wire:click="clearFilters" class="text-sm text-ink-soft hover:text-ink px-2 py-2 self-start">
                 Resetează
@@ -60,7 +62,7 @@
     <div class="space-y-3">
         @php $lastCategoryId = null; @endphp
         @forelse ($items as $item)
-            @if ($item->menu_category_id !== $lastCategoryId)
+            @if ($grouped && $item->menu_category_id !== $lastCategoryId)
                 @php $lastCategoryId = $item->menu_category_id; @endphp
                 <h3 class="pt-2 first:pt-0 text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
                     {{ $item->category->name }}
@@ -110,6 +112,9 @@
                     @endif
 
                     <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        @unless ($grouped)
+                            <span class="inline-flex items-center rounded-full border border-border text-ink-soft text-xs px-2 py-0.5">{{ $item->category->name }}</span>
+                        @endunless
                         @if ($item->quantity)
                             <span class="inline-flex items-center rounded-full bg-bg text-ink-soft text-xs px-2 py-0.5">{{ $item->quantity }}</span>
                         @endif

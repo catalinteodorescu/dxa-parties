@@ -28,9 +28,24 @@ class Index extends Component
     #[Url]
     public string $state = 'all';    // all | active | inactive
 
+    // DXA: adaugat (Meniu bar - afisare) - un singur camp pentru modul de afisare
+    // SI sortare; preferinta de afisare, nu filtru, deci NU e resetata de clearFilters().
+    #[Url]
+    public string $view = 'grouped';
+
+    /** cheie => [eticheta, coloana, directie]. 'grouped' = pe categorii (in ordinea din Setari), nume A-Z in categorie. */
+    public const VIEWS = [
+        'grouped' => ['Pe categorii', 'name', 'asc'],
+        'name_asc' => ['Listă · Nume A → Z', 'name', 'asc'],
+        'name_desc' => ['Listă · Nume Z → A', 'name', 'desc'],
+        'price_asc' => ['Listă · Preț crescător', 'price', 'asc'],
+        'price_desc' => ['Listă · Preț descrescător', 'price', 'desc'],
+        'newest' => ['Listă · Cele mai noi', 'created_at', 'desc'],
+    ];
+
     public function updated($name): void
     {
-        if (in_array($name, ['search', 'category', 'state'], true)) {
+        if (in_array($name, ['search', 'category', 'state', 'view'], true)) {
             $this->resetPage();
         }
     }
@@ -92,6 +107,10 @@ class Index extends Component
 
     public function render()
     {
+        $viewKey = array_key_exists($this->view, self::VIEWS) ? $this->view : 'grouped';
+        $grouped = $viewKey === 'grouped';
+        [, $sortColumn, $sortDirection] = self::VIEWS[$viewKey];
+
         $query = MenuItem::query()
             ->join('menu_categories', 'menu_categories.id', '=', 'menu_items.menu_category_id')
             ->select('menu_items.*')
@@ -100,14 +119,19 @@ class Index extends Component
             ->when($this->category !== 'all', fn ($q) => $q->where('menu_items.menu_category_id', $this->category))
             ->when($this->state === 'active', fn ($q) => $q->where('menu_items.is_active', true))
             ->when($this->state === 'inactive', fn ($q) => $q->where('menu_items.is_active', false))
-            ->orderBy('menu_categories.sort_order')
-            ->orderBy('menu_categories.name')
-            ->orderBy('menu_items.name');
+            // Grupat: categoriile in ordinea din Setari, iar produsele in interiorul lor dupa nume.
+            ->when($grouped, fn ($q) => $q
+                ->orderBy('menu_categories.sort_order')
+                ->orderBy('menu_categories.name'))
+            ->orderBy('menu_items.'.$sortColumn, $sortDirection)
+            ->orderBy('menu_items.id');
 
         return view('livewire.admin.menu-items.index', [
             'items' => $query->paginate(15),
             'categories' => MenuCategory::ordered()->get(),
             'usesTokens' => (bool) Settings::get('uses_tokens'),
+            'grouped' => $grouped,
+            'viewOptions' => array_map(fn ($v) => $v[0], self::VIEWS),
         ]);
     }
 }

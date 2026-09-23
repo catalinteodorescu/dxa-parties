@@ -34,7 +34,7 @@
     <button type="button" @click="open = ! open"
             class="w-full flex items-center justify-between gap-2 rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm focus:outline-none"
             :class="open ? 'ring-2 ring-primary/40 border-primary' : ''">
-        <span x-text="labelFor(value)" :class="value ? 'text-ink' : 'text-ink-soft/60'"></span>
+        <span x-text="labelFor(value)" :class="value ? 'text-ink' : 'text-ink-soft/60'" class="min-w-0 truncate text-left"></span>
         <svg class="w-4 h-4 shrink-0 text-ink-soft transition-transform" :class="open ? 'rotate-180' : ''"
              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"/>

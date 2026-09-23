@@ -6,6 +6,11 @@
 
     <x-flash class="mb-4" />
 
+    {{-- DXA: adaugat (Setări - categorii meniu bar): panou cu salvare imediată, separat de formularul de mai sus --}}
+    <div class="mb-5">
+        @livewire(\App\Livewire\Admin\Settings\MenuCategories::class)
+    </div>
+
     <form wire:submit="save" class="space-y-5">
         @foreach ($this->sections() as $section)
             <div class="bg-surface border border-border rounded-2xl p-6">
@@ -84,4 +89,5 @@
             </x-btn>
         </div>
     </form>
+
 </div>

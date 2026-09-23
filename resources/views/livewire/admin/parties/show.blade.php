@@ -232,7 +232,7 @@
                                     <div class="mt-0.5 text-xs text-ink-soft space-y-0.5">
                                         @foreach ($t['discounts'] as $d)
                                             @if (isset($d['price']))
-                                                <div>{{ $d['label'] ?: 'Ofertă' }}: {{ $fmt($d['price']) }}@if (! empty($d['until'])) · până la {{ \Illuminate\Support\Carbon::parse($d['until'])->format('d.m.Y') }}@endif</div>
+                                                <div>{{ $d['label'] ?: 'Ofertă' }}: {{ $fmt($d['price']) }}@if (! empty($d['until'])) · până la {{ \App\Models\Party::formatUntil($d['until']) }}@endif</div>
                                             @endif
                                         @endforeach
                                     </div>

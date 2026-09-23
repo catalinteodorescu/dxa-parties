@@ -89,7 +89,10 @@
                     <div class="space-y-2">
                         @foreach ($finalSales as $s)
                             <div class="rounded-xl border border-border bg-surface px-4 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                                <span class="text-sm text-ink min-w-0">{{ $s->menuItem?->name ?? '—' }}</span>
+                                <span class="text-sm text-ink min-w-0">{{ $s->menuItem?->name ?? '—' }}
+                                    @if ($s->salesGroup) <span class="ml-1 inline-flex items-center rounded-full bg-info-soft text-info text-[11px] font-medium px-1.5 py-0.5">sesiunea: {{ $s->salesGroup->title() }}</span>
+                                    @elseif ($s->is_loose) <span class="ml-1 inline-flex items-center rounded-full bg-info-soft text-info text-[11px] font-medium px-1.5 py-0.5">vânzări simple (fără sesiune)</span> @endif
+                                </span>
                                 <div class="text-sm text-ink-soft shrink-0">
                                     <span class="text-ink">{{ $fmt($s->qty) }} ×</span> {{ $money($s->unit_price) }} lei
                                     <span class="text-ink-soft/50">=</span> <span class="text-ink font-medium">{{ $money($s->total_price) }} lei</span>
@@ -161,7 +164,7 @@
                     <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-primary-soft text-primary">Draft</span>
                 </div>
                 <p class="mt-1 text-sm text-ink-soft leading-relaxed">
-                    Completează intrările, vânzările și pierderile. Se salvează automat pe măsură ce completezi — poți reveni oricând. Stocul nu se modifică până la <span class="font-medium text-ink">Finalizează</span>.
+                    Completează intrările, vânzările (poți aduce și o sesiune de vânzări din bar) și pierderile. Se salvează automat pe măsură ce completezi — poți reveni oricând. Stocul nu se modifică până la <span class="font-medium text-ink">Finalizează</span>.
                 </p>
             </div>
 
@@ -371,6 +374,57 @@
                     <h3 class="text-base font-semibold text-ink">Vânzări</h3>
                     <span class="text-xs text-ink-soft">produs de meniu + cantitate — prețul e cel din meniu</span>
                 </div>
+
+                {{-- Vânzări înregistrate în aplicație / admin (sesiune de vânzări + vânzări simple), agregate pe produs, doar pentru citire --}}
+                @php
+                    $groupOptions = ['' => 'Fără sesiune'] + $salesGroups->mapWithKeys(fn ($g) => [$g->id => $g->label()])->all();
+                    $methodLabels = \App\Models\SalePayment::METHODS;
+                @endphp
+                <div class="mb-4 rounded-xl border border-border bg-bg/50 p-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-ink shrink-0">Sesiune de vânzări</span>
+                        <x-select wire:model="sales_group_id" live placeholder="Alege o sesiune…" :options="$groupOptions" class="flex-1 min-w-0" />
+                        <button type="button" wire:click="$refresh" title="Reîmprospătează vânzările" aria-label="Reîmprospătează vânzările"
+                                class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg border border-border bg-white text-ink-soft hover:bg-bg hover:text-ink">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        </button>
+                    </div>
+
+                    @if ($salesGroups->isEmpty() && ! $selectedGroup)
+                        <p class="mt-2 text-xs text-ink-soft/70">Nu există sesiuni de vânzări deschise.</p>
+                    @endif
+
+                    @if ($groupData)
+                        @include('livewire.admin.stock-reports._registered-sales', ['data' => $groupData])
+                        <p class="mt-2 text-[11px] text-ink-soft/70">
+                            Rândurile din sesiune sunt doar pentru citire. Sesiunea se închide la finalizarea raportării — vânzările noi din aplicație nu mai intră după aceea.
+                        </p>
+                    @endif
+
+                    {{-- Vânzări simple (fără sesiune), neraportate --}}
+                    @if ($looseData)
+                        <div class="mt-3 pt-3 border-t border-border">
+                            <label class="flex items-start gap-2.5 cursor-pointer">
+                                <input type="checkbox" wire:model.live="include_loose_sales"
+                                       class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                                <span class="text-sm text-ink">
+                                    Include vânzările simple (fără sesiune) neraportate
+                                    <span class="block text-xs text-ink-soft">{{ $looseData['completed'] }} {{ $looseData['completed'] === 1 ? 'vânzare' : 'vânzări' }} · {{ $money($looseData['revenue']) }} lei — se postează toate cele existente la finalizare</span>
+                                </span>
+                            </label>
+
+                            @if ($include_loose_sales)
+                                @include('livewire.admin.stock-reports._registered-sales', ['data' => $looseData])
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
+                @if ($selectedGroup || ($looseData && $include_loose_sales))
+                    <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
+                        Vânzări suplimentare <span class="normal-case font-normal text-ink-soft/60">— cele care nu au trecut prin aplicație</span>
+                    </div>
+                @endif
 
                 <div class="space-y-3">
                     @foreach ($sales as $i => $line)

@@ -5,7 +5,7 @@
     <div class="mb-6">
         <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează articolul de meniu' : 'Articol de meniu nou' }}</h2>
         <p class="mt-1 text-sm text-ink-soft leading-relaxed">
-            Articolele de meniu apar în barul general al locației, grupate pe categorie.
+            Articolele de meniu apar în barul general al locației, grupate pe categorie. Categoriile se adaugă cu „+” de lângă selector; ordinea și vizibilitatea lor se gestionează din Setări.
         </p>
     </div>
 
@@ -28,7 +28,7 @@
             <label class="block text-sm font-medium text-ink mb-1.5">Categorie</label>
             <div class="flex items-start gap-2">
                 <div class="flex-1">
-                    <x-select wire:model="menu_category_id" placeholder="Alege categoria…"
+                    <x-select wire:model="menu_category_id" :placeholder="$categories->isEmpty() ? 'Nicio categorie — adaug-o cu +' : 'Alege categoria…'"
                               :options="$categoryOptions" />
                 </div>
                 <button type="button" wire:click="openNewCategoryModal" title="Categorie nouă"

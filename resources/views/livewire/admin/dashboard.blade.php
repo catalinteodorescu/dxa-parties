@@ -163,7 +163,7 @@
     </section>
 
     {{-- ============ Secțiune modul: Bar ============ --}}
-    {{-- DXA: adaugat (Bar) — Categorii + Produse; Inventar/Necesare/Rapoarte se adaugă aici mai târziu. --}}
+    {{-- DXA: adaugat (Bar) — Produse, stocuri, necesare, raportări. --}}
     <section class="mt-8 pt-8 border-t border-border">
         <div class="flex items-center gap-2.5 mb-3">
             <svg class="w-5 h-5 text-ink-soft shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -179,10 +179,6 @@
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l-1.2 15.5A2 2 0 0 1 13.8 20h-3.6a2 2 0 0 1-2-1.8L7 3z"/><line x1="7.6" y1="9" x2="16.4" y2="9"/></svg></x-slot:icon>
             </x-stat-card>
 
-            <x-stat-card :value="$menuCategoriesActiveCount" label="Categorii active" hint="vizibile în meniu" accent="primary" :href="route('admin.menu-categories.index')">
-                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></x-slot:icon>
-            </x-stat-card>
-
             {{-- DXA: adaugat (Bar - stocuri) --}}
             <x-stat-card :value="$stockItemsLowCount" label="Sub stoc minim" hint="produse de stoc" accent="{{ $stockItemsLowCount > 0 ? 'danger' : 'neutral' }}" :href="route('admin.stock-items.index', ['sub_min' => 1])">
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></x-slot:icon>
@@ -191,6 +187,11 @@
             {{-- DXA: adaugat (Bar - stocuri, alertă stoc negativ persistent) --}}
             <x-stat-card :value="$negativeStockItems->count()" label="Stoc negativ" hint="{{ $negativeStockItems->isNotEmpty() ? 'de peste '.$negativeStockDaysThreshold.' zile' : 'nimic persistent' }}" accent="{{ $negativeStockItems->isNotEmpty() ? 'danger' : 'neutral' }}" :href="route('admin.stock-items.index')">
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg></x-slot:icon>
+            </x-stat-card>
+
+            {{-- DXA: adaugat (Bar - vanzari) --}}
+            <x-stat-card :value="$money($unreportedSalesTotal).' lei'" label="Vânzări neraportate" :hint="$openSalesGroupsCount.' '.($openSalesGroupsCount === 1 ? 'sesiune deschisă' : 'sesiuni deschise')" accent="{{ $unreportedSalesTotal > 0 ? 'info' : 'neutral' }}" :href="route('admin.sales.index')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></x-slot:icon>
             </x-stat-card>
 
             {{-- DXA: adaugat (Bar - necesare) --}}
@@ -217,7 +218,8 @@
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></x-slot:icon>
             </x-action-card>
 
-            <x-action-card label="Categorie nouă" accent="neutral" :href="route('admin.menu-categories.index')">
+            {{-- DXA: adaugat (Bar - necesare) --}}
+            <x-action-card label="Necesar nou" accent="primary" :href="route('admin.stock-requisitions.create')">
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></x-slot:icon>
             </x-action-card>
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Services\SalesAggregator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -38,6 +39,8 @@ class StockReport extends Model
         'finalized_at',
         'finalized_by',
         'party_id',
+        'sales_group_id',
+        'include_loose_sales',
         'note',
         'created_by',
     ];
@@ -47,12 +50,19 @@ class StockReport extends Model
         return [
             'date' => 'date',
             'finalized_at' => 'datetime',
+            'include_loose_sales' => 'boolean',
         ];
     }
 
     public function party(): BelongsTo
     {
         return $this->belongsTo(Party::class);
+    }
+
+    /** Grupul de vanzari (bar) ales in aceasta raportare; se inchide la finalizare. */
+    public function salesGroup(): BelongsTo
+    {
+        return $this->belongsTo(SalesGroup::class, 'sales_group_id');
     }
 
     public function creator(): BelongsTo
@@ -138,19 +148,37 @@ class StockReport extends Model
      * de Raportare e mereu true la finalizare (avertizam vizual dinainte in
      * formular, fara sa blocam la finalizare).
      */
-    public function addSale(MenuItem $menuItem, float $qty, ?int $adminId, bool $allowNegative = false): StockReportSale
+    public function addSale(MenuItem $menuItem, float $qty, ?int $adminId, bool $allowNegative = false, ?array $groupSnapshot = null): StockReportSale
     {
-        return DB::transaction(function () use ($menuItem, $qty, $adminId, $allowNegative) {
-            $unitCost = $menuItem->costPerUnit();
+        return DB::transaction(function () use ($menuItem, $qty, $adminId, $allowNegative, $groupSnapshot) {
+            if ($groupSnapshot !== null) {
+                // Vanzare adusa din vanzarile aplicatiei (sesiune sau vanzari simple): pretul si costul sunt cele SNAPSHOT din
+                // vanzarile grupului (agregate pe produs), nu cele curente din meniu.
+                $totalPrice = round((float) $groupSnapshot['total_price'], 2);
+                $totalCost = $groupSnapshot['total_cost'] !== null ? round((float) $groupSnapshot['total_cost'], 2) : null;
 
-            $sale = $this->sales()->create([
-                'menu_item_id' => $menuItem->id,
-                'qty' => $qty,
-                'unit_price' => $menuItem->price,
-                'total_price' => round($qty * (float) $menuItem->price, 2),
-                'unit_cost' => $unitCost,
-                'total_cost' => $unitCost !== null ? round($qty * $unitCost, 2) : null,
-            ]);
+                $sale = $this->sales()->create([
+                    'menu_item_id' => $menuItem->id,
+                    'sales_group_id' => $groupSnapshot['sales_group_id'] ?? null,
+                    'is_loose' => (bool) ($groupSnapshot['is_loose'] ?? false),
+                    'qty' => $qty,
+                    'unit_price' => $qty > 0 ? round($totalPrice / $qty, 2) : $menuItem->price,
+                    'total_price' => $totalPrice,
+                    'unit_cost' => ($totalCost !== null && $qty > 0) ? round($totalCost / $qty, 4) : null,
+                    'total_cost' => $totalCost,
+                ]);
+            } else {
+                $unitCost = $menuItem->costPerUnit();
+
+                $sale = $this->sales()->create([
+                    'menu_item_id' => $menuItem->id,
+                    'qty' => $qty,
+                    'unit_price' => $menuItem->price,
+                    'total_price' => round($qty * (float) $menuItem->price, 2),
+                    'unit_cost' => $unitCost,
+                    'total_cost' => $unitCost !== null ? round($qty * $unitCost, 2) : null,
+                ]);
+            }
 
             foreach ($menuItem->recipeLines as $line) {
                 $line->stockItem->recordExit(
@@ -206,6 +234,29 @@ class StockReport extends Model
                 };
             }
 
+            // Vanzarile inregistrate in aplicatie / admin se posteaza ca vanzari ale raportarii,
+            // agregate pe produs, cu pretul si costul de la momentul vanzarii, si primesc
+            // report_id (deci nu se mai pot anula si nu mai apar ca neraportate).
+            //  - sesiunea de vanzari aleasa: se inchide in aceeasi tranzactie, deci nicio
+            //    vanzare noua nu mai poate intra in ea (vezi SaleRecorder);
+            //  - vanzarile simple (fara sesiune), daca e bifata includerea lor.
+            if ($this->sales_group_id) {
+                $group = SalesGroup::query()->lockForUpdate()->find($this->sales_group_id);
+
+                if ($group && $group->isOpen()) {
+                    $saleIds = $group->saleIds();
+
+                    $this->postRegisteredSales($saleIds, $adminId, ['sales_group_id' => $group->id, 'is_loose' => false]);
+                    $group->close();
+                }
+            }
+
+            if ($this->include_loose_sales) {
+                $saleIds = static::looseSalesQuery()->lockForUpdate()->pluck('id')->all();
+
+                $this->postRegisteredSales($saleIds, $adminId, ['sales_group_id' => null, 'is_loose' => true]);
+            }
+
             $this->lines()->delete();
 
             $this->status = 'finalized';
@@ -213,6 +264,48 @@ class StockReport extends Model
             $this->finalized_by = $adminId;
             $this->save();
         });
+    }
+
+    /** Vanzarile simple: fara sesiune si inca neraportate (finalizate sau anulate). */
+    public static function looseSalesQuery()
+    {
+        return Sale::query()->whereNull('sales_group_id')->whereNull('report_id');
+    }
+
+    /** Sunt vanzari inregistrate (in sesiunea aleasa / cele simple bifate) de adus in aceasta raportare? */
+    public function hasSalesToPost(): bool
+    {
+        if ($this->sales_group_id && Sale::query()->where('sales_group_id', $this->sales_group_id)->exists()) {
+            return true;
+        }
+
+        return $this->include_loose_sales && static::looseSalesQuery()->where('status', 'completed')->exists();
+    }
+
+    /**
+     * Posteaza vanzarile date (id-uri): cele finalizate, agregate pe produs, devin vanzari ale
+     * raportarii (cu consum de stoc prin reteta); TOATE (si cele anulate) primesc report_id.
+     */
+    private function postRegisteredSales(array $saleIds, int $adminId, array $origin): void
+    {
+        if ($saleIds === []) {
+            return;
+        }
+
+        foreach (SalesAggregator::lines($saleIds) as $agg) {
+            $this->addSale(
+                $agg->menuItem,
+                $agg->qty,
+                $adminId,
+                allowNegative: true,
+                groupSnapshot: $origin + [
+                    'total_price' => $agg->revenue,
+                    'total_cost' => $agg->cost,
+                ],
+            );
+        }
+
+        Sale::query()->whereIn('id', $saleIds)->update(['report_id' => $this->id]);
     }
 
     public function totalRevenue(): float

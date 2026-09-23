@@ -8,7 +8,6 @@ use App\Livewire\Admin\ForgotPassword;
 use App\Livewire\Admin\Invite\Complete as InviteComplete;
 use App\Livewire\Admin\Login;
 use App\Livewire\Admin\Logs\Index as LogsIndex;
-use App\Livewire\Admin\MenuCategories\Index as MenuCategoriesIndex; // DXA: adaugat (Meniu bar - nomenclator categorii)
 use App\Livewire\Admin\MenuItems\Form as MenuItemForm;             // DXA: adaugat (Meniu bar - produse)
 use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex;          // DXA: adaugat (Meniu bar - produse)
 use App\Livewire\Admin\Parties\Form as PartyForm;         // DXA: adaugat (Petreceri)
@@ -19,6 +18,8 @@ use App\Livewire\Admin\Settings\Index as SettingsIndex; // DXA: adaugat (Setari)
 use App\Livewire\Admin\SetupPhone;
 use App\Livewire\Admin\StockReports\Form as StockReportForm;       // DXA: adaugat (Bar - raportari)
 use App\Livewire\Admin\StockReports\Index as StockReportsIndex;    // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\Sales\Form as SaleForm;                         // DXA: adaugat (Bar - vanzari)
+use App\Livewire\Admin\Sales\Index as SalesIndex;                      // DXA: adaugat (Bar - vanzari)
 use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm;   // DXA: adaugat (Bar - necesare)
 use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex; // DXA: adaugat (Bar - necesare)
 use App\Livewire\Admin\Stocks\Index as StockItemsIndex; // DXA: adaugat (Bar - stocuri)
@@ -68,9 +69,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/parties/{party}/edit', PartyForm::class)->name('parties.edit');
             Route::get('/parties/{party}', PartiesShow::class)->name('parties.show'); // DXA: adaugat
 
-            // DXA: adaugat (Meniu bar - nomenclator categorii)
-            Route::get('/menu/categories', MenuCategoriesIndex::class)->name('menu-categories.index');
-
             // DXA: adaugat (Meniu bar - produse)
             Route::get('/menu/items', MenuItemsIndex::class)->name('menu-items.index');
             Route::get('/menu/items/create', MenuItemForm::class)->name('menu-items.create');
@@ -85,6 +83,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/stocks/requisitions', StockRequisitionsIndex::class)->name('stock-requisitions.index');
             Route::get('/stocks/requisitions/create', StockRequisitionForm::class)->name('stock-requisitions.create');
             Route::get('/stocks/requisitions/{requisition}/edit', StockRequisitionForm::class)->name('stock-requisitions.edit');
+
+            // DXA: adaugat (Bar - vanzari)
+            Route::get('/sales', SalesIndex::class)->name('sales.index');
+            Route::get('/sales/create', SaleForm::class)->name('sales.create');
 
             // DXA: adaugat (Bar - raportari). 'edit' serveste si vizualizarea unui
             // raport finalizat (read-only e doar o stare a Form-ului, nu ruta separata).

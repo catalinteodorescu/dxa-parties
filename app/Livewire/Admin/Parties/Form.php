@@ -20,6 +20,9 @@ class Form extends Component
     use HandlesImageUploads;
     use WithFileUploads;
 
+    /** Numarul maxim de zile al unui festival (intervalul din Când). */
+    public const MAX_FESTIVAL_DAYS = 31;
+
     public ?Party $party = null;
 
     // Identitate
@@ -31,8 +34,14 @@ class Form extends Component
     public ?string $start_time = null;
     public ?string $end_time = null;
 
-    // Timp (festival)
+    // Timp (festival): intervalul (start_date .. end_date) decide zilele din „Program pe zile"
+    public ?string $end_date = null;
+
     public array $days = [];
+
+    // Zile scoase din interval care aveau continut (program/ore/dresscode): se pastreaza aici ca sa
+    // revina daca intervalul se extinde la loc (nu se pierd datele la o schimbare de moment a datei).
+    public array $stashedDays = [];
 
     // Invitați (festival)
     public array $guests = [];
@@ -95,6 +104,8 @@ class Form extends Component
             $this->start_time = $party->start_time ? substr($party->start_time, 0, 5) : null;
             $this->end_time = $party->end_time ? substr($party->end_time, 0, 5) : null;
             $this->days = $party->days ?? [];
+            $lastDay = $this->days ? (string) (end($this->days)['date'] ?? '') : '';
+            $this->end_date = $party->end_date?->format('Y-m-d') ?? ($lastDay !== '' ? $lastDay : null);
             $this->guests = $party->guests ?? [];
             $this->music_styles = $party->music_styles ?? [];
             $this->location_name = $party->location_name;
@@ -122,6 +133,17 @@ class Form extends Component
             }
             if (empty($this->ticket_types)) {
                 $this->ticket_types = [$this->emptyTicketType()];
+            }
+
+            // Reducerile vechi au doar data (fara ora): le aratam ca „pana la sfarsitul zilei"
+            // ca sa apara in campul data+ora (datetime-local), fara sa le schimbam sensul.
+            foreach ($this->ticket_types as $ti => $type) {
+                foreach ($type['discounts'] ?? [] as $di => $d) {
+                    $until = (string) ($d['until'] ?? '');
+                    if ($until !== '' && mb_strlen($until) <= 10) {
+                        $this->ticket_types[$ti]['discounts'][$di]['until'] = $until.'T23:59';
+                    }
+                }
             }
 
             // Contacte (compat cu vechile coloane single).
@@ -194,13 +216,20 @@ class Form extends Component
     {
         if ($value === 'festival') {
             if (empty($this->days)) {
-                $this->days = [[
-                    'date' => $this->start_date ?: now()->format('Y-m-d'),
-                    'start_time' => $this->start_time ?: '',
-                    'end_time' => $this->end_time ?: '',
-                    'dresscode' => $this->dresscode ?: '',
-                    'program' => [],
-                ]];
+                $this->start_date = $this->start_date ?: now()->format('Y-m-d');
+                // Un festival are cel putin doua zile: propunem ziua urmatoare ca sfarsit (se poate schimba).
+                if (! $this->end_date || $this->end_date < $this->start_date) {
+                    $this->end_date = Carbon::parse($this->start_date)->addDay()->format('Y-m-d');
+                }
+
+                $this->syncDaysWithRange();
+
+                // Orele si dresscode-ul de la petrecerea simpla trec pe prima zi.
+                if (! empty($this->days)) {
+                    $this->days[0]['start_time'] = $this->start_time ?: '';
+                    $this->days[0]['end_time'] = $this->end_time ?: '';
+                    $this->days[0]['dresscode'] = $this->dresscode ?: '';
+                }
             }
         } else { // basic — preia din prima zi
             if (! empty($this->days)) {
@@ -215,6 +244,81 @@ class Form extends Component
         }
     }
 
+    /** Data de inceput s-a schimbat: la festival, sfarsitul nu poate ramane inainte de inceput; apoi resincronizam zilele. */
+    public function updatedStartDate($value): void
+    {
+        if ($this->kind !== 'festival') {
+            return;
+        }
+
+        if ($value && (! $this->end_date || $this->end_date < $value)) {
+            $this->end_date = $value;
+        }
+
+        $this->syncDaysWithRange();
+    }
+
+    public function updatedEndDate(): void
+    {
+        if ($this->kind === 'festival') {
+            $this->syncDaysWithRange();
+        }
+    }
+
+    /**
+     * „Program pe zile" = zilele dintre start_date si end_date (inclusiv). Zilele care exista deja pastreaza
+     * ce s-a completat; zilele noi apar goale; cele scoase din interval, daca aveau continut, se pastreaza
+     * in $stashedDays si revin daca intervalul se extinde la loc. Un interval invalid (sfarsit inainte de
+     * inceput) sau prea lung (> 31 de zile) nu modifica nimic - il semnaleaza validarea la salvare.
+     */
+    private function syncDaysWithRange(): void
+    {
+        if ($this->kind !== 'festival' || ! $this->start_date) {
+            return;
+        }
+
+        $start = Carbon::parse($this->start_date)->startOfDay();
+        $end = Carbon::parse($this->end_date ?: $this->start_date)->startOfDay();
+
+        if ($end->lessThan($start) || (int) $start->diffInDays($end) > self::MAX_FESTIVAL_DAYS - 1) {
+            return;
+        }
+
+        $current = [];
+        foreach ($this->days as $d) {
+            if (! empty($d['date'])) {
+                $current[$d['date']] = $d;
+            }
+        }
+
+        $new = [];
+        for ($cursor = $start->copy(); $cursor->lessThanOrEqualTo($end); $cursor->addDay()) {
+            $key = $cursor->format('Y-m-d');
+            $new[] = $current[$key] ?? $this->stashedDays[$key] ?? $this->blankDay($key);
+            unset($this->stashedDays[$key], $current[$key]);
+        }
+
+        // Ce a ramas in $current e in afara intervalului.
+        foreach ($current as $key => $day) {
+            if ($this->dayHasContent($day)) {
+                $this->stashedDays[$key] = $day;
+            }
+        }
+
+        $this->days = $new;
+    }
+
+    private function blankDay(string $date): array
+    {
+        return ['date' => $date, 'start_time' => '', 'end_time' => '', 'dresscode' => '', 'program' => []];
+    }
+
+    private function dayHasContent(array $day): bool
+    {
+        return ! empty($day['start_time']) || ! empty($day['end_time']) || trim((string) ($day['dresscode'] ?? '')) !== ''
+            || ! empty($day['program']);
+    }
+
     protected function rules(): array
     {
         $styles = implode(',', array_keys(Party::GUEST_STYLES));
@@ -223,7 +327,16 @@ class Form extends Component
             'name' => ['required', 'string', 'max:150'],
             'kind' => ['required', 'in:basic,festival'],
 
-            'start_date' => ['required_if:kind,basic', 'nullable', 'date'],
+            'start_date' => ['required', 'date'],
+            'end_date' => [
+                'required_if:kind,festival', 'nullable', 'date', 'after_or_equal:start_date',
+                function ($attribute, $value, $fail) {
+                    if ($this->kind === 'festival' && $value && $this->start_date
+                        && (int) Carbon::parse($this->start_date)->diffInDays(Carbon::parse($value)) > self::MAX_FESTIVAL_DAYS - 1) {
+                        $fail('Un festival poate avea cel mult '.self::MAX_FESTIVAL_DAYS.' de zile.');
+                    }
+                },
+            ],
             'start_time' => ['required_if:kind,basic', 'nullable', 'date_format:H:i'],
             'end_time' => ['required_if:kind,basic', 'nullable', 'date_format:H:i'],
             'dresscode' => ['nullable', 'string', 'max:200'],
@@ -294,7 +407,9 @@ class Form extends Component
     {
         return [
             'name.required' => 'Denumirea este obligatorie.',
-            'start_date.required_if' => 'Alege data petrecerii.',
+            'start_date.required' => 'Alege data petrecerii (la festival: data de început).',
+            'end_date.required_if' => 'Alege data de sfârșit a festivalului.',
+            'end_date.after_or_equal' => 'Data de sfârșit nu poate fi înainte de data de început.',
             'start_time.required_if' => 'Ora de început este obligatorie.',
             'end_time.required_if' => 'Ora de sfârșit este obligatorie.',
             'days.required_if' => 'Adaugă cel puțin o zi pentru festival.',
@@ -344,17 +459,6 @@ class Form extends Component
     public function removeContact(int $i): void { unset($this->contacts[$i]); $this->contacts = array_values($this->contacts); }
 
     // ---- Repeatere: festival --------------------------------------------
-
-    public function addDay(): void
-    {
-        $last = end($this->days);
-        $base = $last['date'] ?? $this->start_date ?? now()->format('Y-m-d');
-        $next = Carbon::parse($base)->addDays(empty($this->days) ? 0 : 1)->format('Y-m-d');
-
-        $this->days[] = ['date' => $next, 'start_time' => '', 'end_time' => '', 'dresscode' => '', 'program' => []];
-    }
-
-    public function removeDay(int $i): void { unset($this->days[$i]); $this->days = array_values($this->days); }
 
     public function addProgramItem(int $dayIndex): void
     {
@@ -679,7 +783,7 @@ class Form extends Component
                 foreach ($t['discounts'] as $d) {
                     $dt = ($d['label'] ?: 'ofertă').' '.$this->fmtPrice($d['price']);
                     if ($d['until']) {
-                        $dt .= ' până la '.Carbon::parse($d['until'])->format('d.m.Y');
+                        $dt .= ' până la '.\App\Models\Party::formatUntil($d['until']);
                     }
                     $disc[] = $dt;
                 }

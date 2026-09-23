@@ -4,9 +4,10 @@ namespace App\Livewire\Admin;
 
 use App\Models\Admin;
 use App\Models\Announcement;
-use App\Models\MenuCategory;                // DXA: adaugat (Meniu bar)
 use App\Models\MenuItem;                    // DXA: adaugat (Meniu bar - produse)
 use App\Models\Party;                       // DXA: adaugat (Petreceri)
+use App\Models\Sale;                       // DXA: adaugat (Bar - vanzari)
+use App\Models\SalesGroup;                 // DXA: adaugat (Bar - vanzari)
 use App\Models\StockItem;                   // DXA: adaugat (Bar - stocuri)
 use App\Models\StockReport;                 // DXA: adaugat (Bar - raportari)
 use App\Models\StockRequisition;            // DXA: adaugat (Bar - necesare)
@@ -137,13 +138,13 @@ class Dashboard extends Component
             'partyUpcomingCount' => $partyUpcomingCount,
             'partyDraftCount' => Party::where('status', 'draft')->count(),
 
-            // DXA: adaugat (Meniu bar)
-            'menuCategoriesActiveCount' => MenuCategory::where('is_active', true)->count(),
-            'menuCategoriesTotalCount' => MenuCategory::count(),
-
             // DXA: adaugat (Meniu bar - produse)
             'menuItemsActiveCount' => MenuItem::where('is_active', true)->count(),
             'menuItemsTotalCount' => MenuItem::count(),
+
+            // DXA: adaugat (Bar - vanzari): vanzari finalizate inca neraportate (din sesiuni deschise + simple)
+            'unreportedSalesTotal' => (float) Sale::completed()->whereNull('report_id')->sum('total'),
+            'openSalesGroupsCount' => SalesGroup::open()->count(),
 
             // DXA: adaugat (Bar - stocuri)
             'stockItemsLowCount' => StockItem::whereNotNull('min_stock')

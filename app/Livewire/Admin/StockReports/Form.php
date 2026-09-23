@@ -8,6 +8,8 @@ use App\Models\Party;
 use App\Models\StockItem;
 use App\Models\StockReport;
 use App\Models\StockReportLine;
+use App\Models\SalesGroup;
+use App\Services\SalesAggregator;
 use App\Models\StockRequisition;
 use App\Models\StockRequisitionItem;
 use App\Services\ActivityLogger;
@@ -49,6 +51,14 @@ class Form extends Component
     // String (nu ?int) ca sa suporte direct valoarea goala din x-select ("Fara petrecere").
     public string $party_id = '';
 
+    // Sesiunea de vanzari (bar) adusa in sectiunea Vanzari - '' = niciunul. Doar grupuri
+    // deschise; se inchide la finalizare. Vanzarile lui apar read-only, agregate pe produs.
+    public string $sales_group_id = '';
+
+    // Include si vanzarile simple (fara sesiune), neraportate. La finalizare se posteaza
+    // toate cele existente in acel moment.
+    public bool $include_loose_sales = false;
+
     public string $note = '';
 
     // Fiecare rand poarta 'line_id' (id din stock_report_lines) pt. autosave pe
@@ -81,6 +91,8 @@ class Form extends Component
             $this->readOnly = $report->isFinalized();
             $this->date = $report->date->format('Y-m-d');
             $this->party_id = $report->party_id ? (string) $report->party_id : '';
+            $this->sales_group_id = $report->sales_group_id ? (string) $report->sales_group_id : '';
+            $this->include_loose_sales = (bool) $report->include_loose_sales;
             $this->note = (string) ($report->note ?? '');
 
             // Doar un draft are linii de staging; la finalizat continutul se
@@ -217,8 +229,38 @@ class Form extends Component
 
         // Antetul: se persista doar daca raportul exista deja; altfel e capturat
         // la ensureReport() cand se salveaza prima linie.
+        if ($name === 'sales_group_id') {
+            $this->onSalesGroupChosen();
+
+            return;
+        }
+
+        if ($name === 'include_loose_sales') {
+            if ($this->include_loose_sales) {
+                $this->ensureReport();
+            }
+            $this->persistHeader();
+
+            return;
+        }
+
         if (in_array($name, ['date', 'party_id', 'note'], true)) {
             $this->persistHeader();
+
+            // Petrecere aleasa + niciun grup ales: propunem automat grupul deschis al petrecerii.
+            if ($name === 'party_id' && $this->sales_group_id === '' && $this->party_id !== '') {
+                $group = SalesGroup::open()
+                    ->where('party_id', (int) $this->party_id)
+                    ->whereNotIn('id', $this->claimedGroupIds())
+                    ->orderBy('id')
+                    ->first();
+
+                if ($group) {
+                    $this->sales_group_id = (string) $group->id;
+                    $this->ensureReport();
+                    $this->persistHeader();
+                }
+            }
 
             return;
         }
@@ -326,6 +368,37 @@ class Form extends Component
         }
     }
 
+    /** Grupuri deja alese de ALT draft (un grup se poate consuma intr-o singura raportare). */
+    private function claimedGroupIds(): array
+    {
+        return StockReport::query()
+            ->where('status', 'draft')
+            ->whereNotNull('sales_group_id')
+            ->when($this->report && $this->report->exists, fn ($q) => $q->where('id', '!=', $this->report->id))
+            ->pluck('sales_group_id')
+            ->all();
+    }
+
+    private function onSalesGroupChosen(): void
+    {
+        if ($this->sales_group_id !== '') {
+            $group = SalesGroup::open()->find((int) $this->sales_group_id);
+
+            if (! $group || in_array($group->id, $this->claimedGroupIds(), true)) {
+                $this->sales_group_id = '';
+                $this->importMessage = 'Sesiunea aleasă nu mai e disponibilă (e închisă sau folosită într-un alt draft).';
+
+                return;
+            }
+
+            // Persistam imediat (creeaza draftul daca nu exista): alegerea grupului
+            // trebuie sa supravietuiasca unui refresh, ca si liniile.
+            $this->ensureReport();
+        }
+
+        $this->persistHeader();
+    }
+
     private function persistHeader(): void
     {
         if (! $this->report || ! $this->report->exists) {
@@ -335,6 +408,8 @@ class Form extends Component
         $this->report->update([
             'date' => $this->date !== '' ? $this->date : now()->format('Y-m-d'),
             'party_id' => $this->party_id !== '' ? (int) $this->party_id : null,
+            'sales_group_id' => $this->sales_group_id !== '' ? (int) $this->sales_group_id : null,
+            'include_loose_sales' => $this->include_loose_sales,
             'note' => $this->note !== '' ? $this->note : null,
         ]);
     }
@@ -350,6 +425,8 @@ class Form extends Component
             'date' => $this->date !== '' ? $this->date : now()->format('Y-m-d'),
             'status' => 'draft',
             'party_id' => $this->party_id !== '' ? (int) $this->party_id : null,
+            'sales_group_id' => $this->sales_group_id !== '' ? (int) $this->sales_group_id : null,
+            'include_loose_sales' => $this->include_loose_sales,
             'note' => $this->note !== '' ? $this->note : null,
             'created_by' => Auth::guard('admin')->id(),
         ]);
@@ -562,8 +639,9 @@ class Form extends Component
         // (in caz ca ultimul input debounced n-a apucat sa faca round-trip).
         $this->flushDraft();
 
-        if (! $this->report || ! $this->report->exists || $this->report->lines()->count() === 0) {
-            $this->addError('finalize', 'Adaugă cel puțin o linie înainte de a finaliza.');
+        if (! $this->report || ! $this->report->exists
+            || ($this->report->lines()->count() === 0 && ! $this->report->hasSalesToPost())) {
+            $this->addError('finalize', 'Adaugă cel puțin o linie sau alege o sesiune de vânzări cu vânzări înainte de a finaliza.');
 
             return;
         }
@@ -634,6 +712,22 @@ class Form extends Component
             }
         }
 
+        // Vanzarile inregistrate (sesiunea aleasa + cele simple bifate), agregate pe produs,
+        // consuma si ele prin reteta.
+        $registered = collect();
+        if ($this->sales_group_id !== '' && ($group = SalesGroup::find((int) $this->sales_group_id))) {
+            $registered = $registered->merge($group->aggregatedLines());
+        }
+        if ($this->include_loose_sales) {
+            $registered = $registered->merge(SalesAggregator::lines(StockReport::looseSalesQuery()->pluck('id')->all()));
+        }
+
+        foreach ($registered as $agg) {
+            foreach ($agg->menuItem->recipeLines as $rl) {
+                $delta[$rl->stock_item_id] = ($delta[$rl->stock_item_id] ?? 0.0) - ($agg->qty * (float) $rl->qty);
+            }
+        }
+
         if (empty($delta)) {
             return [];
         }
@@ -664,6 +758,26 @@ class Form extends Component
         return $rows;
     }
 
+    /**
+     * Date pentru panoul de vanzari inregistrate (sesiune / vanzari simple): randuri
+     * agregate pe produs, plati, totaluri - doar vanzarile finalizate (anularile nu
+     * intra in raportare; se vad in pagina Vanzari).
+     */
+    private function salesSourceData(array $saleIds): array
+    {
+        $completed = $saleIds === []
+            ? null
+            : \App\Models\Sale::query()->whereIn('id', $saleIds)->where('status', 'completed')
+                ->selectRaw('COUNT(*) as n, SUM(total) as total')->first();
+
+        return [
+            'lines' => SalesAggregator::lines($saleIds),
+            'payments' => SalesAggregator::payments($saleIds),
+            'completed' => (int) ($completed?->n ?? 0),
+            'revenue' => round((float) ($completed?->total ?? 0), 2),
+        ];
+    }
+
     // ------------------------------------------------------------------
 
     public function render()
@@ -673,7 +787,7 @@ class Form extends Component
             return view('livewire.admin.stock-reports.form', [
                 'readOnlyView' => true,
                 'finalEntries' => $this->report->entries()->with(['stockItem', 'requisitionItem.requisition'])->orderBy('id')->get(),
-                'finalSales' => $this->report->sales()->with('menuItem')->orderBy('id')->get(),
+                'finalSales' => $this->report->sales()->with(['menuItem', 'salesGroup.party'])->orderBy('id')->get(),
                 'finalLosses' => $this->report->losses()->with('stockItem')->orderBy('id')->get(),
                 'revenue' => $this->report->totalRevenue(),
                 'cost' => $this->report->totalCost(),
@@ -721,8 +835,36 @@ class Form extends Component
             $importRequisition = StockRequisition::with(['items.stockItem'])->find((int) $this->importReqId);
         }
 
+        // Grupuri de vanzari disponibile (deschise, nefolosite de alt draft) + cel ales acum.
+        $salesGroups = SalesGroup::with('party')->open()
+            ->whereNotIn('id', $this->claimedGroupIds())
+            ->orderByDesc('id')
+            ->get();
+
+        $selectedGroup = null;
+        if ($this->sales_group_id !== '') {
+            $selectedGroup = SalesGroup::with('party')->find((int) $this->sales_group_id);
+
+            if ($selectedGroup && ! $salesGroups->contains('id', $selectedGroup->id)) {
+                $salesGroups->prepend($selectedGroup);
+            }
+        }
+
+        $groupData = $selectedGroup ? $this->salesSourceData($selectedGroup->saleIds()) : null;
+
+        // Vanzari simple (fara sesiune), neraportate: panoul apare doar daca exista
+        // vanzari FINALIZATE de adus (cele anulate nu conteaza in raportare).
+        $looseData = $this->salesSourceData(StockReport::looseSalesQuery()->pluck('id')->all());
+        if ($looseData['completed'] === 0) {
+            $looseData = null; // doar anulate (sau nimic): nu e nimic de adus in raportare
+        }
+
         return view('livewire.admin.stock-reports.form', [
             'readOnlyView' => false,
+            'salesGroups' => $salesGroups,
+            'selectedGroup' => $selectedGroup,
+            'groupData' => $groupData,
+            'looseData' => $looseData,
             'stockItems' => $stockItems,
             'menuItems' => $menuItems,
             'parties' => $parties,

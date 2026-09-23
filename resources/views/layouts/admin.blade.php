@@ -156,7 +156,7 @@
                 </div>
 
                 {{-- Grup collapsabil: Bar --}}
-                {{-- DXA: adaugat (Bar) — Meniu + Categorii + Stocuri + Necesare; Raportări/Rapoarte se adaugă aici mai târziu. --}}
+                {{-- DXA: adaugat (Bar) — Meniu + Stocuri + Necesare; Raportări/Rapoarte se adaugă aici mai târziu. --}}
                 <div x-data="{ menuBarOpen: true }" class="pt-4">
                     <button type="button" @click="menuBarOpen = ! menuBarOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -185,15 +185,6 @@
                             Meniu
                         </a>
 
-                        <a href="{{ route('admin.menu-categories.index') }}" wire:navigate @click="sidebarOpen = false"
-                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
-                                  {{ request()->routeIs('admin.menu-categories.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
-                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-                            </svg>
-                            Categorii
-                        </a>
-
                         <a href="{{ route('admin.stock-items.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.stock-items.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -211,6 +202,16 @@
                                 <path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>
                             </svg>
                             Necesare
+                        </a>
+
+                        {{-- DXA: adaugat (Bar - vanzari) --}}
+                        <a href="{{ route('admin.sales.index') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.sales.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                            </svg>
+                            Vânzări
                         </a>
 
                         {{-- DXA: adaugat (Bar - raportari) --}}

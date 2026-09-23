@@ -145,8 +145,41 @@ class Party extends Model
     }
 
     /**
+     * Este reducerea inca valabila la $now? `until` poate fi:
+     *  - data si ora (Y-m-d\TH:i): „pana la 22:30" = EXCLUSIV - la 22:30:00 reducerea
+     *    nu mai e valabila (ultima secunda valabila e 22:29:59);
+     *  - doar data (Y-m-d, vechiul format): valabila pe tot parcursul zilei respective;
+     *  - gol: fara limita.
+     */
+    public static function discountActive(?string $until, ?Carbon $now = null): bool
+    {
+        if ($until === null || trim($until) === '') {
+            return true;
+        }
+
+        $until = trim($until);
+        $now ??= now();
+
+        return mb_strlen($until) <= 10
+            ? $now->lessThanOrEqualTo(Carbon::parse($until)->endOfDay())
+            : $now->lessThan(Carbon::parse($until));
+    }
+
+    /** Text pentru afisare: „24.09.2026" (doar data) sau „24.09.2026 22:30" (cu ora). */
+    public static function formatUntil(?string $until): string
+    {
+        if ($until === null || trim($until) === '') {
+            return '';
+        }
+
+        return Carbon::parse($until)->format(mb_strlen(trim($until)) <= 10 ? 'd.m.Y' : 'd.m.Y H:i');
+    }
+
+    /**
      * Pretul curent al unui singur tip de bilet: minimul dintre pretul de baza si
-     * treptele early-bird inca valabile la now(). null daca tipul n-are pret.
+     * reducerile inca valabile la now() (ex. early-bird sau „gratuit pana la 22:30").
+     * null daca tipul n-are pret. Citeste `discounts` (cum le salveaza formularul),
+     * cu fallback pe vechea cheie `tiers`.
      */
     public function currentPriceForType(array $type): ?float
     {
@@ -157,13 +190,15 @@ class Party extends Model
             $candidates[] = (float) $type['price'];
         }
 
-        foreach ($type['tiers'] ?? [] as $t) {
+        foreach ($type['discounts'] ?? $type['tiers'] ?? [] as $t) {
             if (! isset($t['price']) || ! is_numeric($t['price'])) {
                 continue;
             }
-            if (! empty($t['until']) && Carbon::parse($t['until'])->endOfDay()->lessThan($now)) {
+
+            if (! static::discountActive($t['until'] ?? null, $now)) {
                 continue;
             }
+
             $candidates[] = (float) $t['price'];
         }
 

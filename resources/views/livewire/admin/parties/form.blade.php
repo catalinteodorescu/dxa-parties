@@ -68,32 +68,142 @@
             </div>
         </div>
 
-        {{-- ============ Când (SIMPLĂ) ============ --}}
-        <div class="{{ $card }}" x-show="$wire.kind === 'basic'" x-cloak>
+        {{-- ============ Când (SIMPLĂ + FESTIVAL) ============ --}}
+        <div class="{{ $card }}">
             <h3 class="text-sm font-semibold text-ink">Când</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label for="start_date" class="{{ $lbl }}">Data</label>
-                    <input type="date" id="start_date" wire:model="start_date" class="accent-primary [color-scheme:light] mt-1.5 {{ $in }}">
-                    @error('start_date') <p class="{{ $err }}">{{ $message }}</p> @enderror
+
+            {{-- Petrecere simplă: o seară --}}
+            <div x-show="$wire.kind === 'basic'" x-cloak class="space-y-5">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="start_date" class="{{ $lbl }}">Data</label>
+                        <input type="date" id="start_date" wire:model="start_date" class="accent-primary [color-scheme:light] mt-1.5 {{ $in }}">
+                        @if ($kind === 'basic') @error('start_date') <p class="{{ $err }}">{{ $message }}</p> @enderror @endif
+                    </div>
+                    <div>
+                        <label for="start_time" class="{{ $lbl }}">Ora început</label>
+                        <input type="time" step="900" id="start_time" wire:model="start_time" class="mt-1.5 {{ $in }}">
+                        @error('start_time') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="end_time" class="{{ $lbl }}">Ora sfârșit</label>
+                        <input type="time" step="900" id="end_time" wire:model="end_time" class="mt-1.5 {{ $in }}">
+                        @error('end_time') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    </div>
                 </div>
+                <p class="text-xs text-ink-soft/80">Dacă ora de sfârșit e mai mică decât cea de început (ex. 21:00 → 03:00), se consideră automat a doua zi.</p>
+
                 <div>
-                    <label for="start_time" class="{{ $lbl }}">Ora început</label>
-                    <input type="time" step="900" id="start_time" wire:model="start_time" class="mt-1.5 {{ $in }}">
-                    @error('start_time') <p class="{{ $err }}">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label for="end_time" class="{{ $lbl }}">Ora sfârșit</label>
-                    <input type="time" step="900" id="end_time" wire:model="end_time" class="mt-1.5 {{ $in }}">
-                    @error('end_time') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    <label for="dresscode" class="{{ $lbl }}">Dresscode <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
+                    <input type="text" id="dresscode" wire:model="dresscode" placeholder="ex. Elegant / All white / Casual" class="mt-1.5 {{ $in }}">
+                    @error('dresscode') <p class="{{ $err }}">{{ $message }}</p> @enderror
                 </div>
             </div>
-            <p class="text-xs text-ink-soft/80">Dacă ora de sfârșit e mai mică decât cea de început (ex. 21:00 → 03:00), se consideră automat a doua zi.</p>
 
+            {{-- Festival: interval de zile; „Program pe zile" se completează automat cu zilele dintre cele două date --}}
+            <div x-show="$wire.kind === 'festival'" x-cloak class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="festival_start_date" class="{{ $lbl }}">Data început</label>
+                        <input type="date" id="festival_start_date" wire:model.live="start_date" class="accent-primary [color-scheme:light] mt-1.5 {{ $in }}">
+                        @if ($kind === 'festival') @error('start_date') <p class="{{ $err }}">{{ $message }}</p> @enderror @endif
+                    </div>
+                    <div>
+                        <label for="festival_end_date" class="{{ $lbl }}">Data sfârșit</label>
+                        <input type="date" id="festival_end_date" wire:model.live="end_date" min="{{ $start_date }}" class="accent-primary [color-scheme:light] mt-1.5 {{ $in }}">
+                        @error('end_date') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                <p class="text-xs text-ink-soft/80">
+                    Zilele dintre cele două date apar automat mai jos, la „Program pe zile" (orele și programul fiecărei zile se completează acolo).
+                </p>
+            </div>
+        </div>
+
+        {{-- ============ Program pe zile (FESTIVAL) ============ --}}
+        <div class="{{ $card }}" x-show="$wire.kind === 'festival'" x-cloak>
+            <h3 class="text-sm font-semibold text-ink">Program pe zile</h3>
+
+            @if ($guestNames->isNotEmpty())
+                <datalist id="dxa-guest-names">
+                    @foreach ($guestNames as $gn)
+                        <option value="{{ $gn }}"></option>
+                    @endforeach
+                </datalist>
+            @endif
+
+            <div class="space-y-4">
+                @foreach ($days as $di => $day)
+                    <div wire:key="day-{{ $day['date'] ?? $di }}" class="rounded-xl border border-border p-3 sm:p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-ink">Ziua {{ $di + 1 }}
+                                @if (! empty($day['date']))
+                                    <span class="font-normal text-ink-soft">· {{ \Illuminate\Support\Carbon::parse($day['date'])->locale('ro')->translatedFormat('l, d.m.Y') }}</span>
+                                @endif
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <input type="time" step="900" wire:model="days.{{ $di }}.start_time" class="{{ $in }}" title="Ora început">
+                            <input type="time" step="900" wire:model="days.{{ $di }}.end_time" class="{{ $in }}" title="Ora sfârșit">
+                            <input type="text" wire:model="days.{{ $di }}.dresscode" placeholder="Dresscode" class="{{ $in }}">
+                        </div>
+                        @error('days.'.$di.'.date') <p class="{{ $err }}">{{ $message }}</p> @enderror
+
+                        <div class="space-y-2">
+                            <span class="text-xs font-medium text-ink-soft">Program</span>
+                            @foreach ($day['program'] ?? [] as $pi => $item)
+                                <div wire:key="day-{{ $day['date'] ?? $di }}-item-{{ $pi }}" class="rounded-lg border border-border bg-bg/40 p-2.5 space-y-2">
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <input type="time" step="900" wire:model="days.{{ $di }}.program.{{ $pi }}.start" class="{{ $in }}" title="De la">
+                                        <input type="time" step="900" wire:model="days.{{ $di }}.program.{{ $pi }}.end" class="{{ $in }}" title="Până la">
+                                        <x-dropdown-select path="days.{{ $di }}.program.{{ $pi }}.type" :options="$programTypes" :selected="$item['type'] ?? ''" placeholder="Tip" />
+                                    </div>
+                                    <input type="text" wire:model="days.{{ $di }}.program.{{ $pi }}.title" placeholder="Titlu (ex. Workshop Bachata Sensual)" class="{{ $in }}">
+                                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                                        <input type="text" list="dxa-guest-names" wire:model="days.{{ $di }}.program.{{ $pi }}.guest" placeholder="Invitat (opțional)" class="{{ $in }}">
+                                        <input type="text" wire:model="days.{{ $di }}.program.{{ $pi }}.room" placeholder="Sală (opțional)" class="{{ $in }}">
+                                        <button type="button" wire:click="removeProgramItem({{ $di }}, {{ $pi }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                            <button type="button" wire:click="addProgramItem({{ $di }})" class="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Adaugă în program
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            @if (empty($days))
+                <p class="text-sm text-ink-soft/70 italic">Alege data de început și data de sfârșit din secțiunea „Când" — zilele festivalului apar aici automat.</p>
+            @endif
+            @error('days') <p class="{{ $err }}">{{ $message }}</p> @enderror
+        </div>
+
+        {{-- ============ Locație ============ --}}
+        <div class="{{ $card }}">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="text-sm font-semibold text-ink">Locație</h3>
+                <button type="button" wire:click="fillDxaVenue" class="text-xs font-medium text-primary hover:underline">Completează cu sala DXA</button>
+            </div>
             <div>
-                <label for="dresscode" class="{{ $lbl }}">Dresscode <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
-                <input type="text" id="dresscode" wire:model="dresscode" placeholder="ex. Elegant / All white / Casual" class="mt-1.5 {{ $in }}">
-                @error('dresscode') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                <label for="location_name" class="{{ $lbl }}">Nume locație</label>
+                <input type="text" id="location_name" wire:model="location_name" placeholder="Dance Xplosion Academy" class="mt-1.5 {{ $in }}">
+                @error('location_name') <p class="{{ $err }}">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label for="location_address" class="{{ $lbl }}">Adresă <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
+                <input type="text" id="location_address" wire:model="location_address" class="mt-1.5 {{ $in }}">
+                @error('location_address') <p class="{{ $err }}">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label for="location_url" class="{{ $lbl }}">Link hartă <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
+                <input type="url" id="location_url" wire:model="location_url" placeholder="https://maps.google.com/…" class="mt-1.5 {{ $in }}">
+                @error('location_url') <p class="{{ $err }}">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -154,92 +264,6 @@
             </button>
         </div>
 
-        {{-- ============ Program pe zile (FESTIVAL) ============ --}}
-        <div class="{{ $card }}" x-show="$wire.kind === 'festival'" x-cloak>
-            <h3 class="text-sm font-semibold text-ink">Program pe zile</h3>
-
-            @if ($guestNames->isNotEmpty())
-                <datalist id="dxa-guest-names">
-                    @foreach ($guestNames as $gn)
-                        <option value="{{ $gn }}"></option>
-                    @endforeach
-                </datalist>
-            @endif
-
-            <div class="space-y-4">
-                @foreach ($days as $di => $day)
-                    <div wire:key="day-{{ $di }}" class="rounded-xl border border-border p-3 sm:p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-semibold text-ink">Ziua {{ $di + 1 }}</span>
-                            <button type="button" wire:click="removeDay({{ $di }})" class="text-xs font-medium text-ink-soft hover:text-danger">Șterge ziua</button>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                            <input type="date" wire:model="days.{{ $di }}.date" class="accent-primary [color-scheme:light] {{ $in }}">
-                            <input type="time" step="900" wire:model="days.{{ $di }}.start_time" class="{{ $in }}" title="Ora început">
-                            <input type="time" step="900" wire:model="days.{{ $di }}.end_time" class="{{ $in }}" title="Ora sfârșit">
-                            <input type="text" wire:model="days.{{ $di }}.dresscode" placeholder="Dresscode" class="{{ $in }}">
-                        </div>
-                        @error('days.'.$di.'.date') <p class="{{ $err }}">{{ $message }}</p> @enderror
-
-                        <div class="space-y-2">
-                            <span class="text-xs font-medium text-ink-soft">Program</span>
-                            @foreach ($day['program'] ?? [] as $pi => $item)
-                                <div wire:key="day-{{ $di }}-item-{{ $pi }}" class="rounded-lg border border-border bg-bg/40 p-2.5 space-y-2">
-                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                        <input type="time" step="900" wire:model="days.{{ $di }}.program.{{ $pi }}.start" class="{{ $in }}" title="De la">
-                                        <input type="time" step="900" wire:model="days.{{ $di }}.program.{{ $pi }}.end" class="{{ $in }}" title="Până la">
-                                        <x-dropdown-select path="days.{{ $di }}.program.{{ $pi }}.type" :options="$programTypes" :selected="$item['type'] ?? ''" placeholder="Tip" />
-                                    </div>
-                                    <input type="text" wire:model="days.{{ $di }}.program.{{ $pi }}.title" placeholder="Titlu (ex. Workshop Bachata Sensual)" class="{{ $in }}">
-                                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
-                                        <input type="text" list="dxa-guest-names" wire:model="days.{{ $di }}.program.{{ $pi }}.guest" placeholder="Invitat (opțional)" class="{{ $in }}">
-                                        <input type="text" wire:model="days.{{ $di }}.program.{{ $pi }}.room" placeholder="Sală (opțional)" class="{{ $in }}">
-                                        <button type="button" wire:click="removeProgramItem({{ $di }}, {{ $pi }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            @endforeach
-                            <button type="button" wire:click="addProgramItem({{ $di }})" class="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                Adaugă în program
-                            </button>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <button type="button" wire:click="addDay" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Adaugă zi
-            </button>
-            @error('days') <p class="{{ $err }}">{{ $message }}</p> @enderror
-        </div>
-
-        {{-- ============ Locație ============ --}}
-        <div class="{{ $card }}">
-            <div class="flex items-center justify-between gap-3">
-                <h3 class="text-sm font-semibold text-ink">Locație</h3>
-                <button type="button" wire:click="fillDxaVenue" class="text-xs font-medium text-primary hover:underline">Completează cu sala DXA</button>
-            </div>
-            <div>
-                <label for="location_name" class="{{ $lbl }}">Nume locație</label>
-                <input type="text" id="location_name" wire:model="location_name" placeholder="Dance Xplosion Academy" class="mt-1.5 {{ $in }}">
-                @error('location_name') <p class="{{ $err }}">{{ $message }}</p> @enderror
-            </div>
-            <div>
-                <label for="location_address" class="{{ $lbl }}">Adresă <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
-                <input type="text" id="location_address" wire:model="location_address" class="mt-1.5 {{ $in }}">
-                @error('location_address') <p class="{{ $err }}">{{ $message }}</p> @enderror
-            </div>
-            <div>
-                <label for="location_url" class="{{ $lbl }}">Link hartă <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
-                <input type="url" id="location_url" wire:model="location_url" placeholder="https://maps.google.com/…" class="mt-1.5 {{ $in }}">
-                @error('location_url') <p class="{{ $err }}">{{ $message }}</p> @enderror
-            </div>
-        </div>
-
         {{-- ============ Stiluri muzică ============ --}}
         <div class="{{ $card }}">
             <h3 class="text-sm font-semibold text-ink">Stiluri muzică</h3>
@@ -294,13 +318,13 @@
 
                         {{-- Reduceri pentru acest bilet --}}
                         <div class="pl-1">
-                            <span class="text-xs font-medium text-ink-soft">Reduceri (early-bird)</span>
+                            <span class="text-xs font-medium text-ink-soft">Reduceri (early-bird sau intrare gratuită până la o oră)</span>
                             <div class="mt-2 space-y-2">
                                 @foreach ($type['discounts'] ?? [] as $dii => $disc)
-                                    <div wire:key="tt-{{ $ti }}-d-{{ $dii }}" class="grid grid-cols-1 sm:grid-cols-[1fr_7rem_9rem_auto] gap-2 items-start">
-                                        <input type="text" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.label" placeholder="Etichetă (ex. Early bird)" class="{{ $in }}">
+                                    <div wire:key="tt-{{ $ti }}-d-{{ $dii }}" class="grid grid-cols-1 sm:grid-cols-[1fr_7rem_12.5rem_auto] gap-2 items-start">
+                                        <input type="text" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.label" placeholder="Etichetă (ex. Early bird, Gratuit până la 22:30)" class="{{ $in }}">
                                         <input type="number" step="0.01" min="0" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.price" placeholder="Preț" class="{{ $in }}">
-                                        <input type="date" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.until" class="accent-primary [color-scheme:light] {{ $in }}" title="Valabil până la">
+                                        <input type="datetime-local" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.until" class="accent-primary [color-scheme:light] {{ $in }}" title="Valabil până la (data și ora)">
                                         <button type="button" wire:click="removeTicketDiscount({{ $ti }}, {{ $dii }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
                                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                         </button>
