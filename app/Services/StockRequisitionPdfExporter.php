@@ -32,7 +32,7 @@ class StockRequisitionPdfExporter
             'items' => $items,
         ])->setPaper('a4');
 
-        $filename = 'necesar-'.$requisition->created_at->format('Y-m-d').'-'.Str::slug($requisition->label).'.pdf';
+        $filename = 'necesar-'.$requisition->id.'-'.$requisition->created_at->format('Y-m-d').'-'.Str::slug($requisition->label).'.pdf';
 
         return response()->streamDownload(
             fn () => print ($pdf->output()),

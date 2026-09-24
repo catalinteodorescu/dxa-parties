@@ -30,6 +30,10 @@ class Form extends Component
 
     public string $label = '';
 
+    // Denumirea implicita precompletata la un necesar nou ("5 / 24.09.2026"). Daca ramane neschimbata
+    // pana la salvare, se recalculeaza cu id-ul real (estimarea din formular poate fi depasita).
+    public string $autoLabel = '';
+
     // String (nu ?int) ca sa suporte direct valoarea goala din x-select ("Fara petrecere").
     public string $party_id = '';
 
@@ -61,7 +65,8 @@ class Form extends Component
                 ->values()
                 ->all();
         } else {
-            $this->label = 'Necesar '.now()->format('d.m.Y');
+            $this->autoLabel = StockRequisition::defaultLabel();
+            $this->label = $this->autoLabel;
         }
 
         $this->syncLineRows();
@@ -357,6 +362,11 @@ class Form extends Component
                     'party_id' => $partyId,
                     'created_by' => Auth::guard('admin')->id(),
                 ]);
+
+                // Denumire lasata pe implicit => chiar numarul real al documentului.
+                if ($this->autoLabel !== '' && trim($this->label) === $this->autoLabel) {
+                    $requisition->update(['label' => StockRequisition::defaultLabel($requisition->id, $requisition->created_at)]);
+                }
             }
 
             $this->syncItems($requisition, $filled->all());
@@ -369,10 +379,10 @@ class Form extends Component
         });
 
         if ($isEditing) {
-            ActivityLogger::log('stock.requisition_updated', 'A modificat necesarul „'.$requisition->label.'".');
+            ActivityLogger::log('stock.requisition_updated', 'A modificat necesarul '.$requisition->numberedLabel().'.');
             session()->flash('status', 'Necesarul a fost actualizat.');
         } else {
-            ActivityLogger::log('stock.requisition_created', 'A creat necesarul „'.$requisition->label.'".');
+            ActivityLogger::log('stock.requisition_created', 'A creat necesarul '.$requisition->numberedLabel().'.');
             session()->flash('status', 'Necesarul a fost creat.');
         }
 

@@ -7,6 +7,7 @@ use App\Models\MenuItem;
 use App\Models\Party;
 use App\Models\StockItem;
 use App\Models\StockReport;
+use App\Models\StockReportCount;
 use App\Models\StockReportLine;
 use App\Models\SalesGroup;
 use App\Services\SalesAggregator;
@@ -14,6 +15,7 @@ use App\Models\StockRequisition;
 use App\Models\StockRequisitionItem;
 use App\Services\ActivityLogger;
 use App\Services\StockReportPdfExporter;
+use App\Support\Settings\Settings;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -40,6 +42,12 @@ use Livewire\Component;
  *
  * Un raport finalizat se deschide read-only pe aceeasi ruta: continutul nu mai
  * vine din staging (golit la finalizare), ci din miscarile reale.
+ *
+ * DXA: adaugat (Bar - numaratoare de final de seara) — a 4-a sectiune, optionala:
+ * fond de casa + cash + tokeni numarati (comparati live cu incasarile din vanzarile aduse)
+ * si o foaie de inventar (cantitate numarata per produs de stoc, comparata cu stocul teoretic
+ * din panoul de impact). Se salveaza automat ca restul draftului; la finalizare se face
+ * snapshot-ul valorilor asteptate si, optional (bifa din dialog), stocul se aliniaza la numarat.
  */
 #[Layout('layouts.admin')]
 class Form extends Component
@@ -60,6 +68,20 @@ class Form extends Component
     public bool $include_loose_sales = false;
 
     public string $note = '';
+
+    // --- Numaratoarea de final de seara (toate optionale; '' = nenumarat) ---
+    // Fond de casa la inceput (lei), cash numarat (lei), tokeni numarati (buc).
+    public string $opening_float = '';
+
+    public string $counted_cash = '';
+
+    public string $counted_tokens = '';
+
+    // Foaia de inventar: stock_item_id => cantitate numarata ca text ('' = nenumarat, '0' = numarat zero).
+    public array $counts = [];
+
+    // Bifa din dialogul de finalizare: aliniaza stocul la cantitatile numarate.
+    public bool $alignStock = true;
 
     // Fiecare rand poarta 'line_id' (id din stock_report_lines) pt. autosave pe
     // diff: complet -> upsert linia, golit/scos -> delete linia din staging.
@@ -94,6 +116,14 @@ class Form extends Component
             $this->sales_group_id = $report->sales_group_id ? (string) $report->sales_group_id : '';
             $this->include_loose_sales = (bool) $report->include_loose_sales;
             $this->note = (string) ($report->note ?? '');
+
+            $this->opening_float = $report->opening_float !== null ? $this->plain((float) $report->opening_float) : '';
+            $this->counted_cash = $report->counted_cash !== null ? $this->plain((float) $report->counted_cash) : '';
+            $this->counted_tokens = $report->counted_tokens !== null ? (string) $report->counted_tokens : '';
+
+            foreach ($report->counts as $count) {
+                $this->counts[(int) $count->stock_item_id] = $this->plain((float) $count->counted_qty);
+            }
 
             // Doar un draft are linii de staging; la finalizat continutul se
             // afiseaza read-only din miscarile reale (vezi render()).
@@ -134,7 +164,7 @@ class Form extends Component
                     'unit_cost' => $line->unit_cost !== null ? $this->plainCost((float) $line->unit_cost) : '',
                     'requisition_item_id' => $line->requisition_item_id,
                     'req_id' => $ri?->requisition?->id,
-                    'req_label' => $ri?->requisition?->label,
+                    'req_label' => $ri?->requisition?->numberedLabel(),
                     'req_requested' => $ri ? (float) $ri->qty_requested : null,
                     'req_remaining' => $ri ? $ri->remainingQty() : null,
                 ];
@@ -240,6 +270,19 @@ class Form extends Component
                 $this->ensureReport();
             }
             $this->persistHeader();
+
+            return;
+        }
+
+        // Numaratoarea de final de seara: cash / tokeni / fond de casa, respectiv foaia de inventar.
+        if (in_array($name, ['opening_float', 'counted_cash', 'counted_tokens'], true)) {
+            $this->syncClosingField($name);
+
+            return;
+        }
+
+        if (preg_match('/^counts\.(\d+)$/', $name, $m)) {
+            $this->syncCount((int) $m[1]);
 
             return;
         }
@@ -386,7 +429,14 @@ class Form extends Component
 
             if (! $group || in_array($group->id, $this->claimedGroupIds(), true)) {
                 $this->sales_group_id = '';
-                $this->importMessage = 'Sesiunea aleasă nu mai e disponibilă (e închisă sau folosită într-un alt draft).';
+
+                $holder = $group
+                    ? StockReport::query()->where('status', 'draft')->where('sales_group_id', $group->id)->first()
+                    : null;
+
+                $this->importMessage = $holder
+                    ? 'Sesiunea aleasă e deja folosită în raportarea nr. '.$holder->number().' (draft).'
+                    : 'Sesiunea aleasă nu mai e disponibilă (e închisă).';
 
                 return;
             }
@@ -411,7 +461,81 @@ class Form extends Component
             'sales_group_id' => $this->sales_group_id !== '' ? (int) $this->sales_group_id : null,
             'include_loose_sales' => $this->include_loose_sales,
             'note' => $this->note !== '' ? $this->note : null,
+        ] + $this->closingFieldValues());
+    }
+
+    /** Valorile numaratorii (cash/tokeni/fond) pregatite pt. salvare: '' sau invalid => null. */
+    private function closingFieldValues(): array
+    {
+        return [
+            'opening_float' => $this->moneyOrNull($this->opening_float),
+            'counted_cash' => $this->moneyOrNull($this->counted_cash),
+            'counted_tokens' => $this->intOrNull($this->counted_tokens),
+        ];
+    }
+
+    private function moneyOrNull(string $raw): ?float
+    {
+        $raw = trim(str_replace(',', '.', $raw));
+
+        return ($raw !== '' && is_numeric($raw) && (float) $raw >= 0) ? round((float) $raw, 2) : null;
+    }
+
+    private function intOrNull(string $raw): ?int
+    {
+        $raw = trim($raw);
+
+        return ($raw !== '' && preg_match('/^\d+$/', $raw)) ? (int) $raw : null;
+    }
+
+    /** Valideaza + salveaza un camp din numaratoare (fond / cash / tokeni). Invalid: mesaj sub camp, nimic salvat. */
+    private function syncClosingField(string $name): void
+    {
+        $this->resetErrorBag($name);
+
+        $rule = $name === 'counted_tokens'
+            ? ['nullable', 'integer', 'min:0', 'max:9999999']
+            : ['nullable', 'numeric', 'min:0', 'max:9999999'];
+
+        $this->validateOnly($name, [$name => $rule], [
+            'numeric' => 'Introdu un număr.',
+            'integer' => 'Introdu un număr întreg.',
+            'min' => 'Valoarea nu poate fi negativă.',
+            'max' => 'Valoare prea mare.',
         ]);
+
+        $this->ensureReport();
+        $this->persistHeader();
+    }
+
+    /** Autosave pentru o linie din foaia de inventar. '' = sterge linia (nenumarat). */
+    private function syncCount(int $itemId): void
+    {
+        $key = 'counts.'.$itemId;
+        $this->resetErrorBag($key);
+
+        $raw = trim(str_replace(',', '.', (string) ($this->counts[$itemId] ?? '')));
+
+        if ($raw === '') {
+            if ($this->report && $this->report->exists) {
+                $this->report->counts()->where('stock_item_id', $itemId)->delete();
+            }
+
+            return;
+        }
+
+        if (! is_numeric($raw) || (float) $raw < 0 || (float) $raw > 99999999) {
+            $this->addError($key, 'Introdu un număr ≥ 0.');
+
+            return;
+        }
+
+        $report = $this->ensureReport();
+
+        StockReportCount::updateOrCreate(
+            ['report_id' => $report->id, 'stock_item_id' => $itemId],
+            ['counted_qty' => round((float) $raw, 3)],
+        );
     }
 
     /** Creeaza (lazy) raportul draft la nevoie - ca sa nu ramana drafturi goale daca userul pleaca fara sa adauge nimic. */
@@ -429,7 +553,7 @@ class Form extends Component
             'include_loose_sales' => $this->include_loose_sales,
             'note' => $this->note !== '' ? $this->note : null,
             'created_by' => Auth::guard('admin')->id(),
-        ]);
+        ] + $this->closingFieldValues());
 
         return $this->report;
     }
@@ -503,8 +627,8 @@ class Form extends Component
 
         $this->importReqId = '';
         $this->importMessage = $added > 0
-            ? 'Am adus '.$added.($added === 1 ? ' produs' : ' produse').' din „'.$req->label.'".'
-            : 'Nu e nimic de adus din „'.$req->label.'" (tot ce lipsea a fost deja adus sau primit).';
+            ? 'Am adus '.$added.($added === 1 ? ' produs' : ' produse').' din necesarul '.$req->numberedLabel().'.'
+            : 'Nu e nimic de adus din necesarul '.$req->numberedLabel().' (tot ce lipsea a fost deja adus sau primit).';
 
         $this->syncTrailingRows();
     }
@@ -572,7 +696,7 @@ class Form extends Component
             'unit_cost' => '',
             'requisition_item_id' => $item->id,
             'req_id' => $req->id,
-            'req_label' => $req->label,
+            'req_label' => $req->numberedLabel(),
             'req_requested' => (float) $item->qty_requested,
             'req_remaining' => $remaining,
         ];
@@ -640,8 +764,8 @@ class Form extends Component
         $this->flushDraft();
 
         if (! $this->report || ! $this->report->exists
-            || ($this->report->lines()->count() === 0 && ! $this->report->hasSalesToPost())) {
-            $this->addError('finalize', 'Adaugă cel puțin o linie sau alege o sesiune de vânzări cu vânzări înainte de a finaliza.');
+            || ($this->report->lines()->count() === 0 && ! $this->report->hasSalesToPost() && ! $this->report->hasClosingCount())) {
+            $this->addError('finalize', 'Adaugă cel puțin o linie, o sesiune de vânzări cu vânzări sau o numărătoare înainte de a finaliza.');
 
             return;
         }
@@ -653,10 +777,35 @@ class Form extends Component
         }
 
         $report = $this->report;
-        $report->finalize(Auth::guard('admin')->id());
+        $report->finalize(Auth::guard('admin')->id(), $this->alignStock);
 
-        ActivityLogger::log('stock.report_finalized', 'A finalizat raportarea din '.$report->date->format('d.m.Y').'.');
-        session()->flash('status', 'Raportarea a fost finalizată.');
+        ActivityLogger::log('stock.report_finalized', 'A finalizat raportarea nr. '.$report->number().'.');
+
+        // Numaratoarea de final de seara: se logheaza separat, cu diferentele.
+        $report->refresh();
+        $summary = $report->closingSummary();
+
+        if ($summary) {
+            $signed = fn (float $n) => ($n > 0 ? '+' : ($n < 0 ? '−' : '')).number_format(abs($n), 2, ',', '.');
+
+            $parts = [];
+            if ($summary->cash_diff !== null) {
+                $parts[] = 'cash '.$signed($summary->cash_diff).' lei';
+            }
+            if ($summary->tokens_diff !== null) {
+                $parts[] = 'tokeni '.($summary->tokens_diff > 0 ? '+' : ($summary->tokens_diff < 0 ? '−' : '')).abs($summary->tokens_diff);
+            }
+            if ($summary->counted_items > 0) {
+                $parts[] = 'inventar: '.$summary->diff_items.' din '.$summary->counted_items.' produse cu diferențe ('.$signed($summary->inventory_value).' lei)'
+                    .($report->stock_aligned ? ', stoc aliniat' : ', stoc nealiniat');
+            }
+
+            ActivityLogger::log('stock.report_counted', 'Numărătoare la raportarea nr. '.$report->number().': '.implode('; ', $parts).'.');
+        }
+
+        session()->flash('status', ($summary && ! $summary->clean)
+            ? 'Raportarea a fost finalizată. Numărătoarea are diferențe — le vezi în raportare.'
+            : 'Raportarea a fost finalizată.');
 
         $this->redirectRoute('admin.stock-reports.index', navigate: true);
     }
@@ -672,7 +821,45 @@ class Form extends Component
      *
      * @return array<int, array{name:string, unit:string, current:float, net:float, result:float, package:?string}>
      */
-    private function computeImpact(): array
+    private function computeImpact(array $delta): array
+    {
+        if (empty($delta)) {
+            return [];
+        }
+
+        $items = StockItem::whereIn('id', array_keys($delta))->get()->keyBy('id');
+        $rows = [];
+
+        foreach ($delta as $id => $net) {
+            $si = $items->get($id);
+            if (! $si) {
+                continue;
+            }
+
+            $current = (float) $si->stock_qty;
+            $result = $current + $net;
+            $rows[] = [
+                'name' => $si->name,
+                'unit' => $si->unit,
+                'current' => $current,
+                'net' => $net,
+                'result' => $result,
+                'package' => $si->hasPackage() ? $si->packageDisplayFor($result) : null,
+            ];
+        }
+
+        usort($rows, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return $rows;
+    }
+
+    /**
+     * Delta NET pe produs de stoc (stock_item_id => +/- cantitate) al tuturor liniilor curente —
+     * baza atat pentru panoul de impact, cat si pentru stocul ASTEPTAT din foaia de inventar.
+     *
+     * @return array<int, float>
+     */
+    private function stockDeltas(): array
     {
         $delta = [];
 
@@ -728,34 +915,114 @@ class Form extends Component
             }
         }
 
-        if (empty($delta)) {
-            return [];
+        return $delta;
+    }
+
+    /** Id-urile vanzarilor inregistrate care vor fi postate: sesiunea aleasa + (daca e bifat) vanzarile simple. */
+    private function registeredSaleIds(): array
+    {
+        $ids = [];
+
+        if ($this->sales_group_id !== '' && ($group = SalesGroup::find((int) $this->sales_group_id))) {
+            $ids = array_merge($ids, $group->saleIds());
         }
 
-        $items = StockItem::whereIn('id', array_keys($delta))->get()->keyBy('id');
-        $rows = [];
+        if ($this->include_loose_sales) {
+            $ids = array_merge($ids, StockReport::looseSalesQuery()->pluck('id')->all());
+        }
 
-        foreach ($delta as $id => $net) {
-            $si = $items->get($id);
-            if (! $si) {
-                continue;
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Datele numaratorii de final de seara pentru draft: valorile ASTEPTATE (cash/tokeni din vanzarile
+     * aduse; stoc teoretic = stoc curent + delta-ul raportarii) fata de ce a numarat omul, live.
+     * Diferenta = numarat − asteptat (negativ = lipsa, pozitiv = surplus). Nu scrie nimic.
+     *
+     * @param  array<int, float>  $deltas  vezi stockDeltas()
+     */
+    private function closingData(array $deltas, \Illuminate\Support\Collection $menuItems): array
+    {
+        $saleIds = $this->registeredSaleIds();
+        $payments = SalesAggregator::payments($saleIds);
+        $usesTokens = (bool) Settings::get('uses_tokens');
+
+        $float = $this->moneyOrNull($this->opening_float) ?? 0.0;
+        $cashIn = (float) ($payments['cash']['amount'] ?? 0);
+        $expectedCash = round($float + $cashIn, 2);
+        $countedCash = $this->moneyOrNull($this->counted_cash);
+
+        $expectedTokens = (int) ($payments['token']['tokens'] ?? 0);
+        $countedTokens = $this->intOrNull($this->counted_tokens);
+
+        // Vanzarile suplimentare (introduse manual, fara metoda de plata) nu intra in "asteptat": le semnalam separat.
+        $manualRevenue = round((float) collect($this->sales)
+            ->filter(fn ($r) => ! empty($r['menu_item_id']) && is_numeric($r['qty']) && (float) $r['qty'] > 0)
+            ->sum(fn ($r) => (float) $r['qty'] * (float) ($menuItems->firstWhere('id', (int) $r['menu_item_id'])?->price ?? 0)), 2);
+
+        // Foaia de inventar: toate produsele de stoc active + cele deja numarate (chiar daca intre timp dezactivate).
+        $countedIds = array_map('intval', array_keys($this->counts));
+
+        $items = StockItem::query()
+            ->where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', $countedIds))
+            ->ordered()
+            ->get();
+
+        $rows = [];
+        $counted = 0;
+        $shortageValue = 0.0;
+        $surplusValue = 0.0;
+
+        foreach ($items as $si) {
+            $expected = round((float) $si->stock_qty + (float) ($deltas[$si->id] ?? 0.0), 3);
+            $raw = trim(str_replace(',', '.', (string) ($this->counts[$si->id] ?? '')));
+            $isCounted = $raw !== '' && is_numeric($raw) && (float) $raw >= 0;
+            $diff = $isCounted ? round((float) $raw - $expected, 3) : null;
+            $value = ($diff !== null && $si->avg_cost !== null) ? round($diff * (float) $si->avg_cost, 2) : null;
+
+            if ($isCounted) {
+                $counted++;
+
+                if ($value !== null && $value < 0) {
+                    $shortageValue += $value;
+                } elseif ($value !== null && $value > 0) {
+                    $surplusValue += $value;
+                }
             }
 
-            $current = (float) $si->stock_qty;
-            $result = $current + $net;
             $rows[] = [
+                'id' => $si->id,
                 'name' => $si->name,
                 'unit' => $si->unit,
-                'current' => $current,
-                'net' => $net,
-                'result' => $result,
-                'package' => $si->hasPackage() ? $si->packageDisplayFor($result) : null,
+                'expected' => $expected,
+                'package' => $si->hasPackage() ? $si->packageDisplayFor($expected) : null,
+                'has_package' => $si->hasPackage(),
+                'package_qty' => $si->hasPackage() ? $si->package_qty : null,
+                'counted' => $isCounted,
+                'diff' => $diff,
+                'value' => $value,
             ];
         }
 
-        usort($rows, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
-
-        return $rows;
+        return [
+            'usesTokens' => $usesTokens,
+            'hasSource' => $saleIds !== [],
+            'float' => $float,
+            'cashIn' => $cashIn,
+            'expectedCash' => $expectedCash,
+            'countedCash' => $countedCash,
+            'cashDiff' => $countedCash !== null ? round($countedCash - $expectedCash, 2) : null,
+            'expectedTokens' => $expectedTokens,
+            'countedTokens' => $countedTokens,
+            'tokensDiff' => $countedTokens !== null ? $countedTokens - $expectedTokens : null,
+            'creditIn' => (float) ($payments['credit']['amount'] ?? 0),
+            'benefitIn' => (float) ($payments['benefit']['amount'] ?? 0),
+            'manualRevenue' => $manualRevenue,
+            'rows' => $rows,
+            'countedItems' => $counted,
+            'shortageValue' => round($shortageValue, 2),
+            'surplusValue' => round($surplusValue, 2),
+        ];
     }
 
     /**
@@ -792,6 +1059,9 @@ class Form extends Component
                 'revenue' => $this->report->totalRevenue(),
                 'cost' => $this->report->totalCost(),
                 'profit' => $this->report->totalProfit(),
+                'closing' => $this->report->closingSummary(),
+                'finalCounts' => $this->report->counts()->with('stockItem')->get()
+                    ->sortBy(fn ($c) => mb_strtolower($c->stockItem?->name ?? ''))->values(),
             ]);
         }
 
@@ -852,6 +1122,20 @@ class Form extends Component
 
         $groupData = $selectedGroup ? $this->salesSourceData($selectedGroup->saleIds()) : null;
 
+        // Sesiuni deschise, dar deja alese intr-un ALT draft: le aratam cu link catre acel draft,
+        // ca lista goala sa nu para ca "nu exista nicio sesiune deschisa".
+        $takenGroups = collect();
+        if ($claimedIds = $this->claimedGroupIds()) {
+            $drafts = StockReport::query()->where('status', 'draft')->whereIn('sales_group_id', $claimedIds)->get()->keyBy('sales_group_id');
+
+            $takenGroups = SalesGroup::with('party')->open()->whereIn('id', $claimedIds)->orderBy('id')->get()
+                ->map(fn ($g) => (object) ['group' => $g, 'report' => $drafts->get($g->id)])
+                ->filter(fn ($t) => $t->report !== null)
+                ->values();
+        }
+
+        $deltas = $this->stockDeltas();
+
         // Vanzari simple (fara sesiune), neraportate: panoul apare doar daca exista
         // vanzari FINALIZATE de adus (cele anulate nu conteaza in raportare).
         $looseData = $this->salesSourceData(StockReport::looseSalesQuery()->pluck('id')->all());
@@ -863,6 +1147,7 @@ class Form extends Component
             'readOnlyView' => false,
             'salesGroups' => $salesGroups,
             'selectedGroup' => $selectedGroup,
+            'takenGroups' => $takenGroups,
             'groupData' => $groupData,
             'looseData' => $looseData,
             'stockItems' => $stockItems,
@@ -872,7 +1157,8 @@ class Form extends Component
             'openRequisitions' => $openRequisitions,
             'importRequisition' => $importRequisition,
             'importedItemIds' => $this->importedRequisitionItemIds(),
-            'impact' => $this->computeImpact(),
+            'impact' => $this->computeImpact($deltas),
+            'closing' => $this->closingData($deltas, $menuItems),
         ]);
     }
 }

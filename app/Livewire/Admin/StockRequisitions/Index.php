@@ -60,7 +60,7 @@ class Index extends Component
         $requisition = StockRequisition::findOrFail($id);
         $requisition->update(['status' => 'closed']);
 
-        ActivityLogger::log('stock.requisition_closed', 'A închis necesarul „'.$requisition->label.'".');
+        ActivityLogger::log('stock.requisition_closed', 'A închis necesarul '.$requisition->numberedLabel().'.');
         session()->flash('status', 'Necesarul a fost închis.');
     }
 
@@ -75,7 +75,7 @@ class Index extends Component
         $requisition->save();
         $requisition->refreshStatus();
 
-        ActivityLogger::log('stock.requisition_reopened', 'A redeschis necesarul „'.$requisition->label.'".');
+        ActivityLogger::log('stock.requisition_reopened', 'A redeschis necesarul '.$requisition->numberedLabel().'.');
         session()->flash('status', 'Necesarul a fost redeschis.');
     }
 
@@ -101,6 +101,11 @@ class Index extends Component
                 'created_by' => Auth::guard('admin')->id(),
             ]);
 
+            // Denumirea originalului era chiar numarul lui => copia primeste propriul numar.
+            if ($original->hasNumberInLabel()) {
+                $copy->update(['label' => StockRequisition::defaultLabel($copy->id, $copy->created_at)]);
+            }
+
             foreach ($original->items as $item) {
                 $copy->items()->create([
                     'stock_item_id' => $item->stock_item_id,
@@ -111,7 +116,7 @@ class Index extends Component
             return $copy;
         });
 
-        ActivityLogger::log('stock.requisition_duplicated', 'A duplicat necesarul „'.$original->label.'".');
+        ActivityLogger::log('stock.requisition_duplicated', 'A duplicat necesarul '.$original->numberedLabel().'.');
 
         $this->redirectRoute('admin.stock-requisitions.edit', ['requisition' => $copy->id], navigate: true);
     }
@@ -130,12 +135,12 @@ class Index extends Component
         // adica cel putin o linie a primit deja marfa printr-o raportare. Fara
         // asta, e doar o lista de cumparaturi neonorata - se poate sterge.
         if ($requisition->items()->where('qty_received', '>', 0)->exists()) {
-            session()->flash('error', 'Necesarul „'.$requisition->label.'" are deja raportări asociate — nu poate fi șters. Îl poți închide în schimb.');
+            session()->flash('error', 'Necesarul '.$requisition->numberedLabel().' are deja raportări asociate — nu poate fi șters. Îl poți închide în schimb.');
 
             return;
         }
 
-        $label = $requisition->label;
+        $label = $requisition->numberedLabel();
 
         DB::transaction(function () use ($requisition) {
             $requisition->items()->delete();
@@ -146,7 +151,7 @@ class Index extends Component
             $this->expandedId = null;
         }
 
-        ActivityLogger::log('stock.requisition_deleted', 'A șters necesarul „'.$label.'".');
+        ActivityLogger::log('stock.requisition_deleted', 'A șters necesarul '.$label.'.');
         session()->flash('status', 'Necesarul a fost șters.');
     }
 

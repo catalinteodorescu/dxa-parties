@@ -78,7 +78,7 @@
                     {{-- Raportare (dată + petrecere) --}}
                     <div class="min-w-0">
                         <span class="md:hidden block text-[11px] uppercase tracking-wide text-ink-soft/60">Raportare</span>
-                        <span class="block font-medium text-ink">{{ $report->date->format('d.m.Y') }}</span>
+                        <span class="block font-medium text-ink">Nr. {{ $report->number() }}</span>
                         <span class="block text-xs text-ink-soft/70 truncate">
                             @if ($report->party){{ $report->party->name }}@else fără petrecere @endif
                             @if ($report->creator) <span class="text-ink-soft/40">·</span> {{ $report->creator->name }} @endif
@@ -93,6 +93,11 @@
                             <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
                                 <span class="text-ink">{{ $money($report->totalRevenue()) }} <span class="text-ink-soft/60 text-xs">venit</span></span>
                                 <span class="{{ $profit > 0 ? 'text-success' : ($profit < 0 ? 'text-danger' : 'text-ink') }}">{{ $money($profit) }} <span class="text-ink-soft/60 text-xs">profit</span></span>
+                                {{-- DXA: adaugat (Bar - numaratoare de final de seara) --}}
+                                @php $countSummary = $report->closingSummary(); @endphp
+                                @if ($countSummary)
+                                    <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $countSummary->clean ? 'bg-success-soft text-success' : 'bg-warning/10 text-warning' }}">{{ $countSummary->clean ? 'numărătoare ok' : 'diferențe la numărătoare' }}</span>
+                                @endif
                             </div>
                         @else
                             <div class="flex flex-wrap items-center gap-1.5 text-xs">
@@ -127,7 +132,7 @@
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
                             </x-btn>
                             <x-btn variant="danger" size="icon" outline tooltip="Șterge draftul"
-                                   x-on:click="askConfirm('Șterge draftul', 'Sigur vrei să ștergi draftul din {{ $report->date->format('d.m.Y') }}? Nu a atins stocul, deci nu se pierde nimic real. Acțiunea nu poate fi anulată.', 'delete', [{{ $report->id }}])">
+                                   x-on:click="askConfirm('Șterge draftul', 'Sigur vrei să ștergi draftul nr. {{ $report->number() }}? Nu a atins stocul, deci nu se pierde nimic real. Acțiunea nu poate fi anulată.', 'delete', [{{ $report->id }}])">
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                             </x-btn>
                         @endif

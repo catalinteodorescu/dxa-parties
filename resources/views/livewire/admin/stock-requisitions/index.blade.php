@@ -114,7 +114,7 @@
                         <span class="md:hidden block text-[11px] uppercase tracking-wide text-ink-soft/60">Necesar</span>
                         <span class="block font-medium text-ink truncate">{{ $req->label }}</span>
                         <span class="block text-xs text-ink-soft/70 truncate">
-                            Creat {{ $req->created_at->format('d.m.Y') }}
+                            @if ($req->hasNumberInLabel()) Creat {{ $req->created_at->format('d.m.Y') }} @else Nr. {{ $req->number() }} @endif
                             @if ($req->party)
                                 <span class="text-ink-soft/50">—</span> {{ $req->party->name }}
                             @endif

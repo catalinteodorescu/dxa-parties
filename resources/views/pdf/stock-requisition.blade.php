@@ -5,7 +5,7 @@
 <html lang="ro">
 <head>
     <meta charset="utf-8">
-    <title>Necesar {{ $requisition->label }}</title>
+    <title>{{ $requisition->displayName() }}</title>
     <style>
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; color: #241A16; margin: 0; }
         h1 { font-size: 17px; margin: 0 0 2px; }
@@ -30,7 +30,7 @@
 
     <div class="header">
         <h1>
-            Necesar — {{ $requisition->label }}
+            {{ $requisition->displayName() }}
             @if ($requisition->status === 'open')
                 <span class="badge">Deschis</span>
             @elseif ($requisition->status === 'fulfilled')

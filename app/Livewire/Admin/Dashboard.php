@@ -122,6 +122,29 @@ class Dashboard extends Component
             ->sortBy(fn ($row) => $row['since'])
             ->values();
 
+        // DXA: adaugat (Bar - numaratoare de final de seara)
+        // Ultima raportare FINALIZATA cu numaratoare (cash, tokeni sau inventar) + totalurile pe ultimele 30 de zile.
+        // Diferentele sunt numarat - asteptat: negativ = lipsa, pozitiv = surplus (vezi StockReport::closingSummary()).
+        $countedReports = fn () => StockReport::query()
+            ->where('status', 'finalized')
+            ->where(fn ($w) => $w->whereNotNull('counted_cash')->orWhereNotNull('counted_tokens')->orWhereHas('counts'));
+
+        $lastCountedReport = $countedReports()->with(['party', 'counts'])->orderByDesc('date')->orderByDesc('id')->first();
+        $lastCount = $lastCountedReport?->closingSummary();
+
+        $counts30 = $countedReports()->with('counts')
+            ->where('date', '>=', $now->copy()->subDays(30))
+            ->get()
+            ->map(fn (StockReport $r) => $r->closingSummary())
+            ->filter();
+
+        $countTotals30 = (object) [
+            'reports' => $counts30->count(),
+            'dirty' => $counts30->where('clean', false)->count(),
+            'cash' => round((float) $counts30->sum(fn ($s) => $s->cash_diff ?? 0), 2),
+            'inventory' => round((float) $counts30->sum(fn ($s) => $s->inventory_value), 2),
+        ];
+
         return view('livewire.admin.dashboard', [
             'liveCount' => $liveCount,
             'scheduledCount' => $publishedActive()->whereNotNull('starts_at')->where('starts_at', '>', $now)->count(),
@@ -168,6 +191,11 @@ class Dashboard extends Component
 
             // DXA: adaugat (Bar - dashboard, widget comparație ultimele 2 petreceri)
             'lastTwoPartiesComparison' => $lastTwoPartiesComparison,
+
+            // DXA: adaugat (Bar - numaratoare de final de seara)
+            'lastCountedReport' => $lastCountedReport,
+            'lastCount' => $lastCount,
+            'countTotals30' => $countTotals30,
         ]);
     }
 }

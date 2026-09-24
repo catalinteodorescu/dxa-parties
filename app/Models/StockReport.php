@@ -41,6 +41,12 @@ class StockReport extends Model
         'party_id',
         'sales_group_id',
         'include_loose_sales',
+        'opening_float',
+        'counted_cash',
+        'counted_tokens',
+        'expected_cash',
+        'expected_tokens',
+        'stock_aligned',
         'note',
         'created_by',
     ];
@@ -51,6 +57,12 @@ class StockReport extends Model
             'date' => 'date',
             'finalized_at' => 'datetime',
             'include_loose_sales' => 'boolean',
+            'opening_float' => 'decimal:2',
+            'counted_cash' => 'decimal:2',
+            'expected_cash' => 'decimal:2',
+            'counted_tokens' => 'integer',
+            'expected_tokens' => 'integer',
+            'stock_aligned' => 'boolean',
         ];
     }
 
@@ -81,6 +93,12 @@ class StockReport extends Model
         return $this->hasMany(StockReportLine::class, 'report_id');
     }
 
+    /** Foaia de inventar a numaratorii de final de seara (o linie per produs de stoc numarat). */
+    public function counts(): HasMany
+    {
+        return $this->hasMany(StockReportCount::class, 'report_id');
+    }
+
     public function entries(): HasMany
     {
         return $this->hasMany(StockMovement::class, 'report_id')->where('type', 'in');
@@ -97,6 +115,21 @@ class StockReport extends Model
         return $this->hasMany(StockMovement::class, 'report_id')
             ->where('type', 'out')
             ->whereNull('sale_id');
+    }
+
+    /**
+     * DXA: adaugat — numarul raportarii, ca la facturi: "22 / 23.09.2026" (id-ul din DB + data raportarii).
+     * Id-ul e atribuit la prima salvare a draftului si nu se schimba; un draft sters lasa un gol in numerotare.
+     */
+    public function number(): string
+    {
+        return $this->id.' / '.$this->date->format('d.m.Y');
+    }
+
+    /** "Raportare nr. 22 / 23.09.2026" */
+    public function title(): string
+    {
+        return 'Raportare nr. '.$this->number();
     }
 
     public function isDraft(): bool
@@ -207,15 +240,66 @@ class StockReport extends Model
         );
     }
 
+    /** Are raportarea vreo numaratoare (cash, tokeni sau inventar)? */
+    public function hasClosingCount(): bool
+    {
+        return $this->counted_cash !== null
+            || $this->counted_tokens !== null
+            || $this->counts()->exists();
+    }
+
+    /**
+     * Rezumatul numaratorii unei raportari FINALIZATE (sursa unica pentru ecran, PDF, lista si dashboard).
+     * null = raportare nefinalizata sau fara numaratoare.
+     *
+     * Diferentele sunt numarat − asteptat: negativ = lipsa, pozitiv = surplus.
+     *
+     * @return object{cash_diff:?float, tokens_diff:?int, counted_items:int, diff_items:int, inventory_value:float, inventory_cost_unknown:bool, clean:bool}|null
+     */
+    public function closingSummary(): ?object
+    {
+        if (! $this->isFinalized()) {
+            return null;
+        }
+
+        $counts = $this->relationLoaded('counts') ? $this->counts : $this->counts()->get();
+
+        if ($this->counted_cash === null && $this->counted_tokens === null && $counts->isEmpty()) {
+            return null;
+        }
+
+        $cashDiff = ($this->counted_cash !== null && $this->expected_cash !== null)
+            ? round((float) $this->counted_cash - (float) $this->expected_cash, 2)
+            : null;
+
+        $tokensDiff = ($this->counted_tokens !== null && $this->expected_tokens !== null)
+            ? (int) $this->counted_tokens - (int) $this->expected_tokens
+            : null;
+
+        $withDiff = $counts->filter(fn (StockReportCount $c) => $c->hasDifference());
+
+        return (object) [
+            'cash_diff' => $cashDiff,
+            'tokens_diff' => $tokensDiff,
+            'counted_items' => $counts->count(),
+            'diff_items' => $withDiff->count(),
+            'inventory_value' => round((float) $withDiff->sum(fn (StockReportCount $c) => $c->diffValue() ?? 0.0), 2),
+            'inventory_cost_unknown' => $withDiff->contains(fn (StockReportCount $c) => $c->diffValue() === null),
+            'clean' => ($cashDiff === null || $cashDiff == 0.0)
+                && ($tokensDiff === null || $tokensDiff === 0)
+                && $withDiff->isEmpty(),
+        ];
+    }
+
     /**
      * Finalizare: itereaza liniile din staging (in ordinea creata), creeaza
      * miscarile reale (addEntry/addSale/addLoss, cu allowNegative: true la
      * iesiri), marcheaza raportul finalized si goleste stock_report_lines.
      * Totul intr-o singura tranzactie - ireversibil.
      */
-    public function finalize(int $adminId): void
+    public function finalize(int $adminId, bool $alignStock = false): void
     {
-        DB::transaction(function () use ($adminId) {
+        DB::transaction(function () use ($adminId, $alignStock) {
             $lines = $this->lines()->with(['stockItem', 'menuItem', 'requisitionItem.requisition'])
                 ->orderBy('id')
                 ->get();
@@ -257,6 +341,10 @@ class StockReport extends Model
                 $this->postRegisteredSales($saleIds, $adminId, ['sales_group_id' => null, 'is_loose' => true]);
             }
 
+            // Numaratoarea de final de seara (cash / tokeni / inventar): snapshot al valorilor
+            // asteptate + (optional) alinierea stocului la cantitatile numarate.
+            $this->finalizeClosingCount($adminId, $alignStock);
+
             $this->lines()->delete();
 
             $this->status = 'finalized';
@@ -264,6 +352,70 @@ class StockReport extends Model
             $this->finalized_by = $adminId;
             $this->save();
         });
+    }
+
+    /**
+     * Numaratoarea de final de seara, la finalizare (in tranzactia din finalize(), DUPA ce miscarile
+     * si vanzarile raportarii au fost postate):
+     *  - cash/tokeni: valoarea asteptata = fondul de casa + incasarile din vanzarile postate de aceasta
+     *    raportare (respectiv tokenii incasati); se salveaza doar pentru ce a fost numarat;
+     *  - inventar: asteptat = stocul teoretic REAL de acum (dupa postare), nu o estimare din formular.
+     *    Daca $alignStock: lipsa se posteaza ca pierdere ("Diferenta la numaratoare", intra in cost si
+     *    profit), surplusul ca ajustare de cantitate.
+     */
+    private function finalizeClosingCount(int $adminId, bool $alignStock): void
+    {
+        if ($this->counted_cash !== null || $this->counted_tokens !== null) {
+            $payments = SalesAggregator::payments(
+                Sale::query()->where('report_id', $this->id)->pluck('id')->all()
+            );
+
+            if ($this->counted_cash !== null) {
+                $this->expected_cash = round((float) $this->opening_float + (float) ($payments['cash']['amount'] ?? 0), 2);
+            }
+
+            if ($this->counted_tokens !== null) {
+                $this->expected_tokens = (int) ($payments['token']['tokens'] ?? 0);
+            }
+        }
+
+        $counts = $this->counts()->get();
+
+        foreach ($counts as $count) {
+            $item = StockItem::query()->find($count->stock_item_id);
+
+            if (! $item) {
+                continue;
+            }
+
+            $expected = (float) $item->stock_qty;
+            $counted = (float) $count->counted_qty;
+            $diff = round($counted - $expected, 3);
+
+            $count->expected_qty = $expected;
+            $count->diff_qty = $diff;
+            $count->unit_cost = $item->avg_cost;
+            $count->save();
+
+            if (! $alignStock || abs($diff) < StockReportCount::EPSILON) {
+                continue;
+            }
+
+            if ($diff < 0) {
+                $item->recordExit(
+                    qty: abs($diff),
+                    reportId: $this->id,
+                    saleId: null,
+                    adminId: $adminId,
+                    note: 'Diferență la numărătoare',
+                    allowNegative: true,
+                );
+            } else {
+                $item->recordQuantityAdjustment($counted, $adminId, 'Diferență la numărătoare', $this->id);
+            }
+        }
+
+        $this->stock_aligned = $alignStock && $counts->isNotEmpty();
     }
 
     /** Vanzarile simple: fara sesiune si inca neraportate (finalizate sau anulate). */

@@ -56,19 +56,20 @@ class Index extends Component
         $report = StockReport::findOrFail($id);
 
         if ($report->isFinalized()) {
-            session()->flash('error', 'Raportarea din '.$report->date->format('d.m.Y').' e finalizată — nu poate fi ștearsă.');
+            session()->flash('error', 'Raportarea nr. '.$report->number().' e finalizată — nu poate fi ștearsă.');
 
             return;
         }
 
-        $date = $report->date->format('d.m.Y');
+        $number = $report->number();
 
         DB::transaction(function () use ($report) {
             $report->lines()->delete();
+            $report->counts()->delete(); // DXA: numaratoarea (draft) se sterge odata cu raportarea
             $report->delete();
         });
 
-        ActivityLogger::log('stock.report_deleted', 'A șters raportarea (draft) din '.$date.'.');
+        ActivityLogger::log('stock.report_deleted', 'A șters raportarea (draft) nr. '.$number.'.');
         session()->flash('status', 'Draftul de raportare a fost șters.');
     }
 
@@ -81,7 +82,7 @@ class Index extends Component
     public function render()
     {
         $reports = StockReport::query()
-            ->with(['party', 'creator'])
+            ->with(['party', 'creator', 'counts'])
             ->withCount([
                 'lines as entry_count' => fn ($q) => $q->where('kind', 'entry'),
                 'lines as sale_count' => fn ($q) => $q->where('kind', 'sale'),

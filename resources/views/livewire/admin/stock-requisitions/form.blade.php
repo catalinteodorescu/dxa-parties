@@ -14,7 +14,7 @@
 
         <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-                <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează necesarul' : 'Necesar nou' }}</h2>
+                <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează necesarul nr. '.$requisition->number() : 'Necesar nou' }}</h2>
                 <p class="mt-1 text-sm text-ink-soft leading-relaxed">
                     Lista de produse de stoc pe care trebuie să le cumperi. Când intră marfa, o treci în Raportări, iar necesarul se bifează singur.
                 </p>
@@ -39,7 +39,7 @@
             {{-- Denumire --}}
             <div>
                 <label for="label" class="block text-sm font-medium text-ink">Denumire</label>
-                <input type="text" id="label" wire:model="label" placeholder="ex. Necesar 12.10.2026"
+                <input type="text" id="label" wire:model="label" placeholder="ex. 12 / 12.10.2026"
                        class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
                 @error('label') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
             </div>

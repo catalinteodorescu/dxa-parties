@@ -250,15 +250,15 @@
                                             $source = null;
                                             if ($m->type === 'in') {
                                                 if ($m->requisitionItem) {
-                                                    $source = 'din necesar „'.$m->requisitionItem->requisition->label.'"';
+                                                    $source = 'din necesar '.$m->requisitionItem->requisition->numberedLabel();
                                                 } elseif ($m->report) {
-                                                    $source = 'din raportare '.$m->report->created_at->format('d.m.Y');
+                                                    $source = 'din raportarea nr. '.$m->report->number();
                                                 }
                                             } elseif ($m->type === 'out') {
                                                 if ($m->sale?->menuItem) {
                                                     $source = 'vânzare „'.$m->sale->menuItem->name.'"';
                                                 } elseif ($m->report) {
-                                                    $source = 'pierdere din raportare '.$m->report->created_at->format('d.m.Y');
+                                                    $source = 'pierdere din raportarea nr. '.$m->report->number();
                                                 }
                                             }
                                         @endphp

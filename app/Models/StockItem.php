@@ -303,11 +303,12 @@ class StockItem extends Model
      * e tot tip "adjustment" (ca la cost), dar cu qty = delta (poate fi negativ),
      * ca sa se vada in istoric ce s-a schimbat, nu doar cat a ajuns sa fie.
      */
-    public function recordQuantityAdjustment(float $newQty, int $adminId, ?string $reason = null): StockMovement
+    public function recordQuantityAdjustment(float $newQty, int $adminId, ?string $reason = null, ?int $reportId = null): StockMovement
     {
         $delta = $newQty - (float) $this->stock_qty;
 
         $movement = $this->movements()->create([
+            'report_id' => $reportId, // DXA: doar cand corectia vine dintr-o numaratoare de raportare
             'type' => 'adjustment',
             'qty' => $delta,
             'unit_cost' => null,

@@ -201,7 +201,7 @@
 
             {{-- DXA: adaugat (Bar - raportari) --}}
             @if ($lastReport)
-                <x-stat-card :value="$lastReport->date->format('d.m.y')" label="Ultima raportare" :hint="$lastReportStale ? 'draft neatins de câteva zile' : ($lastReport->isDraft() ? 'draft, în lucru' : 'finalizată')" accent="{{ $lastReportStale ? 'warning' : ($lastReport->isDraft() ? 'primary' : 'info') }}" :href="route('admin.stock-reports.edit', $lastReport)">
+                <x-stat-card :value="$lastReport->date->format('d.m.y')" label="Ultima raportare" :hint="'nr. '.$lastReport->id.' · '.($lastReportStale ? 'draft neatins de câteva zile' : ($lastReport->isDraft() ? 'draft, în lucru' : 'finalizată'))" accent="{{ $lastReportStale ? 'warning' : ($lastReport->isDraft() ? 'primary' : 'info') }}" :href="route('admin.stock-reports.edit', $lastReport)">
                     <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></x-slot:icon>
                 </x-stat-card>
             @else
@@ -238,7 +238,7 @@
                     <a href="{{ route('admin.stock-reports.edit', $r) }}" wire:navigate
                        class="group flex items-center justify-between gap-3 py-2 border-b border-border last:border-0">
                         <span class="text-sm text-ink group-hover:text-primary truncate">
-                            {{ $r->date->format('d.m.Y') }}
+                            Nr. {{ $r->number() }}
                             @if ($r->party) <span class="text-ink-soft/60 font-normal">· {{ $r->party->name }}</span> @endif
                         </span>
                         <span class="flex items-center gap-2 shrink-0">
@@ -274,6 +274,60 @@
                     @endforeach
                 </div>
             @endif
+
+            {{-- DXA: adaugat (Bar - numaratoare de final de seara) — ultima numaratoare: cash / tokeni / inventar, numarat vs asteptat. --}}
+            @php
+                $signedMoney = fn ($n) => ($n > 0 ? '+' : ($n < 0 ? '−' : '')).$money(abs($n));
+                $diffPill = fn ($n) => abs($n) < 0.005 ? 'bg-success-soft text-success' : ($n < 0 ? 'bg-danger/10 text-danger' : 'bg-warning/10 text-warning');
+            @endphp
+            <div class="lg:col-span-2 rounded-xl border {{ $lastCount && ! $lastCount->clean ? 'border-warning/40' : 'border-border' }} bg-surface p-4">
+                <div class="flex items-center justify-between gap-3 mb-1">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/80">Ultima numărătoare</div>
+                    @if ($lastCountedReport)
+                        <a href="{{ route('admin.stock-reports.edit', $lastCountedReport) }}" wire:navigate class="text-xs text-primary hover:underline whitespace-nowrap">
+                            Nr. {{ $lastCountedReport->number() }}@if ($lastCountedReport->party) · {{ \Illuminate\Support\Str::limit($lastCountedReport->party->name, 18) }}@endif
+                        </a>
+                    @endif
+                </div>
+
+                @if ($lastCount)
+                    <div class="flex items-center justify-between gap-3 py-2 border-b border-border">
+                        <span class="text-sm text-ink">Cash</span>
+                        @if ($lastCount->cash_diff === null)
+                            <span class="text-xs text-ink-soft/60">nenumărat</span>
+                        @else
+                            <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $diffPill($lastCount->cash_diff) }}">{{ abs($lastCount->cash_diff) < 0.005 ? 'corect' : $signedMoney($lastCount->cash_diff).' lei' }}</span>
+                        @endif
+                    </div>
+                    <div class="flex items-center justify-between gap-3 py-2 border-b border-border">
+                        <span class="text-sm text-ink">Tokeni</span>
+                        @if ($lastCount->tokens_diff === null)
+                            <span class="text-xs text-ink-soft/60">nenumărat</span>
+                        @else
+                            <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $diffPill($lastCount->tokens_diff) }}">{{ $lastCount->tokens_diff === 0 ? 'corect' : ($lastCount->tokens_diff > 0 ? '+' : '−').abs($lastCount->tokens_diff).' tk' }}</span>
+                        @endif
+                    </div>
+                    <div class="flex items-center justify-between gap-3 py-2">
+                        <span class="text-sm text-ink">Inventar</span>
+                        @if ($lastCount->counted_items === 0)
+                            <span class="text-xs text-ink-soft/60">nenumărat</span>
+                        @elseif ($lastCount->diff_items === 0)
+                            <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 bg-success-soft text-success">fără diferențe</span>
+                        @else
+                            <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $lastCount->inventory_value < 0 ? 'bg-danger/10 text-danger' : 'bg-warning/10 text-warning' }}">{{ $lastCount->diff_items }} {{ $lastCount->diff_items === 1 ? 'produs' : 'produse' }} · {{ $signedMoney($lastCount->inventory_value) }} lei</span>
+                        @endif
+                    </div>
+
+                    @if ($countTotals30->reports > 0)
+                        <p class="mt-2 pt-2 border-t border-border text-[11px] text-ink-soft/70">
+                            30 zile: {{ $countTotals30->reports }} {{ $countTotals30->reports === 1 ? 'numărătoare' : 'numărători' }}, {{ $countTotals30->dirty }} cu diferențe
+                            · cash {{ $signedMoney($countTotals30->cash) }} lei · inventar {{ $signedMoney($countTotals30->inventory) }} lei
+                        </p>
+                    @endif
+                @else
+                    <p class="mt-1 text-sm text-ink-soft">Nicio numărătoare încă. O completezi în Raportare, la final de seară.</p>
+                @endif
+            </div>
         </div>
 
         {{-- DXA: adaugat (Bar - dashboard, widget comparație ultimele 2 petreceri) — apare doar cand exista cel putin 2 petreceri cu raportare finalizata; sub 2 nu are ce compara. Petrecerile sunt RANDURI (una sub alta), metricile sunt COLOANE, ca valorile sa se urmareasca vertical (nu side-by-side pe coloane per petrecere). --}}

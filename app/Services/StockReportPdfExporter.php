@@ -36,9 +36,13 @@ class StockReportPdfExporter
             'revenue' => $report->totalRevenue(),
             'cost' => $report->totalCost(),
             'profit' => $report->totalProfit(),
+            // DXA: adaugat (Bar - numaratoare de final de seara)
+            'closing' => $report->closingSummary(),
+            'counts' => $report->counts()->with('stockItem')->get()
+                ->sortBy(fn ($c) => mb_strtolower($c->stockItem?->name ?? ''))->values(),
         ])->setPaper('a4');
 
-        $filename = 'raportare-'.$report->date->format('Y-m-d').($report->party ? '-'.\Illuminate\Support\Str::slug($report->party->name) : '').'.pdf';
+        $filename = 'raportare-'.$report->id.'-'.$report->date->format('Y-m-d').($report->party ? '-'.\Illuminate\Support\Str::slug($report->party->name) : '').'.pdf';
 
         return response()->streamDownload(
             fn () => print ($pdf->output()),

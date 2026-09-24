@@ -12,7 +12,7 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="text-lg font-semibold text-ink">Raportare {{ $report->date->format('d.m.Y') }}</h2>
+                        <h2 class="text-lg font-semibold text-ink">{{ $report->title() }}</h2>
                         <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-info-soft text-info">Finalizat</span>
                     </div>
                     <p class="mt-1 text-sm text-ink-soft">
@@ -58,7 +58,7 @@
                                 <div class="min-w-0">
                                     <span class="text-sm text-ink">{{ $m->stockItem->name }}</span>
                                     @if ($m->requisitionItem)
-                                        <span class="ml-1 text-xs text-primary">· din necesar „{{ $m->requisitionItem->requisition->label }}"</span>
+                                        <span class="ml-1 text-xs text-primary">· din necesar {{ $m->requisitionItem->requisition->numberedLabel() }}</span>
                                     @endif
                                 </div>
                                 <div class="text-sm text-ink-soft shrink-0 text-right">
@@ -129,6 +129,11 @@
                     </div>
                 @endif
             </div>
+
+            {{-- DXA: adaugat (Bar - numaratoare de final de seara) --}}
+            @if ($closing)
+                @include('livewire.admin.stock-reports._closing-summary', ['closing' => $closing, 'finalCounts' => $finalCounts])
+            @endif
         </div>
 
     {{-- ============================================================= --}}
@@ -160,11 +165,11 @@
         <div class="max-w-6xl">
             <div class="mb-5">
                 <div class="flex items-center gap-2">
-                    <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează raportarea' : 'Raportare nouă' }}</h2>
+                    <h2 class="text-lg font-semibold text-ink">{{ $isEditing ? 'Editează raportarea nr. '.$report->number() : 'Raportare nouă' }}</h2>
                     <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-primary-soft text-primary">Draft</span>
                 </div>
                 <p class="mt-1 text-sm text-ink-soft leading-relaxed">
-                    Completează intrările, vânzările (poți aduce și o sesiune de vânzări din bar) și pierderile. Se salvează automat pe măsură ce completezi — poți reveni oricând. Stocul nu se modifică până la <span class="font-medium text-ink">Finalizează</span>.
+                    Completează intrările, vânzările (poți aduce și o sesiune de vânzări din bar), pierderile și, la final de seară, numărătoarea. Se salvează automat pe măsură ce completezi — poți reveni oricând. Stocul nu se modifică până la <span class="font-medium text-ink">Finalizează</span>.
                 </p>
             </div>
 
@@ -222,7 +227,7 @@
 
                             <div class="mt-3 border-t border-primary/20 pt-3">
                                 @if ($remainingItems->isEmpty())
-                                    <p class="text-sm text-ink-soft">Tot ce lipsea din „{{ $importRequisition->label }}" a fost deja adus sau primit.</p>
+                                    <p class="text-sm text-ink-soft">Tot ce lipsea din necesarul {{ $importRequisition->numberedLabel() }} a fost deja adus sau primit.</p>
                                 @else
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-xs font-medium text-ink-soft">{{ $remainingItems->count() }} {{ $remainingItems->count() === 1 ? 'produs de adus' : 'produse de adus' }}</span>
@@ -255,12 +260,12 @@
 
                 {{-- Grupuri aduse din necesare --}}
                 @foreach ($grouped as $reqId => $groupRows)
-                    @php $reqLabel = $groupRows->first()['req_label'] ?? 'Necesar'; @endphp
+                    @php $reqLabel = $groupRows->first()['req_label'] ?? ''; @endphp
                     <div wire:key="entry-group-{{ $reqId }}" class="rounded-2xl border border-primary/30 bg-surface mb-3 overflow-visible">
                         <div class="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-primary/20 bg-primary-soft/30 rounded-t-2xl">
                             <div class="flex items-center gap-2 min-w-0">
                                 <svg class="w-4 h-4 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2" width="6" height="4" rx="1"/></svg>
-                                <span class="text-sm font-medium text-ink truncate">din necesar „{{ $reqLabel }}"</span>
+                                <span class="text-sm font-medium text-ink truncate">din necesar {{ $reqLabel }}</span>
                             </div>
                             <button type="button" wire:click="removeRequisitionGroup({{ $reqId }})"
                                     class="shrink-0 text-xs text-ink-soft/70 hover:text-danger">Șterge tot grupul</button>
@@ -390,7 +395,15 @@
                         </button>
                     </div>
 
-                    @if ($salesGroups->isEmpty() && ! $selectedGroup)
+                    {{-- Sesiuni deschise, dar deja alese intr-un ALT draft (o sesiune se poate consuma intr-o singura raportare) --}}
+                    @foreach ($takenGroups as $taken)
+                        <p class="mt-2 text-xs text-ink-soft/70">
+                            Sesiunea „{{ $taken->group->label() }}" e deja aleasă în
+                            <a href="{{ route('admin.stock-reports.edit', $taken->report) }}" wire:navigate class="text-primary hover:underline">raportarea nr. {{ $taken->report->number() }}</a> (draft).
+                        </p>
+                    @endforeach
+
+                    @if ($salesGroups->isEmpty() && ! $selectedGroup && $takenGroups->isEmpty())
                         <p class="mt-2 text-xs text-ink-soft/70">Nu există sesiuni de vânzări deschise.</p>
                     @endif
 
@@ -512,6 +525,191 @@
                 </div>
             </section>
 
+            {{-- ===================== NUMĂRĂTOARE DE FINAL DE SEARĂ ===================== --}}
+            {{-- DXA: adaugat (Bar - numaratoare). Optionala; se salveaza automat ca restul draftului. Asteptat vs numarat, live. --}}
+            @php
+                $signedMoney = fn ($n) => ($n > 0 ? '+' : ($n < 0 ? '−' : '')).$money(abs($n));
+                $diffTone = fn ($n) => $n === null ? 'text-ink-soft' : (abs($n) < 0.005 ? 'text-success' : ($n < 0 ? 'text-danger' : 'text-warning'));
+                $showTokens = $closing['usesTokens'] || $counted_tokens !== '';
+                $inputCls = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 pr-12 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
+            @endphp
+            <section class="mb-5 rounded-2xl border border-border border-l-2 border-l-purple bg-surface p-4">
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-3">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-purple/10 text-purple shrink-0">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><polyline points="9 14 11 16 15 12"/></svg>
+                    </span>
+                    <h3 class="text-base font-semibold text-ink">Numărătoare de final de seară</h3>
+                    <span class="text-xs text-ink-soft">opțional — compară ce ai numărat cu ce arată aplicația</span>
+                </div>
+
+                {{-- Cash + tokeni --}}
+                <div class="grid gap-3 {{ $showTokens ? 'sm:grid-cols-3' : 'sm:grid-cols-2' }}">
+                    <div>
+                        <label for="opening_float" class="block text-sm font-medium text-ink mb-1.5">Fond de casă <span class="text-ink-soft/60 font-normal">(la început)</span></label>
+                        <div class="relative">
+                            <input type="number" step="0.01" min="0" inputmode="decimal" id="opening_float" wire:model.live.debounce.700ms="opening_float" class="{{ $inputCls }}">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">lei</span>
+                        </div>
+                        @error('opening_float') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="counted_cash" class="block text-sm font-medium text-ink mb-1.5">Cash numărat</label>
+                        <div class="relative">
+                            <input type="number" step="0.01" min="0" inputmode="decimal" id="counted_cash" wire:model.live.debounce.700ms="counted_cash" class="{{ $inputCls }}">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">lei</span>
+                        </div>
+                        @error('counted_cash') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                    </div>
+                    @if ($showTokens)
+                        <div>
+                            <label for="counted_tokens" class="block text-sm font-medium text-ink mb-1.5">Tokeni numărați</label>
+                            <div class="relative">
+                                <input type="number" step="1" min="0" inputmode="numeric" id="counted_tokens" wire:model.live.debounce.700ms="counted_tokens" class="{{ $inputCls }}">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">tk</span>
+                            </div>
+                            @error('counted_tokens') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
+                </div>
+
+                <div class="mt-3 grid gap-2 {{ $showTokens ? 'sm:grid-cols-2' : '' }}">
+                    <div class="rounded-xl border border-border bg-bg/50 px-3 py-2.5">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
+                            <span class="text-sm font-medium text-ink">Cash</span>
+                            <span class="text-sm text-ink-soft">așteptat <span class="text-ink font-medium">{{ $money($closing['expectedCash']) }} lei</span></span>
+                        </div>
+                        <span class="block text-xs text-ink-soft/70">fond {{ $money($closing['float']) }} + încasat în vânzări {{ $money($closing['cashIn']) }}</span>
+                        @if ($closing['cashDiff'] !== null)
+                            <div class="mt-1 text-sm text-ink-soft">
+                                numărat <span class="text-ink">{{ $money($closing['countedCash']) }} lei</span> ·
+                                <span class="font-semibold {{ $diffTone($closing['cashDiff']) }}">{{ abs($closing['cashDiff']) < 0.005 ? 'corect' : ($closing['cashDiff'] < 0 ? 'lipsă ' : 'surplus ').$money(abs($closing['cashDiff'])).' lei' }}</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    @if ($showTokens)
+                        <div class="rounded-xl border border-border bg-bg/50 px-3 py-2.5">
+                            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
+                                <span class="text-sm font-medium text-ink">Tokeni</span>
+                                <span class="text-sm text-ink-soft">așteptat <span class="text-ink font-medium">{{ $closing['expectedTokens'] }} tk</span></span>
+                            </div>
+                            <span class="block text-xs text-ink-soft/70">tokeni încasați în vânzări</span>
+                            @if ($closing['tokensDiff'] !== null)
+                                <div class="mt-1 text-sm text-ink-soft">
+                                    numărat <span class="text-ink">{{ $closing['countedTokens'] }} tk</span> ·
+                                    <span class="font-semibold {{ $diffTone($closing['tokensDiff']) }}">{{ $closing['tokensDiff'] === 0 ? 'corect' : ($closing['tokensDiff'] < 0 ? 'lipsă ' : 'surplus ').abs($closing['tokensDiff']).' tk' }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
+                @unless ($closing['hasSource'])
+                    <p class="mt-2 text-xs text-ink-soft/70">Alege o sesiune de vânzări (sau include vânzările simple) în secțiunea Vânzări ca să se calculeze încasările așteptate.</p>
+                @endunless
+                @if ($closing['creditIn'] > 0 || $closing['benefitIn'] > 0)
+                    <p class="mt-2 text-xs text-ink-soft/70">
+                        Nu se numără fizic:
+                        @if ($closing['creditIn'] > 0) credit (aplicație) {{ $money($closing['creditIn']) }} lei @endif
+                        @if ($closing['creditIn'] > 0 && $closing['benefitIn'] > 0) · @endif
+                        @if ($closing['benefitIn'] > 0) beneficii {{ $money($closing['benefitIn']) }} lei @endif
+                    </p>
+                @endif
+                @if ($closing['manualRevenue'] > 0)
+                    <p class="mt-2 text-xs text-warning">
+                        Ai {{ $money($closing['manualRevenue']) }} lei în vânzări suplimentare (introduse manual, fără metodă de plată). Dacă au fost încasate cash, la cash te aștepți la un surplus de aceeași valoare.
+                    </p>
+                @endif
+
+                {{-- Inventar --}}
+                <div class="mt-4 pt-4 border-t border-border" x-data="{ open: {{ $closing['countedItems'] > 0 ? 'true' : 'false' }}, q: '' }">
+                    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        <button type="button" @click="open = !open" class="flex items-center gap-2 text-left">
+                            <svg class="w-4 h-4 text-ink-soft transition-transform" :class="open ? 'rotate-90' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            <span class="text-sm font-semibold text-ink">Inventar</span>
+                            <span class="text-xs text-ink-soft">{{ $closing['countedItems'] }} numărate din {{ count($closing['rows']) }}</span>
+                        </button>
+                        <span class="text-xs text-ink-soft/70">așteptat = stocul după această raportare</span>
+                    </div>
+
+                    <div x-show="open" x-cloak class="mt-3">
+                        @if (empty($closing['rows']))
+                            <p class="text-sm text-ink-soft/60 italic">Nu există produse de stoc active.</p>
+                        @else
+                            <input type="search" x-model="q" placeholder="Caută produs…"
+                                   class="mb-3 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+
+                            <div class="space-y-2">
+                                @foreach ($closing['rows'] as $row)
+                                    @php
+                                        $rid = $row['id'];
+                                        $cPath = 'counts.'.$rid;
+                                        $cUnit = $row['unit'];
+                                        $cSize = $row['package_qty'];
+                                        $needle = mb_strtolower($row['name']);
+                                    @endphp
+                                    <div wire:key="count-{{ $rid }}" x-show="q === '' || @js($needle).includes(q.toLowerCase())" class="rounded-xl border border-border bg-bg/40 px-3 py-2.5">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <span class="block text-sm text-ink">{{ $row['name'] }}</span>
+                                                <span class="block text-xs text-ink-soft">
+                                                    așteptat: {{ $fmt($row['expected']) }} {{ $row['unit'] }}
+                                                    @if ($row['package']) <span class="text-ink-soft/70">· {{ $row['package'] }}</span> @endif
+                                                </span>
+                                            </div>
+                                            <div class="w-32 shrink-0">
+                                                <div class="relative">
+                                                    <input type="number" step="0.001" min="0" inputmode="decimal" wire:model.live.debounce.700ms="counts.{{ $rid }}" placeholder="Numărat"
+                                                           class="w-full rounded-lg border border-border bg-white px-3 py-2.5 pr-10 text-sm text-ink placeholder:text-ink-soft/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                                                    <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">{{ $row['unit'] }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        @error($cPath) <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+
+                                        @if ($row['counted'])
+                                            @php
+                                                $d = $row['diff'];
+                                                $dOk = abs($d) < 0.0005;
+                                                $dCls = $dOk ? 'bg-success-soft text-success' : ($d < 0 ? 'bg-danger/10 text-danger' : 'bg-warning/10 text-warning');
+                                                $dTxt = $dOk ? 'corect' : (($d < 0 ? 'lipsă ' : 'surplus ').$fmt(abs($d)).' '.$row['unit']);
+                                            @endphp
+                                            <div class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $dCls }}">{{ $dTxt }}</span>
+                                                @if (! $dOk)
+                                                    @if ($row['value'] !== null)
+                                                        <span class="text-xs text-ink-soft">≈ {{ $signedMoney($row['value']) }} lei</span>
+                                                    @else
+                                                        <span class="text-xs text-ink-soft/70 italic">cost necunoscut</span>
+                                                    @endif
+                                                @endif
+                                            </div>
+                                        @endif
+
+                                        @if ($row['has_package'] && $row['unit'] !== 'buc')
+                                            <x-qty-helper wire:key="count-qty-{{ $rid }}" :path="$cPath" :unit="$cUnit" :default-size="$cSize" trigger-class="w-32 shrink-0">
+                                                <x-slot:prefix>
+                                                    <div class="flex-1 min-w-0"></div>
+                                                </x-slot:prefix>
+                                            </x-qty-helper>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if ($closing['countedItems'] > 0)
+                                <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft">
+                                    <span>Lipsuri estimate: <span class="font-medium text-danger">{{ $money($closing['shortageValue']) }} lei</span></span>
+                                    <span>Surplus estimat: <span class="font-medium text-warning">{{ $signedMoney($closing['surplusValue']) }} lei</span></span>
+                                </div>
+                                <p class="mt-1 text-[11px] text-ink-soft/70">La finalizare, diferențele se recalculează față de stocul real de atunci.</p>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+            </section>
+
             {{-- ===================== ACȚIUNI ===================== --}}
             <div
                 x-data="{ finalizeOpen: false, confirmed: false }"
@@ -539,6 +737,16 @@
                         <p class="mt-2 text-sm text-ink-soft leading-relaxed">
                             La finalizare se creează mișcările reale de stoc: intrările cresc stocul (și recalculează CMP), vânzările și pierderile îl scad. <span class="font-medium text-ink">Acțiunea nu mai poate fi anulată</span> — raportarea nu va mai putea fi modificată sau ștearsă.
                         </p>
+                        {{-- DXA: adaugat (Bar - numaratoare) — apare doar daca exista produse numarate --}}
+                        @if ($closing['countedItems'] > 0)
+                            <label class="mt-4 flex items-start gap-2.5 cursor-pointer">
+                                <input type="checkbox" wire:model="alignStock" class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                                <span class="text-sm text-ink">
+                                    Aliniez stocul la cantitățile numărate
+                                    <span class="block text-xs text-ink-soft">Lipsurile se postează ca pierderi „Diferență la numărătoare" (intră în cost și profit), surplusul ca ajustare de stoc. Debifat: diferențele doar se salvează în raportare.</span>
+                                </span>
+                            </label>
+                        @endif
                         <label class="mt-4 flex items-start gap-2.5 cursor-pointer">
                             <input type="checkbox" x-model="confirmed" class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                             <span class="text-sm text-ink">Am înțeles — finalizez, fără posibilitate de modificare ulterioară.</span>

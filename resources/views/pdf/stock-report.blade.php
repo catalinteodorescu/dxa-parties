@@ -6,7 +6,7 @@
 <html lang="ro">
 <head>
     <meta charset="utf-8">
-    <title>Raportare {{ $report->date->format('d.m.Y') }}</title>
+    <title>{{ $report->title() }}</title>
     <style>
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; color: #241A16; margin: 0; }
         h1 { font-size: 17px; margin: 0 0 2px; }
@@ -30,6 +30,9 @@
         table.lines .num { text-align: right; white-space: nowrap; }
         .sub { display: block; font-size: 9px; color: #DD6441; }
         .empty { font-style: italic; color: #6B5D57; padding: 6px; }
+        .ok { color: #15803D; }
+        .neg { color: #DC2626; }
+        .pos { color: #CA8A04; }
 
         .footer { margin-top: 20px; font-size: 9px; color: #6B5D57; }
     </style>
@@ -37,7 +40,7 @@
 <body>
 
     <div class="header">
-        <h1>Raportare {{ $report->date->format('d.m.Y') }} <span class="badge">Finalizat</span></h1>
+        <h1>{{ $report->title() }} <span class="badge">Finalizat</span></h1>
         <span class="muted">
             Finalizată {{ $report->finalized_at?->format('d.m.Y H:i') }}
             @if ($report->finalizer) de {{ $report->finalizer->name }} @endif
@@ -70,7 +73,7 @@
                     <td>
                         {{ $m->stockItem->name }}
                         @if ($m->requisitionItem)
-                            <span class="sub">din necesar „{{ $m->requisitionItem->requisition->label }}"</span>
+                            <span class="sub">din necesar {{ $m->requisitionItem->requisition->numberedLabel() }}</span>
                         @endif
                     </td>
                     <td class="num">{{ $fmt($m->qty) }} {{ $m->stockItem->unit }}</td>
@@ -111,6 +114,66 @@
                 </tr>
             @endforeach
         </table>
+    @endif
+
+    {{-- DXA: adaugat (Bar - numaratoare de final de seara) --}}
+    @if ($closing)
+        @php
+            $signedMoney = fn ($n) => ($n > 0 ? '+' : ($n < 0 ? '−' : '')).$money(abs($n));
+            $tone = fn ($n) => abs($n) < 0.005 ? 'ok' : ($n < 0 ? 'neg' : 'pos');
+            $diffRows = $counts->filter(fn ($c) => $c->hasDifference());
+        @endphp
+
+        <h2>Numărătoare de final de seară — {{ $closing->clean ? 'fără diferențe' : 'cu diferențe' }}@if ($report->stock_aligned) (stoc aliniat la numărat)@endif</h2>
+
+        @if ($report->counted_cash !== null || $report->counted_tokens !== null)
+            <table class="lines">
+                <tr><th></th><th class="num">Așteptat</th><th class="num">Numărat</th><th class="num">Diferență</th></tr>
+                @if ($report->counted_cash !== null)
+                    <tr>
+                        <td>Cash
+                            @if ($report->opening_float !== null && (float) $report->opening_float > 0)
+                                <span class="sub" style="color:#6B5D57">cu fond de casă {{ $money($report->opening_float) }} lei</span>
+                            @endif
+                        </td>
+                        <td class="num">{{ $money($report->expected_cash ?? 0) }} lei</td>
+                        <td class="num">{{ $money($report->counted_cash) }} lei</td>
+                        <td class="num {{ $closing->cash_diff !== null ? $tone($closing->cash_diff) : '' }}">{{ $closing->cash_diff !== null ? (abs($closing->cash_diff) < 0.005 ? 'corect' : ($closing->cash_diff < 0 ? 'lipsă ' : 'surplus ').$money(abs($closing->cash_diff)).' lei') : '—' }}</td>
+                    </tr>
+                @endif
+                @if ($report->counted_tokens !== null)
+                    <tr>
+                        <td>Tokeni</td>
+                        <td class="num">{{ $report->expected_tokens ?? 0 }} tk</td>
+                        <td class="num">{{ $report->counted_tokens }} tk</td>
+                        <td class="num {{ $closing->tokens_diff !== null ? $tone($closing->tokens_diff) : '' }}">{{ $closing->tokens_diff !== null ? ($closing->tokens_diff === 0 ? 'corect' : ($closing->tokens_diff < 0 ? 'lipsă ' : 'surplus ').abs($closing->tokens_diff).' tk') : '—' }}</td>
+                    </tr>
+                @endif
+            </table>
+        @endif
+
+        @if ($closing->counted_items > 0)
+            <p class="muted" style="margin: 10px 0 4px;">
+                Inventar: {{ $closing->counted_items }} {{ $closing->counted_items === 1 ? 'produs numărat' : 'produse numărate' }}, {{ $closing->diff_items }} cu diferențe
+                @if ($closing->diff_items > 0)
+                    ({{ $signedMoney($closing->inventory_value) }} lei{{ $closing->inventory_cost_unknown ? ', fără produsele cu cost necunoscut' : '' }})
+                @endif
+            </p>
+            @if ($diffRows->isNotEmpty())
+                <table class="lines">
+                    <tr><th>Produs</th><th class="num">Așteptat</th><th class="num">Numărat</th><th class="num">Diferență</th><th class="num">Valoare</th></tr>
+                    @foreach ($diffRows as $c)
+                        <tr>
+                            <td>{{ $c->stockItem?->name ?? '—' }}</td>
+                            <td class="num">{{ $fmt($c->expected_qty) }} {{ $c->stockItem?->unit }}</td>
+                            <td class="num">{{ $fmt($c->counted_qty) }} {{ $c->stockItem?->unit }}</td>
+                            <td class="num {{ $tone((float) $c->diff_qty) }}">{{ ((float) $c->diff_qty < 0 ? 'lipsă ' : 'surplus ').$fmt(abs((float) $c->diff_qty)) }}</td>
+                            <td class="num">{{ $c->diffValue() !== null ? $signedMoney($c->diffValue()).' lei' : 'cost necunoscut' }}</td>
+                        </tr>
+                    @endforeach
+                </table>
+            @endif
+        @endif
     @endif
 
     <div class="footer">Generat {{ now()->format('d.m.Y H:i') }} &middot; Dance Xplosion Academy — Panou admin</div>
