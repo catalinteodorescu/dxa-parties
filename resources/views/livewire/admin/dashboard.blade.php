@@ -282,7 +282,7 @@
             @endphp
             <div class="lg:col-span-2 rounded-xl border {{ $lastCount && ! $lastCount->clean ? 'border-warning/40' : 'border-border' }} bg-surface p-4">
                 <div class="flex items-center justify-between gap-3 mb-1">
-                    <div class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/80">Ultima numărătoare</div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/80">Ultimul inventar</div>
                     @if ($lastCountedReport)
                         <a href="{{ route('admin.stock-reports.edit', $lastCountedReport) }}" wire:navigate class="text-xs text-primary hover:underline whitespace-nowrap">
                             Nr. {{ $lastCountedReport->number() }}@if ($lastCountedReport->party) · {{ \Illuminate\Support\Str::limit($lastCountedReport->party->name, 18) }}@endif
@@ -320,12 +320,12 @@
 
                     @if ($countTotals30->reports > 0)
                         <p class="mt-2 pt-2 border-t border-border text-[11px] text-ink-soft/70">
-                            30 zile: {{ $countTotals30->reports }} {{ $countTotals30->reports === 1 ? 'numărătoare' : 'numărători' }}, {{ $countTotals30->dirty }} cu diferențe
+                            30 zile: {{ $countTotals30->reports }} {{ $countTotals30->reports === 1 ? 'inventar' : 'inventare' }}, {{ $countTotals30->dirty }} cu diferențe
                             · cash {{ $signedMoney($countTotals30->cash) }} lei · inventar {{ $signedMoney($countTotals30->inventory) }} lei
                         </p>
                     @endif
                 @else
-                    <p class="mt-1 text-sm text-ink-soft">Nicio numărătoare încă. O completezi în Raportare, la final de seară.</p>
+                    <p class="mt-1 text-sm text-ink-soft">Niciun inventar încă. Îl completezi în Raportare, la final de seară.</p>
                 @endif
             </div>
         </div>

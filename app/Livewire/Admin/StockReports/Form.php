@@ -765,7 +765,7 @@ class Form extends Component
 
         if (! $this->report || ! $this->report->exists
             || ($this->report->lines()->count() === 0 && ! $this->report->hasSalesToPost() && ! $this->report->hasClosingCount())) {
-            $this->addError('finalize', 'Adaugă cel puțin o linie, o sesiune de vânzări cu vânzări sau o numărătoare înainte de a finaliza.');
+            $this->addError('finalize', 'Adaugă cel puțin o linie, o sesiune de vânzări cu vânzări sau un inventar înainte de a finaliza.');
 
             return;
         }
@@ -800,11 +800,11 @@ class Form extends Component
                     .($report->stock_aligned ? ', stoc aliniat' : ', stoc nealiniat');
             }
 
-            ActivityLogger::log('stock.report_counted', 'Numărătoare la raportarea nr. '.$report->number().': '.implode('; ', $parts).'.');
+            ActivityLogger::log('stock.report_counted', 'Inventar la raportarea nr. '.$report->number().': '.implode('; ', $parts).'.');
         }
 
         session()->flash('status', ($summary && ! $summary->clean)
-            ? 'Raportarea a fost finalizată. Numărătoarea are diferențe — le vezi în raportare.'
+            ? 'Raportarea a fost finalizată. Inventarul are diferențe — le vezi în raportare.'
             : 'Raportarea a fost finalizată.');
 
         $this->redirectRoute('admin.stock-reports.index', navigate: true);

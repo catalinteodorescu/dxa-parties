@@ -8,7 +8,7 @@
 
 <div class="mt-6">
     <div class="flex flex-wrap items-center gap-2 mb-2">
-        <h3 class="text-sm font-semibold text-ink">Numărătoare de final de seară</h3>
+        <h3 class="text-sm font-semibold text-ink">Inventar</h3>
         @if ($closing->clean)
             <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 bg-success-soft text-success">fără diferențe</span>
         @else

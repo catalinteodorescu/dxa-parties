@@ -169,7 +169,7 @@
                     <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-primary-soft text-primary">Draft</span>
                 </div>
                 <p class="mt-1 text-sm text-ink-soft leading-relaxed">
-                    Completează intrările, vânzările (poți aduce și o sesiune de vânzări din bar), pierderile și, la final de seară, numărătoarea. Se salvează automat pe măsură ce completezi — poți reveni oricând. Stocul nu se modifică până la <span class="font-medium text-ink">Finalizează</span>.
+                    Completează intrările, vânzările (poți aduce și o sesiune de vânzări din bar), pierderile și, la final de seară, inventarul. Se salvează automat pe măsură ce completezi — poți reveni oricând. Stocul nu se modifică până la <span class="font-medium text-ink">Finalizează</span>.
                 </p>
             </div>
 
@@ -538,7 +538,7 @@
                     <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-purple/10 text-purple shrink-0">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><polyline points="9 14 11 16 15 12"/></svg>
                     </span>
-                    <h3 class="text-base font-semibold text-ink">Numărătoare de final de seară</h3>
+                    <h3 class="text-base font-semibold text-ink">Inventar</h3>
                     <span class="text-xs text-ink-soft">opțional — compară ce ai numărat cu ce arată aplicația</span>
                 </div>
 
@@ -743,7 +743,7 @@
                                 <input type="checkbox" wire:model="alignStock" class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
                                 <span class="text-sm text-ink">
                                     Aliniez stocul la cantitățile numărate
-                                    <span class="block text-xs text-ink-soft">Lipsurile se postează ca pierderi „Diferență la numărătoare" (intră în cost și profit), surplusul ca ajustare de stoc. Debifat: diferențele doar se salvează în raportare.</span>
+                                    <span class="block text-xs text-ink-soft">Lipsurile se postează ca pierderi „Diferență la inventar" (intră în cost și profit), surplusul ca ajustare de stoc. Debifat: diferențele doar se salvează în raportare.</span>
                                 </span>
                             </label>
                         @endif

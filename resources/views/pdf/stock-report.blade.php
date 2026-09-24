@@ -124,7 +124,7 @@
             $diffRows = $counts->filter(fn ($c) => $c->hasDifference());
         @endphp
 
-        <h2>Numărătoare de final de seară — {{ $closing->clean ? 'fără diferențe' : 'cu diferențe' }}@if ($report->stock_aligned) (stoc aliniat la numărat)@endif</h2>
+        <h2>Inventar — {{ $closing->clean ? 'fără diferențe' : 'cu diferențe' }}@if ($report->stock_aligned) (stoc aliniat la numărat)@endif</h2>
 
         @if ($report->counted_cash !== null || $report->counted_tokens !== null)
             <table class="lines">

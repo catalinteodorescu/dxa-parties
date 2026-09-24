@@ -407,11 +407,11 @@ class StockReport extends Model
                     reportId: $this->id,
                     saleId: null,
                     adminId: $adminId,
-                    note: 'Diferență la numărătoare',
+                    note: 'Diferență la inventar',
                     allowNegative: true,
                 );
             } else {
-                $item->recordQuantityAdjustment($counted, $adminId, 'Diferență la numărătoare', $this->id);
+                $item->recordQuantityAdjustment($counted, $adminId, 'Diferență la inventar', $this->id);
             }
         }
 

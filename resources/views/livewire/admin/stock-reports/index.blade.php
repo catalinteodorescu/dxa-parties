@@ -96,7 +96,7 @@
                                 {{-- DXA: adaugat (Bar - numaratoare de final de seara) --}}
                                 @php $countSummary = $report->closingSummary(); @endphp
                                 @if ($countSummary)
-                                    <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $countSummary->clean ? 'bg-success-soft text-success' : 'bg-warning/10 text-warning' }}">{{ $countSummary->clean ? 'numărătoare ok' : 'diferențe la numărătoare' }}</span>
+                                    <span class="inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $countSummary->clean ? 'bg-success-soft text-success' : 'bg-warning/10 text-warning' }}">{{ $countSummary->clean ? 'inventar ok' : 'diferențe la inventar' }}</span>
                                 @endif
                             </div>
                         @else
