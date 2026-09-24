@@ -33,6 +33,9 @@ class StockReport extends Model
         'finalized' => 'Finalizat',
     ];
 
+    /** Motivul miscarilor de stoc postate din diferentele de inventar (folosit si de statistici, ca sa le separe de pierderile manuale). */
+    public const INVENTORY_DIFF_NOTE = 'Diferență la inventar';
+
     protected $fillable = [
         'date',
         'status',
@@ -407,11 +410,11 @@ class StockReport extends Model
                     reportId: $this->id,
                     saleId: null,
                     adminId: $adminId,
-                    note: 'Diferență la inventar',
+                    note: self::INVENTORY_DIFF_NOTE,
                     allowNegative: true,
                 );
             } else {
-                $item->recordQuantityAdjustment($counted, $adminId, 'Diferență la inventar', $this->id);
+                $item->recordQuantityAdjustment($counted, $adminId, self::INVENTORY_DIFF_NOTE, $this->id);
             }
         }
 

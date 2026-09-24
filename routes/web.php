@@ -13,6 +13,7 @@ use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex;          // DXA: adaug
 use App\Livewire\Admin\Parties\Form as PartyForm;         // DXA: adaugat (Petreceri)
 use App\Livewire\Admin\Parties\Index as PartiesIndex;     // DXA: adaugat (Petreceri)
 use App\Livewire\Admin\Parties\Show as PartiesShow;       // DXA: adaugat (Petreceri - view single)
+use App\Livewire\Admin\Parties\Stats as PartiesStats;     // DXA: adaugat (Petreceri - statistici)
 use App\Livewire\Admin\ResetPassword;
 use App\Livewire\Admin\Settings\Index as SettingsIndex; // DXA: adaugat (Setari)
 use App\Livewire\Admin\SetupPhone;
@@ -68,6 +69,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/parties/create', PartyForm::class)->name('parties.create');
             Route::get('/parties/{party}/edit', PartyForm::class)->name('parties.edit');
             Route::get('/parties/{party}', PartiesShow::class)->name('parties.show'); // DXA: adaugat
+            Route::get('/parties/{party}/stats', PartiesStats::class)->name('parties.stats'); // DXA: adaugat (statistici)
 
             // DXA: adaugat (Meniu bar - produse)
             Route::get('/menu/items', MenuItemsIndex::class)->name('menu-items.index');
