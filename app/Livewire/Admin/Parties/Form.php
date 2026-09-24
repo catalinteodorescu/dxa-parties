@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Parties;
 use App\Models\Admin;
 use App\Models\Party;
 use App\Services\ActivityLogger;
+use App\Support\Branding;
 use App\Support\HandlesImageUploads;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -174,6 +175,7 @@ class Form extends Component
             $this->end_time = '03:00';
             $this->ticket_types = [$this->emptyTicketType()];
             $this->contacts = [$this->emptyContact()];
+            $this->fillSchoolVenue();
         }
 
         // Ciclu muzical: dacă nu s-a completat încă (petrecere nouă sau una veche,
@@ -508,7 +510,13 @@ class Form extends Component
 
     public function clearImage(): void { $this->reset('image'); $this->removeImage = true; }
 
-    public function fillDxaVenue(): void { $this->location_name = 'Dance Xplosion Academy'; }
+    /** Completeaza locatia cu datele scolii din Setari > Scoala (nume, adresa, link harta). */
+    public function fillSchoolVenue(): void
+    {
+        $this->location_name = Branding::name();
+        $this->location_address = Branding::address();
+        $this->location_url = Branding::mapsUrl();
+    }
 
     private function paymentMethodsList(): array
     {
@@ -719,7 +727,7 @@ class Form extends Component
         $zile = ['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'];
         $lines = [];
 
-        $title = $this->name ?: 'Petrecere Dance Xplosion Academy';
+        $title = $this->name ?: 'Petrecere '.Branding::name();
 
         // Când
         if ($this->kind === 'festival') {

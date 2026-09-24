@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'Dance Xplosion Academy') }} — Autentificare</title>
+    <title>{{ \App\Support\Branding::name() }} — Autentificare</title>
 
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
     <link rel="icon" type="image/png" href="{{ asset('images/favicon-32.png') }}" sizes="32x32">
@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <x-theme-style />
     @livewireStyles
 </head>
 <body class="bg-bg text-ink font-sans antialiased">
@@ -24,7 +25,7 @@
         <div class="hidden lg:flex lg:w-[42%] bg-primary text-white flex-col justify-between p-12 relative overflow-hidden">
 
             <div class="relative z-10">
-                <img src="{{ asset('images/logo-xplosion-white.png') }}" alt="Xplosion Dance Academy" class="h-16 w-auto">
+                <img src="{{ \App\Support\Branding::logoUrl('on_color') }}" alt="{{ \App\Support\Branding::name() }}" class="h-16 w-auto">
             </div>
 
             <div class="relative z-10 max-w-sm">
@@ -49,7 +50,7 @@
             <div class="w-full max-w-sm">
 
                 <div class="lg:hidden mb-8 flex justify-center">
-                    <img src="{{ asset('images/logo-xplosion.png') }}" alt="Xplosion Dance Academy" class="h-14 w-auto">
+                    <img src="{{ \App\Support\Branding::logoUrl('on_light') }}" alt="{{ \App\Support\Branding::name() }}" class="h-14 w-auto">
                 </div>
 
                 {{ $slot }}

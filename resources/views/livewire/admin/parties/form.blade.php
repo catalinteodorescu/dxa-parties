@@ -188,11 +188,11 @@
         <div class="{{ $card }}">
             <div class="flex items-center justify-between gap-3">
                 <h3 class="text-sm font-semibold text-ink">Locație</h3>
-                <button type="button" wire:click="fillDxaVenue" class="text-xs font-medium text-primary hover:underline">Completează cu sala DXA</button>
+                <button type="button" wire:click="fillSchoolVenue" class="text-xs font-medium text-primary hover:underline">Completează cu locația școlii</button>
             </div>
             <div>
                 <label for="location_name" class="{{ $lbl }}">Nume locație</label>
-                <input type="text" id="location_name" wire:model="location_name" placeholder="Dance Xplosion Academy" class="mt-1.5 {{ $in }}">
+                <input type="text" id="location_name" wire:model="location_name" placeholder="{{ \App\Support\Branding::name() }}" class="mt-1.5 {{ $in }}">
                 @error('location_name') <p class="{{ $err }}">{{ $message }}</p> @enderror
             </div>
             <div>

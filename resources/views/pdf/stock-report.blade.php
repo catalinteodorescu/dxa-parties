@@ -28,7 +28,7 @@
         table.lines th { text-align: left; font-size: 9px; text-transform: uppercase; color: #6B5D57; border-bottom: 1px solid #EAE4E1; padding: 4px 6px; }
         table.lines td { border-bottom: 1px solid #F2EEEC; padding: 5px 6px; vertical-align: top; }
         table.lines .num { text-align: right; white-space: nowrap; }
-        .sub { display: block; font-size: 9px; color: #DD6441; }
+        .sub { display: block; font-size: 9px; color: {{ \App\Support\Theme::primary() }}; }
         .empty { font-style: italic; color: #6B5D57; padding: 6px; }
         .ok { color: #15803D; }
         .neg { color: #DC2626; }
@@ -38,6 +38,8 @@
     </style>
 </head>
 <body>
+
+    @include('pdf._brand')
 
     <div class="header">
         <h1>{{ $report->title() }} <span class="badge">Finalizat</span></h1>
@@ -176,7 +178,7 @@
         @endif
     @endif
 
-    <div class="footer">Generat {{ now()->format('d.m.Y H:i') }} &middot; Dance Xplosion Academy — Panou admin</div>
+    <div class="footer">Generat {{ now()->format('d.m.Y H:i') }} &middot; {{ \App\Support\Branding::name() }} — Panou admin</div>
 
 </body>
 </html>

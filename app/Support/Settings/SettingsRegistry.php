@@ -2,6 +2,9 @@
 
 namespace App\Support\Settings;
 
+use App\Support\Branding;
+use App\Support\Theme;
+
 /**
  * Aici se defineste TOT ce exista in pagina de Setari: sectiunile si campurile
  * lor. Pagina (Livewire\Admin\Settings\Index) doar citeste array-ul asta si
@@ -19,7 +22,14 @@ namespace App\Support\Settings;
  * (vezi sectiunea "custom fields" din livewire/admin/settings/index.blade.php).
  *
  * Tipuri de camp suportate acum: 'bool' (toggle), 'number' (input numeric),
- * 'text' (input text), 'select' (necesita 'options' => [valoare => eticheta]).
+ * 'text' (input text), 'select' (necesita 'options' => [valoare => eticheta]),
+ * 'image' (upload de logo; valoarea salvata e calea pe disk-ul public; 'variant' =>
+ * 'on_color'|'on_light' pentru previzualizare si logo implicit, vezi App\Support\Branding),
+ * 'swatches' (alegere dintr-un set de culori prestabilite; 'options' =>
+ * [cheie => ['label' => ..., 'color' => '#hex']] — folosit pentru culoarea temei).
+ *
+ * Optional pe orice camp: 'rules' => [...] (reguli de validare proprii, in loc de cele
+ * implicite), 'wide' => true (input pe toata latimea), 'placeholder'.
  *
  * 'depends_on' (optional) = cheia altui camp bool din aceeasi sectiune; cand
  * acela e dezactivat, campul e afisat dezactivat (disabled), nu ascuns.
@@ -29,6 +39,71 @@ class SettingsRegistry
     public static function sections(): array
     {
         return [
+            [
+                'key' => 'school',
+                'label' => 'Școala',
+                'description' => 'Numele, logo-urile și locația școlii. Numele apare în titlul paginilor, în PDF-uri și pe pagina de autentificare; adresa și linkul de hartă precompletează locația la petreceri noi.',
+                'fields' => [
+                    [
+                        'key' => 'school_name',
+                        'type' => 'text',
+                        'label' => 'Numele școlii',
+                        'default' => Branding::DEFAULT_NAME,
+                        'wide' => true,
+                        'rules' => ['required', 'string', 'max:100'],
+                    ],
+                    [
+                        'key' => 'logo_on_color',
+                        'type' => 'image',
+                        'variant' => 'on_color',
+                        'preview' => 'primary',
+                        'label' => 'Logo pentru fundal colorat',
+                        'help' => 'Varianta deschisă/albă, PNG cu fundal transparent. Apare în antetul panoului (pe culoarea temei) și pe pagina de autentificare.',
+                    ],
+                    [
+                        'key' => 'logo_on_light',
+                        'type' => 'image',
+                        'variant' => 'on_light',
+                        'preview' => 'white',
+                        'label' => 'Logo pentru fundal deschis',
+                        'help' => 'Varianta închisă/colorată, pe fundal alb sau transparent. Apare în PDF-uri și pe pagina de autentificare de pe telefon.',
+                    ],
+                    [
+                        'key' => 'school_address',
+                        'type' => 'text',
+                        'label' => 'Adresă',
+                        'placeholder' => 'Strada, număr, oraș',
+                        'wide' => true,
+                        'rules' => ['nullable', 'string', 'max:255'],
+                    ],
+                    [
+                        'key' => 'school_maps_url',
+                        'type' => 'text',
+                        'label' => 'Link hartă',
+                        'help' => 'Linkul de Google Maps al școlii (Distribuie → Copiază linkul).',
+                        'placeholder' => 'https://maps.google.com/…',
+                        'wide' => true,
+                        'rules' => ['nullable', 'url', 'max:2048'],
+                    ],
+                ],
+            ],
+            [
+                'key' => 'appearance',
+                'label' => 'Aspect',
+                'description' => 'Culoarea principală a aplicației: butoane, linkuri, accente și antetul paginii de autentificare.',
+                'fields' => [
+                    [
+                        'key' => 'theme_color',
+                        'type' => 'swatches',
+                        'label' => 'Culoarea temei',
+                        'help' => 'Se aplică imediat, în tot panoul de administrare. Culorile de stare (ștergere, editare, succes etc.) rămân neschimbate.',
+                        'default' => Theme::DEFAULT,
+                        'options' => collect(Theme::presets())
+                            ->map(fn ($p) => ['label' => $p['label'], 'color' => $p['primary']])
+                            ->all(),
+                    ],
+                ],
+            ],
             [
                 'key' => 'tokens',
                 'label' => 'Tokeni',
@@ -56,10 +131,6 @@ class SettingsRegistry
             ],
 
             // Sectiuni viitoare (nu inca implementate — doar exemplu de forma):
-            // ['key' => 'appearance', 'label' => 'Aspect', 'fields' => [
-            //     ['key' => 'accent_color', 'type' => 'custom', 'label' => 'Culoare accent', ...],
-            //     ['key' => 'logo_path', 'type' => 'custom', 'label' => 'Logo', ...],
-            // ]],
             // ['key' => 'lists', 'label' => 'Liste', 'fields' => [
             //     ['key' => 'items_per_page', 'type' => 'number', 'label' => 'Elemente per pagină', 'default' => 15],
             // ]],

@@ -28,6 +28,8 @@
 </head>
 <body>
 
+    @include('pdf._brand')
+
     <div class="header">
         <h1>
             {{ $requisition->displayName() }}
@@ -73,7 +75,7 @@
         </table>
     @endif
 
-    <div class="footer">Generat {{ now()->format('d.m.Y H:i') }} &middot; Dance Xplosion Academy — Panou admin</div>
+    <div class="footer">Generat {{ now()->format('d.m.Y H:i') }} &middot; {{ \App\Support\Branding::name() }} — Panou admin</div>
 
 </body>
 </html>

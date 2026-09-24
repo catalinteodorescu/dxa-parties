@@ -688,7 +688,7 @@
                                         @endif
 
                                         @if ($row['has_package'] && $row['unit'] !== 'buc')
-                                            <x-qty-helper wire:key="count-qty-{{ $rid }}" :path="$cPath" :unit="$cUnit" :default-size="$cSize" trigger-class="w-32 shrink-0">
+                                            <x-qty-helper wire:key="count-qty-{{ $rid }}" :path="$cPath" :unit="$cUnit" :default-size="$cSize" trigger-class="whitespace-nowrap">
                                                 <x-slot:prefix>
                                                     <div class="flex-1 min-w-0"></div>
                                                 </x-slot:prefix>

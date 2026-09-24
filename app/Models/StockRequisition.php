@@ -175,7 +175,7 @@ class StockRequisition extends Model
             $text .= "\n";
         }
 
-        $text .= "\nDance Xplosion Academy — Panou admin";
+        $text .= "\n".\App\Support\Branding::name()." — Panou admin";
 
         return $text;
     }
