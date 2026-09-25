@@ -29,15 +29,6 @@ class Party extends Model
         'other' => 'Altul',
     ];
 
-    /** Modalitati de plata predefinite (se pot adauga si custom). */
-    public const PAYMENT_METHODS = [
-        'cash' => 'Cash la intrare',
-        'card' => 'Card',
-        'transfer' => 'Transfer bancar',
-        'credite' => 'Credite DXA',
-        'revolut' => 'Revolut',
-    ];
-
     protected $fillable = [
         'name',
         'image_path',
@@ -183,7 +174,19 @@ class Party extends Model
      */
     public function currentPriceForType(array $type): ?float
     {
-        $now = now();
+        return $this->priceForTypeAt($type, now());
+    }
+
+    /**
+     * Pretul unui tip de bilet la momentul $at, cu o toleranta optionala (DXA: Recepție).
+     *
+     * Toleranta ($graceMinutes) se aplica DOAR reducerilor cu limita de ora („gratuit pana la 22:30"): reducerea
+     * ramane valabila inca $graceMinutes minute dupa limita. Reducerile cu limita doar de zi si pretul de baza
+     * nu sunt afectate. Cu $graceMinutes = 0 se comporta exact ca inainte.
+     */
+    public function priceForTypeAt(array $type, ?Carbon $at = null, int $graceMinutes = 0): ?float
+    {
+        $at ??= now();
         $candidates = [];
 
         if (isset($type['price']) && is_numeric($type['price'])) {
@@ -195,7 +198,13 @@ class Party extends Model
                 continue;
             }
 
-            if (! static::discountActive($t['until'] ?? null, $now)) {
+            $until = $t['until'] ?? null;
+            $check = $at;
+            if ($graceMinutes > 0 && $until !== null && mb_strlen(trim((string) $until)) > 10) {
+                $check = $at->copy()->subMinutes($graceMinutes);
+            }
+
+            if (! static::discountActive($until, $check)) {
                 continue;
             }
 
@@ -203,6 +212,53 @@ class Party extends Model
         }
 
         return $candidates ? min($candidates) : null;
+    }
+
+    /**
+     * Tipurile de bilet pentru Recepție: [['name' => ..., 'type' => <tip original>], ...]. O petrecere gratuita are
+     * un singur tip („Intrare gratuită", 0 lei); tipurile fara pret sunt ignorate; formatul vechi (`price`
+     * pe petrecere, fara tipuri) devine un singur bilet.
+     *
+     * @return array<int, array{name: string, type: array}>
+     */
+    public function entryTicketTypes(): array
+    {
+        if ($this->is_free) {
+            return [['name' => 'Intrare gratuită', 'type' => ['name' => 'Intrare gratuită', 'price' => 0]]];
+        }
+
+        $types = $this->ticket_types ?? [];
+        if ($types === [] && $this->price !== null) {
+            $types = [['name' => '', 'price' => $this->price]];
+        }
+
+        $out = [];
+        foreach ($types as $type) {
+            if ($this->priceForTypeAt($type) === null) {
+                continue;
+            }
+            $name = trim((string) ($type['name'] ?? ''));
+            $out[] = ['name' => $name !== '' ? $name : 'Bilet', 'type' => $type];
+        }
+
+        return $out;
+    }
+
+    public function entries(): HasMany
+    {
+        return $this->hasMany(PartyEntry::class);
+    }
+
+    /** DXA: adaugat (Recepție - sesiuni): sesiunile de recepție ale petrecerii (una deschisă cel mult). */
+    public function receptionSessions(): HasMany
+    {
+        return $this->hasMany(ReceptionSession::class);
+    }
+
+    /** DXA: adaugat (Recepție - tokeni): vânzările de tokeni făcute la această petrecere. */
+    public function tokenTransactions(): HasMany
+    {
+        return $this->hasMany(TokenTransaction::class);
     }
 
     /**

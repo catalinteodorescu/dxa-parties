@@ -216,7 +216,7 @@ it('numara vanzarile neraportate ale sesiunilor petrecerii', function () {
     expect(PartyStats::unreported($party))->toBe(['count' => 1, 'total' => 25.0]);
 });
 
-it('alege implicit petrecerea precedenta de acelasi tip, cu raportari finalizate', function () {
+it('PartyStats::defaultCompare gaseste petrecerea precedenta de acelasi tip, dar pagina de Statistici nu o aplica automat', function () {
     $older = statsParty('Veche', '2026-08-01');
     $festival = statsParty('Festival', '2026-08-15', 'festival');
     $noReport = statsParty('Fara raportare', '2026-08-20');
@@ -235,8 +235,8 @@ it('alege implicit petrecerea precedenta de acelasi tip, cu raportari finalizate
 
     $this->actingAs(statsAdmin(), 'admin');
 
-    Livewire::test(Stats::class, ['party' => $target])->assertSet('compare', (string) $older->id);
-    // fara nicio petrecere anterioara comparabila: fara comparatie
+    // Pagina porneste mereu fara comparatie, chiar daca ar exista una implicita de propus.
+    Livewire::test(Stats::class, ['party' => $target])->assertSet('compare', 'none');
     Livewire::test(Stats::class, ['party' => $older])->assertSet('compare', 'none');
 });
 
@@ -261,32 +261,31 @@ it('permite alegerea sau dezactivarea comparatiei si ignora o petrecere fara rap
         ->assertViewHas('compareParty', fn ($p) => $p === null);
 });
 
-it('randeaza pagina cu cifrele si comparatia', function () {
+it('randeaza pagina cu cifrele, fara comparatie implicita, si cu comparatia aleasa explicit', function () {
     [$party] = statsFullParty();
     $older = statsParty('Vineri veche', '2026-08-01');
     $r = statsReport($older, ['Cocktail' => [10, 200, 100]]);
     statsSale($r, '2026-08-01 22:20:00', 50, statsAdmin('Vechi'));
     $this->actingAs(statsAdmin(), 'admin');
 
+    // Fara ?compara= in URL: fara nicio comparatie, desi ar exista o petrecere anterioara comparabila.
     $this->get(route('admin.parties.stats', $party))
         ->assertOk()
         ->assertSee('Statistici · Salsa Night')
         ->assertSee('248,00 lei')
         ->assertSee('62,0%')
-        ->assertSee('Vineri veche')     // comparatia implicita
-        ->assertSee('Aleasă automat')
-        ->assertSee('vs 200,00 lei')    // valoarea comparata, afisata intreaga
+        ->assertDontSee('Comparat cu')
         ->assertSee('Vârf:')
         ->assertSee('00:00–01:00')
         ->assertSee('Înregistrat de')
         ->assertSee('Dan')
         ->assertSee('Cocktail');
 
-    // comparatia aleasa explicit (in URL) nu mai e prezentata ca „automata”
+    // Comparatia aleasa explicit (in URL) arata valorile petrecerii alese.
     $this->get(route('admin.parties.stats', ['party' => $party, 'compara' => $older->id]))
         ->assertOk()
         ->assertSee('Vineri veche')
-        ->assertDontSee('Aleasă automat');
+        ->assertSee('vs 200,00 lei');    // valoarea comparata, afisata intreaga
 
     $this->get(route('admin.parties.stats', ['party' => $party, 'compara' => 'none']))
         ->assertOk()
@@ -313,7 +312,7 @@ it('are buton Statistici in lista de petreceri si in detaliile petrecerii', func
 });
 
 
-it('marcheaza comparatia ca automata doar pana o schimba utilizatorul', function () {
+it('nu compara automat: implicit "fara comparatie", pana alege utilizatorul o petrecere', function () {
     $older = statsParty('Veche', '2026-08-01');
     $other = statsParty('Alta', '2026-08-10');
     $target = statsParty('Tinta', '2026-09-05');
@@ -323,9 +322,61 @@ it('marcheaza comparatia ca automata doar pana o schimba utilizatorul', function
     $this->actingAs(statsAdmin(), 'admin');
 
     Livewire::test(Stats::class, ['party' => $target])
-        ->assertSet('compareIsDefault', true)
-        ->assertSee('Aleasă automat')
+        ->assertSet('compare', 'none')
+        ->assertDontSee('Comparat cu')
         ->set('compare', (string) $other->id)
-        ->assertSet('compareIsDefault', false)
-        ->assertDontSee('Aleasă automat');
+        ->assertSet('compare', (string) $other->id)
+        ->assertSee('Comparat cu');
+});
+
+// DXA: adaugat — separare vizuala a KPI-urilor pe teme (cost/profit, apoi bar/receptie/tokeni/participanti).
+
+it('grupeaza KPI-urile: cost/profit primele, apoi temele bar/receptie/tokeni/participanti, fiecare bloc contiguu', function () {
+    $party = statsParty('Grupare', '2026-09-06');
+    $this->actingAs(statsAdmin(), 'admin');
+    $component = Livewire::test(Stats::class, ['party' => $party])->instance();
+
+    $fake = (object) [
+        'revenue' => 100.0, 'cost' => 50.0, 'profit' => 50.0, 'margin' => 50.0,
+        'tx_count' => 3, 'avg_ticket' => 33.0, 'losses_cost' => 5.0, 'inventory_cost' => 2.0,
+        'bar_identified_pct' => 40.0,
+        'reception_cash_diff' => -10.0,
+        'tokens_sold' => 20, 'tokens_collected' => 15,
+        'entries_count' => 12, 'entries_revenue' => 300.0, 'entries_free_pct' => 10.0,
+        'entries_identified' => 8, 'bar_per_participant' => 8.3,
+    ];
+
+    $groups = array_map(fn ($k) => $k->group, $component->kpis($fake, null));
+
+    expect(array_slice($groups, 0, 4))->toBe(['primary', 'primary', 'primary', 'primary'])
+        ->and(array_values(array_unique(array_slice($groups, 4))))->toBe(['bar', 'reception', 'tokens', 'participants']);
+});
+
+it('omite temele fara date pentru petrecerea curenta (aici doar bar, langa cost/profit)', function () {
+    $party = statsParty('Doar bar', '2026-09-06');
+    $this->actingAs(statsAdmin(), 'admin');
+    $component = Livewire::test(Stats::class, ['party' => $party])->instance();
+
+    $fake = (object) [
+        'revenue' => 100.0, 'cost' => 50.0, 'profit' => 50.0, 'margin' => 50.0,
+        'tx_count' => 3, 'avg_ticket' => 33.0, 'losses_cost' => 5.0, 'inventory_cost' => 2.0,
+        'bar_identified_pct' => null,
+        'reception_cash_diff' => null,
+        'tokens_sold' => null, 'tokens_collected' => null,
+        'entries_count' => null, 'entries_revenue' => null, 'entries_free_pct' => null,
+        'entries_identified' => null, 'bar_per_participant' => null,
+    ];
+
+    $groups = array_values(array_unique(array_map(fn ($k) => $k->group, $component->kpis($fake, null))));
+
+    expect($groups)->toBe(['primary', 'bar']);
+});
+
+it('pagina de statistici arata headerul de tema "Bar" dupa cardurile de cost/profit si inaintea KPI-urilor lui', function () {
+    [$party] = statsFullParty();
+    $this->actingAs(statsAdmin('Viewer'), 'admin');
+
+    $this->get(route('admin.parties.stats', $party))
+        ->assertOk()
+        ->assertSeeInOrder(['Marjă', 'Bar', 'Bonuri (aplicație)']);
 });

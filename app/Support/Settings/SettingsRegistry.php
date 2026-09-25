@@ -105,31 +105,23 @@ class SettingsRegistry
                 ],
             ],
             [
-                'key' => 'tokens',
-                'label' => 'Tokeni',
-                'description' => 'Sistemul de bilete (tokeni) cumpărate de la recepție, folosite ca monedă internă pentru produsele din bar, în locul plății directe în lei.',
+                'key' => 'reception',
+                'label' => 'Recepție',
+                'description' => 'Reguli pentru înregistrarea intrărilor la recepție.',
                 'fields' => [
                     [
-                        'key' => 'uses_tokens',
-                        'type' => 'bool',
-                        'label' => 'Folosește tokeni',
-                        'help' => 'Activ = produsele din bar se prețuiesc în tokeni (prețul în lei se calculează automat din curs). Dezactivat = produsele se prețuiesc direct în lei.',
-                        'default' => true,
-                    ],
-                    [
-                        'key' => 'token_rate',
+                        'key' => 'entry_grace_minutes',
                         'type' => 'number',
-                        'label' => 'Curs token → lei',
-                        'help' => 'Câți lei valorează 1 token.',
-                        'default' => 5,
-                        'step' => 0.5,
+                        'label' => 'Toleranță la ora reducerilor',
+                        'help' => 'Un bilet cu reducere „până la 22:30” se acordă încă atâtea minute după oră (cu 10 minute, până la 22:40). Se aplică doar reducerilor cu oră; recepționerul poate oricând suprascrie prețul, cu motiv.',
+                        'default' => 10,
                         'min' => 0,
-                        'suffix' => 'lei / token',
-                        'depends_on' => 'uses_tokens',
+                        'step' => 1,
+                        'suffix' => 'minute',
+                        'rules' => ['required', 'integer', 'min:0', 'max:60'],
                     ],
                 ],
             ],
-
             // Sectiuni viitoare (nu inca implementate — doar exemplu de forma):
             // ['key' => 'lists', 'label' => 'Liste', 'fields' => [
             //     ['key' => 'items_per_page', 'type' => 'number', 'label' => 'Elemente per pagină', 'default' => 15],
@@ -156,6 +148,26 @@ class SettingsRegistry
 
     public static function field(string $key): ?array
     {
-        return static::allFields()[$key] ?? null;
+        return static::allFields()[$key] ?? static::hiddenFields()[$key] ?? null;
+    }
+
+    /**
+     * Setari care NU apar in formularul generic din Setari (nu sunt in sections()/allFields(), deci nici
+     * nu se salveaza odata cu el), dar se citesc/scriu prin Settings::get()/set(). Sunt gestionate de
+     * panoul „Metode de plata" (Livewire\Admin\Settings\PaymentMethods) prin App\Support\PaymentMethods.
+     *
+     *  - token_mode: 'active' | 'collect_only' | 'off' (vezi PaymentMethods::TOKEN_MODES);
+     *  - uses_tokens: DERIVAT din token_mode (true cat timp tokenii nu sunt 'off'); il citeste restul aplicatiei;
+     *  - token_rate: cati lei valoreaza 1 token;
+     *  - credits_purchasable: participantii pot cumpara credite (doar cat metoda credit e activa).
+     */
+    public static function hiddenFields(): array
+    {
+        return [
+            'token_mode' => ['key' => 'token_mode', 'type' => 'text', 'default' => 'active'],
+            'uses_tokens' => ['key' => 'uses_tokens', 'type' => 'bool', 'default' => true],
+            'token_rate' => ['key' => 'token_rate', 'type' => 'number', 'default' => 5],
+            'credits_purchasable' => ['key' => 'credits_purchasable', 'type' => 'bool', 'default' => false],
+        ];
     }
 }

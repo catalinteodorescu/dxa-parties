@@ -35,6 +35,33 @@
         </x-btn>
     </div>
 
+    {{-- DXA: adaugat — Sesiuni deschise (ca la Vanzari), cu "Adu in raportare" per sesiune --}}
+    <div class="rounded-2xl border border-border bg-surface p-5 mb-5">
+        <h3 class="text-sm font-semibold text-ink">Sesiuni deschise</h3>
+
+        @forelse ($openSessions as $s)
+            <div wire:key="open-session-{{ $s->id }}" class="mt-3 rounded-xl border border-border px-4 py-3 md:flex md:items-center md:justify-between md:gap-4">
+                <div class="min-w-0">
+                    <span class="block font-medium text-ink truncate">{{ $s->party?->name ?? 'Fără petrecere' }}</span>
+                    <span class="block text-xs text-ink-soft">
+                        Sesiune {{ $s->session_number }} · deschisă din {{ $s->created_at->format('d.m.Y H:i') }}
+                        <span class="text-ink-soft/40">·</span> {{ $s->sales_count }} {{ $s->sales_count === 1 ? 'vânzare' : 'vânzări' }}
+                        <span class="text-ink-soft/40">·</span> {{ $money($s->sales_revenue ?? 0) }} lei
+                    </span>
+                </div>
+                <div class="mt-3 md:mt-0 shrink-0">
+                    @if ($openDraft && (int) $openDraft->sales_group_id === $s->id)
+                        <x-btn variant="warning" size="sm" :href="route('admin.stock-reports.edit', $openDraft)" wire:navigate>Continuă raportarea</x-btn>
+                    @else
+                        <x-btn variant="primary" size="sm" outline :href="route('admin.stock-reports.create', array_filter(['party' => $s->party_id, 'sales_group' => $s->id]))" wire:navigate>Adu în raportare</x-btn>
+                    @endif
+                </div>
+            </div>
+        @empty
+            <p class="mt-3 text-sm text-ink-soft">Nicio sesiune deschisă. Se deschide singură la prima vânzare a unei petreceri.</p>
+        @endforelse
+    </div>
+
     {{-- Filtre — sub md ascunse în toggle (auto-deschise dacă active); de la md mereu vizibile. --}}
     <div x-data="{ filtersOpen: {{ $hasFilters ? 'true' : 'false' }} }" class="mb-4">
         <button type="button" @click="filtersOpen = !filtersOpen"

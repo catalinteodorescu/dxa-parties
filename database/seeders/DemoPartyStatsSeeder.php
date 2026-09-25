@@ -10,6 +10,7 @@ use App\Models\SalesGroup;
 use App\Models\StockItem;
 use App\Models\StockReport;
 use App\Services\SaleRecorder;
+use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -283,6 +284,7 @@ class DemoPartyStatsSeeder extends Seeder
                     'app',
                     $this->pickStaff()->id,
                     ['sold_at' => $soldAt],
+                    enforceMethods: false, // demo: foloseste si credite/tokeni chiar daca nu sunt activate in Setari
                 );
 
                 if ($cancelled < $cancel && $i === 0) {
@@ -375,8 +377,8 @@ class DemoPartyStatsSeeder extends Seeder
         $rate = (float) Settings::get('token_rate');
 
         if ($rate <= 0) {
-            Settings::set('token_rate', 5);
-            Settings::set('uses_tokens', true);
+            PaymentMethods::setTokenRate(5);
+            PaymentMethods::setTokenMode(PaymentMethods::TOKEN_ACTIVE); // tine si `uses_tokens` derivat la zi
             $rate = 5.0;
             $this->command?->warn('Cursul token → lei nu era setat: l-am setat la 5 și am activat tokenii.');
         }

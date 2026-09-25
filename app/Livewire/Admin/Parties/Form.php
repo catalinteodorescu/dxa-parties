@@ -7,6 +7,7 @@ use App\Models\Party;
 use App\Services\ActivityLogger;
 use App\Support\Branding;
 use App\Support\HandlesImageUploads;
+use App\Support\PaymentMethods;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -63,9 +64,8 @@ class Form extends Component
     public bool $is_free = false;
     public array $ticket_types = [];   // [['name','price','discounts'=>[['label','price','until'],...]], ...]
 
-    // Plata
-    public array $payment_predefined = [];
-    public array $payment_custom = [];
+    // Plata: cheile metodelor alese (din Setari > Metode de plata; lista goala = toate cele active)
+    public array $payment_methods = [];
 
     // Contact (mai multe persoane)
     public array $contacts = [];       // [['admin_id','name','phone','note'], ...]
@@ -91,10 +91,6 @@ class Form extends Component
     public function mount(?Party $party = null): void
     {
         abort_unless(Auth::guard('admin')->check(), 403);
-
-        foreach (array_keys(Party::PAYMENT_METHODS) as $key) {
-            $this->payment_predefined[$key] = false;
-        }
 
         if ($party && $party->exists) {
             $this->party = $party;
@@ -161,14 +157,7 @@ class Form extends Component
                 $this->contacts = [$this->emptyContact()];
             }
 
-            $known = array_keys(Party::PAYMENT_METHODS);
-            foreach ($party->payment_methods ?? [] as $m) {
-                if (in_array($m, $known, true)) {
-                    $this->payment_predefined[$m] = true;
-                } else {
-                    $this->payment_custom[] = $m;
-                }
-            }
+            $this->payment_methods = array_values(array_filter($party->payment_methods ?? [], 'is_string'));
         } else {
             $this->start_date = now()->next(Carbon::SATURDAY)->format('Y-m-d');
             $this->start_time = '21:00';
@@ -176,6 +165,7 @@ class Form extends Component
             $this->ticket_types = [$this->emptyTicketType()];
             $this->contacts = [$this->emptyContact()];
             $this->fillSchoolVenue();
+            $this->payment_methods = array_keys(PaymentMethods::enabled()); // precompletat cu metodele active din Setari
         }
 
         // Ciclu muzical: dacă nu s-a completat încă (petrecere nouă sau una veche,
@@ -381,7 +371,8 @@ class Form extends Component
             'ticket_types.*.discounts.*.price' => ['nullable', 'numeric', 'min:0'],
             'ticket_types.*.discounts.*.until' => ['nullable', 'date'],
 
-            'payment_custom.*' => ['nullable', 'string', 'max:60'],
+            'payment_methods' => ['array'],
+            'payment_methods.*' => ['string', 'max:60'],
 
             'contacts' => ['array'],
             'contacts.*.admin_id' => ['nullable', 'exists:admins,id'],
@@ -436,8 +427,6 @@ class Form extends Component
     public function addLink(): void { $this->links[] = ['label' => '', 'url' => '']; }
     public function removeLink(int $i): void { unset($this->links[$i]); $this->links = array_values($this->links); }
 
-    public function addPaymentCustom(): void { $this->payment_custom[] = ''; }
-    public function removePaymentCustom(int $i): void { unset($this->payment_custom[$i]); $this->payment_custom = array_values($this->payment_custom); }
 
     // ---- Repeatere: bilete ----------------------------------------------
 
@@ -518,17 +507,33 @@ class Form extends Component
         $this->location_url = Branding::mapsUrl();
     }
 
+    /**
+     * Metodele de plata de salvat, in ordinea din Setari. Se accepta doar metodele active si cele deja
+     * salvate pe petrecere (chiar daca intre timp s-au dezactivat); cheile necunoscute se ignora.
+     *
+     * @return array<int, string>
+     */
     private function paymentMethodsList(): array
     {
-        $known = array_keys(array_filter($this->payment_predefined));
-        $custom = array_values(array_filter(array_map('trim', $this->payment_custom), fn ($v) => $v !== ''));
+        $saved = $this->party?->payment_methods ?? [];
+        $enabled = array_keys(PaymentMethods::enabled());
 
-        return array_values(array_unique(array_merge($known, $custom)));
+        return PaymentMethods::all()
+            ->pluck('key')
+            ->filter(fn ($key) => in_array($key, $this->payment_methods, true) && (in_array($key, $enabled, true) || in_array($key, $saved, true)))
+            ->values()
+            ->all();
     }
 
+    /** Etichetele metodelor active alese (pentru textul generat al anuntului). */
     private function paymentLabels(): array
     {
-        return array_map(fn ($m) => Party::PAYMENT_METHODS[$m] ?? $m, $this->paymentMethodsList());
+        $enabled = PaymentMethods::enabled();
+
+        return array_values(array_map(
+            fn ($k) => $enabled[$k],
+            array_filter($this->paymentMethodsList(), fn ($k) => isset($enabled[$k])),
+        ));
     }
 
     private function fmtPrice($value): string
@@ -962,6 +967,7 @@ class Form extends Component
         return view('livewire.admin.parties.form', [
             'contactOptions' => $contactOptions,
             'contactAdmins' => $contactAdmins,
+            'paymentChoices' => PaymentMethods::partyChoices($this->party?->payment_methods ?? []),
         ]);
     }
 }

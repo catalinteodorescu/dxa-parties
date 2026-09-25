@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin\Sales;
 
 use App\Models\MenuItem;
-use App\Models\Party;
 use App\Models\Sale;
 use App\Models\SalePayment;
 use App\Models\SalesGroup;
@@ -46,11 +45,6 @@ class Index extends Component
     #[Url]
     public string $dateTo = '';
 
-    // Sesiune noua (popup)
-    public bool $newGroupOpen = false;
-
-    public string $newGroupParty = ''; // '' = fara petrecere
-
     public function updated($name): void
     {
         if (in_array($name, ['group', 'state', 'method', 'product', 'dateFrom', 'dateTo'], true)) {
@@ -62,46 +56,6 @@ class Index extends Component
     {
         $this->reset('group', 'state', 'method', 'product', 'dateFrom', 'dateTo');
         $this->resetPage();
-    }
-
-    public function openNewGroup(): void
-    {
-        $this->newGroupParty = '';
-        $this->newGroupOpen = true;
-    }
-
-    public function closeNewGroup(): void
-    {
-        $this->newGroupOpen = false;
-    }
-
-    public function createGroup(): void
-    {
-        $partyId = $this->newGroupParty !== '' ? (int) $this->newGroupParty : null;
-
-        if ($partyId !== null && ! Party::whereKey($partyId)->exists()) {
-            $this->addError('newGroupParty', 'Petrecerea aleasă nu mai există.');
-
-            return;
-        }
-
-        $existing = SalesGroup::open()
-            ->when($partyId === null, fn ($q) => $q->whereNull('party_id'), fn ($q) => $q->where('party_id', $partyId))
-            ->exists();
-
-        $group = SalesGroup::openFor($partyId, Auth::guard('admin')->id());
-
-        if (! $existing) {
-            ActivityLogger::log('sales.group_created', 'A deschis sesiunea de vânzări „'.$group->label().'".');
-        }
-
-        $this->newGroupOpen = false;
-        $this->group = (string) $group->id;
-        $this->resetPage();
-
-        session()->flash('status', $existing
-            ? 'Există deja o sesiune deschisă pentru această petrecere — am selectat-o.'
-            : 'Sesiunea de vânzări a fost deschisă.');
     }
 
     public function cancel(int $id, string $reason): void
@@ -142,8 +96,15 @@ class Index extends Component
 
     public function render()
     {
+        $openSessions = SalesGroup::query()->open()
+            ->with('party')
+            ->withCount(['sales as sales_count' => fn ($q) => $q->completed()])
+            ->withSum(['sales as sales_revenue' => fn ($q) => $q->completed()], 'total')
+            ->orderByDesc('id')
+            ->get();
+
         $sales = $this->filtered()
-            ->with(['group.party', 'lines.menuItem', 'payments', 'creator'])
+            ->with(['group.party', 'lines.menuItem', 'payments', 'creator', 'customer'])
             ->orderByDesc('sold_at')
             ->orderByDesc('id')
             ->paginate(15);
@@ -170,14 +131,11 @@ class Index extends Component
             ->get();
 
         return view('livewire.admin.sales.index', [
+            'openSessions' => $openSessions,
             'sales' => $sales,
             'summary' => $summary,
             'groups' => $groups,
             'menuItems' => MenuItem::orderBy('name')->get(['id', 'name']),
-            'parties' => Party::query()
-                ->where('starts_at', '>=', now()->subDays(3)->startOfDay())
-                ->orderBy('starts_at')
-                ->get(),
         ]);
     }
 }

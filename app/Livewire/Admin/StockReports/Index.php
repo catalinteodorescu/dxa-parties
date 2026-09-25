@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\StockReports;
 
 use App\Models\Party;
+use App\Models\SalesGroup;
 use App\Models\StockReport;
 use App\Services\ActivityLogger;
 use App\Services\StockReportPdfExporter;
@@ -81,6 +82,17 @@ class Index extends Component
 
     public function render()
     {
+        // DXA: adaugat — card "Sesiuni deschise" (ca la Vanzari), cu buton "Adu in raportare"
+        // spre draftul creat (regula globala: un singur draft, vezi StockReport::openDraft()).
+        $openDraft = StockReport::openDraft();
+
+        $openSessions = SalesGroup::query()->open()
+            ->with('party')
+            ->withCount(['sales as sales_count' => fn ($q) => $q->completed()])
+            ->withSum(['sales as sales_revenue' => fn ($q) => $q->completed()], 'total')
+            ->orderByDesc('id')
+            ->get();
+
         $reports = StockReport::query()
             ->with(['party', 'creator', 'counts'])
             ->withCount([
@@ -106,6 +118,8 @@ class Index extends Component
         $parties = Party::whereIn('id', $partyIds)->orderByDesc('starts_at')->get();
 
         return view('livewire.admin.stock-reports.index', [
+            'openSessions' => $openSessions,
+            'openDraft' => $openDraft,
             'reports' => $reports,
             'parties' => $parties,
             'statuses' => StockReport::STATUSES,

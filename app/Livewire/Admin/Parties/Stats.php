@@ -27,10 +27,11 @@ class Stats extends Component
     #[Url(as: 'sortare')]
     public string $sort = 'revenue';
 
-    public bool $showAllProducts = false;
+    /** Clasamentul participanților: bar (cheltuit la bar) | tokens (tokeni cumpărați) | entries (intrări). */
+    #[Url(as: 'top')]
+    public string $topBy = 'bar';
 
-    /** True cat timp comparatia e cea propusa automat (nu aleasa de utilizator); afisat ca explicatie in pagina. */
-    public bool $compareIsDefault = false;
+    public bool $showAllProducts = false;
 
     public function mount(Party $party): void
     {
@@ -38,16 +39,10 @@ class Stats extends Component
 
         $this->party = $party;
 
+        // DXA: adaugat — fara comparatie implicita; utilizatorul alege explicit din selector.
         if ($this->compare === null || $this->compare === '') {
-            $default = PartyStats::defaultCompare($party);
-            $this->compare = (string) ($default?->id ?? 'none');
-            $this->compareIsDefault = $default !== null;
+            $this->compare = 'none';
         }
-    }
-
-    public function updatedCompare(): void
-    {
-        $this->compareIsDefault = false;
     }
 
     public function setSort(string $sort): void
@@ -68,8 +63,11 @@ class Stats extends Component
     /**
      * Randurile de KPI, dirijate de date: cheie, eticheta, tip (money|int|percent), directie
      * ('up' = mai mare e mai bine, 'down' = mai mic e mai bine, null = neutru), valoare per petrecere.
-     * Metricile din modulul Recepție (participanți, venit bar / participant, gratuit vs. plătit)
-     * se adaugă aici, pe baza $stats->attendance, și apar automat si in comparatie.
+     * Grupuri (separare vizuala in pagina, vezi stats.blade.php): 'primary' (cost/profit, mereu
+     * primul, cardurile mari) apoi 'bar', 'reception', 'tokens', 'participants' — fiecare cu
+     * headerul lui, in aceasta ordine. Metricile din modulul Recepție (participanți, venit bar /
+     * participant, gratuit vs. plătit) se adaugă aici, pe baza $stats->attendance, și apar automat
+     * si in comparatie.
      */
     public function kpis(object $a, ?object $b): array
     {
@@ -78,11 +76,36 @@ class Stats extends Component
             ['cost', 'Cost', 'money', null, 'primary'],
             ['profit', 'Profit', 'money', 'up', 'primary'],
             ['margin', 'Marjă', 'percent', 'up', 'primary'],
-            ['tx_count', 'Bonuri (aplicație)', 'int', 'up', 'secondary'],
-            ['avg_ticket', 'Bon mediu', 'money', 'up', 'secondary'],
-            ['losses_cost', 'Pierderi (cost)', 'money', 'down', 'secondary'],
-            ['inventory_cost', 'Lipsuri inventar (cost)', 'money', 'down', 'secondary'],
+            ['tx_count', 'Bonuri (aplicație)', 'int', 'up', 'bar'],
+            ['avg_ticket', 'Bon mediu', 'money', 'up', 'bar'],
+            ['losses_cost', 'Pierderi (cost)', 'money', 'down', 'bar'],
+            ['inventory_cost', 'Lipsuri inventar (cost)', 'money', 'down', 'bar'],
         ];
+
+        // Participanti la bar: ce parte din vanzarile din aplicatie au un participant.
+        if ($a->bar_identified_pct !== null || ($b && $b->bar_identified_pct !== null)) {
+            $rows[] = ['bar_identified_pct', 'Vânzări cu participant', 'percent', 'up', 'bar'];
+        }
+
+        // Casa de recepție: doar când există raportări de recepție finalizate la una din petreceri.
+        if ($a->reception_cash_diff !== null || ($b && $b->reception_cash_diff !== null)) {
+            $rows[] = ['reception_cash_diff', 'Diferență casă recepție', 'money_signed', null, 'reception'];
+        }
+
+        // Tokeni (Receptie): doar cand exista vanzari/incasari de tokeni la una din petreceri.
+        if ($a->tokens_sold !== null || ($b && $b->tokens_sold !== null)) {
+            $rows[] = ['tokens_sold', 'Tokeni vânduți', 'int', null, 'tokens'];
+            $rows[] = ['tokens_collected', 'Tokeni încasați', 'int', null, 'tokens'];
+        }
+
+        // Participanti & intrari (Receptie): doar cand exista intrari la una din cele doua petreceri comparate.
+        if ($a->entries_count !== null || ($b && $b->entries_count !== null)) {
+            $rows[] = ['entries_count', 'Participanți', 'int', 'up', 'participants'];
+            $rows[] = ['entries_revenue', 'Venit intrări', 'money', 'up', 'participants'];
+            $rows[] = ['entries_free_pct', 'Intrări gratuite', 'percent', null, 'participants'];
+            $rows[] = ['entries_identified', 'Identificați', 'int', 'up', 'participants'];
+            $rows[] = ['bar_per_participant', 'Venit bar / participant', 'money', 'up', 'participants'];
+        }
 
         return array_map(fn ($r) => (object) [
             'key' => $r[0],
@@ -121,6 +144,16 @@ class Stats extends Component
 
         $axis = PartyStats::hourAxis($stats->hours, $cmp?->hours ?? []);
 
+        // Clasamentul participantilor (doar cei cu valoare > 0 la metrica aleasa), primii 10.
+        $metric = fn ($r) => match ($this->topBy) {
+            'tokens' => $r->tokens,
+            'entries' => $r->entries,
+            default => $r->bar_spent,
+        };
+        $ranked = $stats->participants
+            ? $stats->participants->rows->filter(fn ($r) => $metric($r) > 0)->sortByDesc($metric)->values()
+            : collect();
+
         return view('livewire.admin.parties.stats', [
             'stats' => $stats,
             'cmp' => $cmp,
@@ -131,6 +164,9 @@ class Stats extends Component
             'productsTotal' => $allProducts->count(),
             'compareProducts' => $compareQty,
             'axis' => $axis,
+            'topRows' => $ranked->take(10),
+            'topTotal' => $ranked->count(),
+            'entryAxis' => PartyStats::hourAxis($stats->attendance?->hours ?? [], $cmp?->attendance?->hours ?? []),
             'unreported' => PartyStats::unreported($this->party),
         ]);
     }

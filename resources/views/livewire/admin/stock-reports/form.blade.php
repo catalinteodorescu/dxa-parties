@@ -5,6 +5,29 @@
     @endphp
 
     {{-- ============================================================= --}}
+    {{-- REGULA GLOBALA "UN SINGUR DRAFT" — nimic creat, doar mesaj     --}}
+    {{-- ============================================================= --}}
+    @if ($blocked ?? null)
+        <div class="max-w-md">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-lg font-semibold text-ink">Raportare nouă</h2>
+                <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-sm text-ink-soft hover:text-ink">← Înapoi la Raportări</a>
+            </div>
+            <div class="rounded-xl border border-warning/40 bg-warning/10 p-5">
+                <h3 class="text-sm font-semibold text-ink">Ai deja un draft deschis</h3>
+                <p class="mt-2 text-sm text-ink-soft">
+                    Raportarea nr. {{ $blocked->number() }}
+                    @if ($blocked->party) ({{ $blocked->party->name }}) @else (fără petrecere) @endif
+                    e încă în lucru. Un singur draft poate fi deschis o dată — continuă-l sau șterge-l din listă înainte de a începe altul.
+                </p>
+                <div class="mt-4">
+                    <x-btn variant="warning" size="sm" :href="route('admin.stock-reports.edit', $blocked)" wire:navigate>Continuă raportarea nr. {{ $blocked->number() }}</x-btn>
+                </div>
+            </div>
+        </div>
+    @else
+
+    {{-- ============================================================= --}}
     {{-- RAPORT FINALIZAT — read-only, din miscarile reale             --}}
     {{-- ============================================================= --}}
     @if ($readOnlyView)
@@ -182,9 +205,11 @@
             <div class="bg-surface border border-border rounded-2xl p-5 space-y-4 mb-5">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label for="date" class="block text-sm font-medium text-ink mb-1.5">Data raportării</label>
-                        <input type="date" id="date" wire:model.live="date"
-                               class="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                        <label class="block text-sm font-medium text-ink mb-1.5">Data raportării</label>
+                        <div class="w-full rounded-lg border border-border bg-bg px-3.5 py-2.5 text-sm text-ink-soft">
+                            {{ \Illuminate\Support\Carbon::parse($date)->format('d.m.Y') }}
+                            <span class="block text-[11px] mt-0.5">fixată la începerea raportării</span>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-ink mb-1.5">Petrecere <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
@@ -383,7 +408,7 @@
                 {{-- Vânzări înregistrate în aplicație / admin (sesiune de vânzări + vânzări simple), agregate pe produs, doar pentru citire --}}
                 @php
                     $groupOptions = ['' => 'Fără sesiune'] + $salesGroups->mapWithKeys(fn ($g) => [$g->id => $g->label()])->all();
-                    $methodLabels = \App\Models\SalePayment::METHODS;
+                    $methodLabels = \App\Support\PaymentMethods::labels();
                 @endphp
                 <div class="mb-4 rounded-xl border border-border bg-bg/50 p-3">
                     <div class="flex items-center gap-2">
@@ -607,12 +632,12 @@
                 @unless ($closing['hasSource'])
                     <p class="mt-2 text-xs text-ink-soft/70">Alege o sesiune de vânzări (sau include vânzările simple) în secțiunea Vânzări ca să se calculeze încasările așteptate.</p>
                 @endunless
-                @if ($closing['creditIn'] > 0 || $closing['benefitIn'] > 0)
+                @if ($closing['otherIn'])
                     <p class="mt-2 text-xs text-ink-soft/70">
-                        Nu se numără fizic:
-                        @if ($closing['creditIn'] > 0) credit (aplicație) {{ $money($closing['creditIn']) }} lei @endif
-                        @if ($closing['creditIn'] > 0 && $closing['benefitIn'] > 0) · @endif
-                        @if ($closing['benefitIn'] > 0) beneficii {{ $money($closing['benefitIn']) }} lei @endif
+                        Nu se numără fizic (nu intră în cash):
+                        @foreach ($closing['otherIn'] as $method => $amount)
+                            {{ $methodLabels[$method] ?? $method }} {{ $money($amount) }} lei @if (! $loop->last) · @endif
+                        @endforeach
                     </p>
                 @endif
                 @if ($closing['manualRevenue'] > 0)
@@ -836,5 +861,6 @@
 
             </div>{{-- /grid --}}
         </div>
+    @endif
     @endif
 </div>

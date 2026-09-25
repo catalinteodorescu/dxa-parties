@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\MenuItem;
 use App\Models\Sale;
 use App\Models\SalesGroup;
+use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
 use Illuminate\Support\Facades\DB;
 
@@ -14,8 +15,12 @@ use Illuminate\Support\Facades\DB;
  * la finalizarea Raportarii, din vanzarile grupului (vezi StockReport::finalize()).
  *
  * Linii: [['menu_item_id' => int, 'qty' => numeric], ...]
- * Plati: [['method' => cash|token|credit|benefit, 'amount' => numeric (lei), 'tokens' => int (doar token)], ...]
+ * Plati: [['method' => <cheie din Setari > Metode de plata | benefit>, 'amount' => numeric (lei), 'tokens' => int (doar token)], ...]
  *        La method = token, amount se calculeaza din tokens x cursul curent (Setari).
+ *        Metoda trebuie sa fie activa in Setari si acceptata de petrecerea sesiunii (PaymentMethods::forBar);
+ *        `benefit` (voucher) e mereu permis. $enforceMethods = false DOAR pentru seedere/importuri istorice.
+ * Client: $participantId (optional) = participantul identificat -> sales.customer_id; $identifiedBy = cum a fost identificat
+ *        (`qr` din PWA, `phone` cand e cautat dupa telefon/nume).
  *
  * Arunca \DomainException cu un mesaj gata de afisat daca datele nu sunt valide.
  */
@@ -31,8 +36,18 @@ class SaleRecorder
         string $source = 'manual',
         ?int $adminId = null,
         array $extra = [],
+        bool $enforceMethods = true,
+        ?int $participantId = null,
+        string $identifiedBy = 'phone',
     ): Sale {
-        return DB::transaction(function () use ($group, $lines, $payments, $source, $adminId, $extra) {
+        // Participantul (client identificat): validat inainte de tranzactie; se salveaza ca customer_id + identified_by.
+        if ($participantId !== null) {
+            ParticipantRegistry::usable($participantId);
+            $extra['customer_id'] = $participantId;
+            $extra['identified_by'] = $identifiedBy;
+        }
+
+        return DB::transaction(function () use ($group, $lines, $payments, $source, $adminId, $extra, $enforceMethods) {
             // Sesiunea (optionala) se reincarca cu lock: nu se poate adauga o vanzare intr-o
             // sesiune care se inchide chiar acum (finalizarea unei Raportari).
             if ($group !== null) {
@@ -79,7 +94,7 @@ class SaleRecorder
             }
 
             $total = round($total, 2);
-            $paymentRows = self::normalizePayments($payments);
+            $paymentRows = self::normalizePayments($payments, $group, $enforceMethods);
             $paid = round(array_sum(array_column($paymentRows, 'amount')), 2);
 
             if (abs($paid - $total) > self::EPSILON) {
@@ -103,22 +118,35 @@ class SaleRecorder
     }
 
     /** @return array<int, array{method:string, amount:float, tokens:?int, token_rate:?float}> */
-    private static function normalizePayments(array $payments): array
+    private static function normalizePayments(array $payments, ?SalesGroup $group, bool $enforceMethods): array
     {
         $rows = [];
+        $labels = PaymentMethods::labels();
+        $allowed = $enforceMethods ? PaymentMethods::forBar($group?->party) : [];
 
         foreach ($payments as $p) {
             $method = (string) ($p['method'] ?? '');
 
-            if (! in_array($method, ['cash', 'token', 'credit', 'benefit'], true)) {
+            if (! array_key_exists($method, $labels)) {
                 throw new \DomainException('Metodă de plată necunoscută.');
             }
 
-            if ($method === 'token') {
-                $tokens = (int) ($p['tokens'] ?? 0);
-                if ($tokens <= 0) {
-                    continue; // rand gol
-                }
+            // Randurile goale se ignora inainte de verificarea metodei (formularul are mereu un rand liber).
+            $isToken = $method === PaymentMethods::TOKEN;
+            $filled = $isToken
+                ? (int) ($p['tokens'] ?? 0) > 0
+                : (is_numeric($p['amount'] ?? null) && round((float) $p['amount'], 2) > 0);
+
+            if (! $filled) {
+                continue;
+            }
+
+            if ($enforceMethods && $method !== PaymentMethods::BENEFIT && ! isset($allowed[$method])) {
+                throw new \DomainException('Metoda „'.$labels[$method].'" nu este acceptată'.($group?->party ? ' la această petrecere' : '').'.');
+            }
+
+            if ($isToken) {
+                $tokens = (int) $p['tokens'];
 
                 $rate = (float) Settings::get('token_rate');
                 if ($rate <= 0) {
@@ -130,10 +158,7 @@ class SaleRecorder
                 continue;
             }
 
-            $amount = is_numeric($p['amount'] ?? null) ? round((float) $p['amount'], 2) : 0.0;
-            if ($amount <= 0) {
-                continue; // rand gol
-            }
+            $amount = round((float) $p['amount'], 2);
 
             $rows[] = ['method' => $method, 'amount' => $amount, 'tokens' => null, 'token_rate' => null];
         }

@@ -2,11 +2,13 @@
 
 namespace App\Livewire\Admin\Sales;
 
+use App\Livewire\Admin\Concerns\PicksParticipants;
 use App\Models\MenuItem;
-use App\Models\SalePayment;
+use App\Models\Party;
 use App\Models\SalesGroup;
 use App\Services\ActivityLogger;
 use App\Services\SaleRecorder;
+use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -23,7 +25,9 @@ use Livewire\Component;
 #[Layout('layouts.admin')]
 class Form extends Component
 {
-    public string $sales_group_id = '';
+    use PicksParticipants;
+
+    public string $party_id = '';
 
     /** [['menu_item_id' => int|null, 'qty' => string], ...] - ramane mereu un rand gol la coada. */
     public array $lines = [];
@@ -35,24 +39,91 @@ class Form extends Component
     {
         abort_unless(Auth::guard('admin')->check(), 403);
 
-        // Implicit: vanzare simpla (fara sesiune). Cand vii dintr-o sesiune (?group=), o preselectam.
-        $requested = request()->integer('group');
-        $group = $requested ? SalesGroup::open()->find($requested) : null;
+        // Cand vii dintr-o sesiune anume (?group=, din filtrul listei), preselectam petrecerea EI —
+        // chiar daca nu mai e "curenta" (ex. o sesiune ramasa deschisa de aseara). Altfel, alegem
+        // automat: o sesiune deja deschisa (a oricarei petreceri) > petrecerea curenta/urmatoare > nimic.
+        $requestedGroup = ($id = request()->integer('group')) ? SalesGroup::open()->find($id) : null;
 
-        $this->sales_group_id = $group ? (string) $group->id : '';
+        $this->party_id = $requestedGroup
+            ? (string) ($requestedGroup->party_id ?? '')
+            : $this->defaultPartyId();
+
         $this->lines = [['menu_item_id' => null, 'qty' => '1']];
         $this->payments = [['method' => 'cash', 'amount' => '', 'tokens' => '']];
     }
 
+    /** O sesiune deja deschisa (a oricarei petreceri, chiar incheiata) > petrecerea curenta/urmatoare > "". */
+    private function defaultPartyId(): string
+    {
+        $openWithParty = SalesGroup::open()->whereNotNull('party_id')->orderByDesc('id')->first();
+        if ($openWithParty) {
+            return (string) $openWithParty->party_id;
+        }
+
+        $current = Party::query()
+            ->where('status', '!=', 'draft')
+            ->where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
+            ->orderBy('starts_at')
+            ->orderBy('id')
+            ->first();
+
+        return $current ? (string) $current->id : '';
+    }
+
+    /** Petrecerile de arătat în selector: cele cu o sesiune deschisă (chiar încheiate) + cele neîncheiate încă. */
+    private function selectableParties()
+    {
+        $openPartyIds = SalesGroup::open()->whereNotNull('party_id')->pluck('party_id');
+
+        return Party::query()
+            ->where(fn ($q) => $q->whereIn('id', $openPartyIds)
+                ->orWhere(fn ($q2) => $q2->where('status', '!=', 'draft')->where('is_active', true)
+                    ->where(fn ($q3) => $q3->whereNull('ends_at')->orWhere('ends_at', '>=', now()))))
+            ->orderBy('starts_at')
+            ->orderBy('id')
+            ->limit(30)
+            ->get();
+    }
+
     public function usesTokens(): bool
     {
-        return (bool) Settings::get('uses_tokens') && (float) Settings::get('token_rate') > 0;
+        return isset($this->methods()[PaymentMethods::TOKEN]) && (float) Settings::get('token_rate') > 0;
+    }
+
+    /**
+     * Metodele de plata alese in formular: cele active in Setari si acceptate de petrecerea sesiunii
+     * alese (fara sesiune = toate cele active), plus Beneficiu (voucher, mereu permis).
+     *
+     * @return array<string, string>
+     */
+    public function methods(): array
+    {
+        $party = $this->party_id !== '' ? Party::find((int) $this->party_id) : null;
+
+        return PaymentMethods::forBar($party) + [PaymentMethods::BENEFIT => PaymentMethods::label(PaymentMethods::BENEFIT)];
     }
 
     public function updated($name): void
     {
+        if ($name === 'party_id') {
+            $this->resetDisallowedPayments();
+        }
+
         if (preg_match('/^lines\.\d+\.menu_item_id$/', $name)) {
             $this->syncLineRows();
+        }
+    }
+
+    /** La schimbarea sesiunii, randurile cu o metoda neacceptata la acea petrecere revin pe cash. */
+    private function resetDisallowedPayments(): void
+    {
+        $allowed = $this->methods();
+
+        foreach ($this->payments as $i => $p) {
+            if (! isset($allowed[$p['method'] ?? ''])) {
+                $this->payments[$i] = ['method' => PaymentMethods::CASH, 'amount' => '', 'tokens' => ''];
+            }
         }
     }
 
@@ -139,15 +210,21 @@ class Form extends Component
 
         $this->resetErrorBag();
 
-        // Sesiunea de vanzari e optionala: '' = vanzare simpla (ex. apa la un curs).
+        // Petrecerea aleasa: "" = vanzare simpla (ex. apa la un curs). Deschide (sau reia) automat
+        // sesiunea ei — nu mai exista un pas separat de "deschide sesiunea".
         $group = null;
-        if ($this->sales_group_id !== '') {
-            $group = SalesGroup::open()->with('party')->find((int) $this->sales_group_id);
-
-            if (! $group) {
-                $this->addError('form', 'Sesiunea aleasă nu mai există sau e închisă.');
+        if ($this->party_id !== '') {
+            if (! Party::whereKey((int) $this->party_id)->exists()) {
+                $this->addError('form', 'Petrecerea aleasă nu mai există.');
 
                 return;
+            }
+
+            $hadOpenSession = SalesGroup::open()->where('party_id', (int) $this->party_id)->exists();
+            $group = SalesGroup::openFor((int) $this->party_id, Auth::guard('admin')->id());
+
+            if (! $hadOpenSession) {
+                ActivityLogger::log('sales.group_created', 'A deschis sesiunea de vânzări „'.$group->label().'".');
             }
         }
 
@@ -158,6 +235,7 @@ class Form extends Component
                 $this->payments,
                 source: 'manual',
                 adminId: Auth::guard('admin')->id(),
+                participantId: $this->participantIds[0] ?? null,   // client identificat (opțional)
             );
         } catch (\DomainException $e) {
             $this->addError('form', $e->getMessage());
@@ -175,13 +253,9 @@ class Form extends Component
     {
         [$total, $paid] = $this->totals();
 
-        $methods = SalePayment::METHODS;
-        if (! $this->usesTokens()) {
-            unset($methods['token']);
-        }
-
         return view('livewire.admin.sales.form', [
-            'groups' => SalesGroup::with('party')->open()->orderByDesc('id')->get(),
+            ...$this->participantPickerData(),
+            'parties' => $this->selectableParties(),
             'menuItems' => MenuItem::query()
                 ->where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', collect($this->lines)->pluck('menu_item_id')->filter()->all()))
                 ->orderBy('name')
@@ -189,7 +263,7 @@ class Form extends Component
             'total' => $total,
             'paid' => $paid,
             'remaining' => round($total - $paid, 2),
-            'methods' => $methods,
+            'methods' => $this->methods(),
             'tokenRate' => (float) Settings::get('token_rate'),
         ]);
     }

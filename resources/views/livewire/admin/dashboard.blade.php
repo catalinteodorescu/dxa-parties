@@ -387,6 +387,26 @@
         @endif
     </section>
 
+    {{-- ============ Secțiune modul: Recepție ============ --}}
+    {{-- DXA: adaugat (Recepție - raportări) — indicatori din $receptionCards (lista se poate extinde din Dashboard.php). --}}
+    <section class="mt-8 pt-8 border-t border-border">
+        <div class="flex items-center gap-2.5 mb-3">
+            <svg class="w-5 h-5 text-ink-soft shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <h3 class="font-semibold text-ink">Recepție</h3>
+            <a href="{{ route('admin.reception.index') }}" wire:navigate class="ml-1 text-sm text-primary hover:underline">Deschide</a>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
+            @foreach ($receptionCards as $card)
+                <x-stat-card :value="$card['value']" :label="$card['label']" :hint="$card['hint']" accent="{{ $card['accent'] }}" :href="$card['href']" wire:key="reception-card-{{ $loop->index }}">
+                    <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></x-slot:icon>
+                </x-stat-card>
+            @endforeach
+        </div>
+    </section>
+
     {{-- ============ Secțiune modul: Administratori (doar superadmin) ============ --}}
     @if ($currentAdmin->isSuperAdmin())
         <section class="mt-8 pt-8 border-t border-border">

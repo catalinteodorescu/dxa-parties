@@ -145,6 +145,18 @@ class StockReport extends Model
         return $this->status === 'finalized';
     }
 
+    /**
+     * DXA: adaugat — regula globala: un singur draft neterminat in tot sistemul, indiferent
+     * de petrecere/sesiune. Elimina posibilitatea a 2 drafturi paralele sa aduca acelasi rest
+     * dintr-un necesar (qty_received creste doar la finalizare, deci 2 drafturi nu se vad
+     * reciproc) sau sa "prinda" aceeasi sesiune de vanzari. Verificata la orice creare de
+     * draft nou (Form::mount()), niciodata la editarea unuia existent.
+     */
+    public static function openDraft(): ?self
+    {
+        return static::query()->where('status', 'draft')->orderBy('id')->first();
+    }
+
     // ------------------------------------------------------------------
 
     /**

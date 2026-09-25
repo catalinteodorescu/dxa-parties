@@ -12,7 +12,7 @@
         $zile = ['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'];
         $guestStyles = \App\Models\Party::GUEST_STYLES;
         $programTypes = \App\Models\Party::PROGRAM_TYPES;
-        $paymentMethods = \App\Models\Party::PAYMENT_METHODS;
+        $paymentLabels = \App\Support\PaymentMethods::describe($p->payment_methods ?? []);
         $card = 'bg-surface border border-border rounded-2xl p-5 sm:p-6';
         $fmt = function ($v) {
             $v = (float) $v;
@@ -259,8 +259,8 @@
         <div class="{{ $card }} mb-4">
             <h3 class="text-sm font-semibold text-ink mb-2">Modalități de plată</h3>
             <div class="flex flex-wrap gap-2">
-                @foreach ($p->payment_methods as $m)
-                    <span class="inline-flex items-center rounded-full bg-bg text-ink-soft text-xs px-2.5 py-1">{{ $paymentMethods[$m] ?? $m }}</span>
+                @foreach ($paymentLabels as $label)
+                    <span class="inline-flex items-center rounded-full bg-bg text-ink-soft text-xs px-2.5 py-1">{{ $label }}</span>
                 @endforeach
             </div>
         </div>

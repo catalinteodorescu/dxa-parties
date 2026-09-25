@@ -19,6 +19,13 @@ use App\Livewire\Admin\Settings\Index as SettingsIndex; // DXA: adaugat (Setari)
 use App\Livewire\Admin\SetupPhone;
 use App\Livewire\Admin\StockReports\Form as StockReportForm;       // DXA: adaugat (Bar - raportari)
 use App\Livewire\Admin\StockReports\Index as StockReportsIndex;    // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\Participants\Index as ParticipantsIndex;      // DXA: adaugat (Participanți)
+use App\Livewire\Admin\Participants\Show as ParticipantsShow;        // DXA: adaugat (Participanți)
+use App\Livewire\Admin\Reception\Form as ReceptionForm;              // DXA: adaugat (Recepție - intrări = adăugare)
+use App\Livewire\Admin\Reception\Index as ReceptionIndex;            // DXA: adaugat (Recepție - intrări = listă)
+use App\Livewire\Admin\Reception\Tokens as ReceptionTokens;          // DXA: adaugat (Recepție - tokeni)
+use App\Livewire\Admin\ReceptionReports\Form as ReceptionReportForm;    // DXA: adaugat (Recepție - raportări)
+use App\Livewire\Admin\ReceptionReports\Index as ReceptionReportsIndex; // DXA: adaugat (Recepție - raportări)
 use App\Livewire\Admin\Sales\Form as SaleForm;                         // DXA: adaugat (Bar - vanzari)
 use App\Livewire\Admin\Sales\Index as SalesIndex;                      // DXA: adaugat (Bar - vanzari)
 use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm;   // DXA: adaugat (Bar - necesare)
@@ -87,6 +94,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/stocks/requisitions/{requisition}/edit', StockRequisitionForm::class)->name('stock-requisitions.edit');
 
             // DXA: adaugat (Bar - vanzari)
+            // DXA: adaugat (Participanți)
+            Route::get('/participants', ParticipantsIndex::class)->name('participants.index');
+            Route::get('/participants/{participant}', ParticipantsShow::class)->name('participants.show');
+
+            // DXA: adaugat (Recepție - intrări): /reception = lista, /reception/create = adăugarea (ca la Vânzări)
+            Route::get('/reception', ReceptionIndex::class)->name('reception.index');
+            Route::get('/reception/create', ReceptionForm::class)->name('reception.create');
+            Route::get('/reception/tokens', ReceptionTokens::class)->name('reception.tokens'); // DXA: adaugat (tokeni)
+            // DXA: adaugat (Recepție - raportări = închiderea casei)
+            Route::get('/reception/reports', ReceptionReportsIndex::class)->name('reception.reports.index');
+            Route::get('/reception/reports/{report}', ReceptionReportForm::class)->name('reception.reports.show');
+
             Route::get('/sales', SalesIndex::class)->name('sales.index');
             Route::get('/sales/create', SaleForm::class)->name('sales.create');
 

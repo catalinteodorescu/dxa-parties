@@ -113,7 +113,7 @@ it('shows the expected vs counted comparison live while the report is a draft', 
         ->set('counted_cash', '108')
         ->set('counted_tokens', '5')
         ->set('counts.'.$vodka->id, '800')
-        ->assertSee('Numărătoare de final de seară')
+        ->assertSee('Inventar')
         ->assertSee('lipsă 2,00 lei')      // cash: 50 fond + 60 încasat = 110 așteptat, 108 numărat
         ->assertSee('lipsă 1 tk')          // tokeni: 6 așteptați, 5 numărați
         ->assertSee('lipsă 50 ml');        // vodcă: 850 așteptat după raportare, 800 numărat
@@ -163,7 +163,7 @@ it('finalizing snapshots expected values and aligns stock: shortage becomes a lo
     // Lipsa e o pierdere cu motiv, deci intră în cost și în profit: 21 (vânzări) + 5 (50 ml x 0.10).
     $loss = $report->losses()->where('stock_item_id', $vodka->id)->first();
     expect($loss)->not->toBeNull()
-        ->and($loss->note)->toBe('Diferență la numărătoare')
+        ->and($loss->note)->toBe('Diferență la inventar')
         ->and($report->totalCost())->toBe(26.0)
         ->and($report->totalProfit())->toBe(64.0); // 90 venit - 26 cost
 
@@ -259,7 +259,7 @@ it('renders the read-only closing summary of a finalized report', function () {
 
     Livewire::test(Form::class, ['report' => StockReport::first()])
         ->assertOk()
-        ->assertSee('Numărătoare de final de seară')
+        ->assertSee('Inventar')
         ->assertSee('cu diferențe')
         ->assertSee('stoc aliniat la numărat')
         ->assertSee('lipsă 2,00 lei');
@@ -303,21 +303,21 @@ it('flags a report with count differences in the reports list', function () {
 
     Livewire::test(Index::class)
         ->assertOk()
-        ->assertSee('diferențe la numărătoare');
+        ->assertSee('diferențe la inventar');
 });
 
 it('shows the last count on the dashboard', function () {
     $admin = closingAdmin();
     $this->actingAs($admin, 'admin');
 
-    Livewire::test(Dashboard::class)->assertSee('Nicio numărătoare încă');
+    Livewire::test(Dashboard::class)->assertSee('Niciun inventar încă');
 
     closingFinalizedWithDifferences($admin, $this);
 
     Livewire::test(Dashboard::class)
         ->assertOk()
-        ->assertSee('Ultima numărătoare')
-        ->assertDontSee('Nicio numărătoare încă')
+        ->assertSee('Ultimul inventar')
+        ->assertDontSee('Niciun inventar încă')
         ->assertSee('−2,00 lei');
 });
 

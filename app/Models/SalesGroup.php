@@ -25,6 +25,7 @@ class SalesGroup extends Model
 
     protected $fillable = [
         'party_id',
+        'session_number',
         'status',
         'closed_at',
         'created_by',
@@ -69,13 +70,33 @@ class SalesGroup extends Model
         return $this->status === 'open';
     }
 
-    /** Numele sesiunii: petrecerea + data (sau „Fără petrecere"). */
+    /**
+     * „(sesiune 2 · 25.09.2026) Latin Party” — numărul e per petrecere (a câta sesiune a EI e asta, nu un
+     * număr global), data e a deschiderii ACESTEI sesiuni (nu a petrecerii — utilă mai ales la un festival
+     * pe mai multe nopți, unde altfel toate sesiunile aceleiași petreceri ar arăta identic). Cand petrecerea
+     * (sau "fara petrecere") a avut o SINGURA sesiune vreodata, paranteza nu mai adauga nimic util — se
+     * arata doar numele.
+     */
     public function title(): string
     {
         $name = $this->party?->name ?? 'Fără petrecere';
-        $date = ($this->party?->starts_at ?? $this->created_at)?->format('d.m.Y');
 
-        return $name.($date ? ' · '.$date : '');
+        if (! $this->hasSiblingSessions()) {
+            return $name;
+        }
+
+        $date = $this->created_at?->format('d.m.Y');
+
+        return '(sesiune '.$this->session_number.($date ? ' · '.$date : '').') '.$name;
+    }
+
+    /** Mai exista vreo alta sesiune (deschisa sau inchisa) a aceleiasi petreceri / "fara petrecere"? */
+    private function hasSiblingSessions(): bool
+    {
+        return static::query()
+            ->when($this->party_id === null, fn ($q) => $q->whereNull('party_id'), fn ($q) => $q->where('party_id', $this->party_id))
+            ->where('id', '!=', $this->id)
+            ->exists();
     }
 
     /** Ca title(), plus „· închis" cand sesiunea nu mai primeste vanzari. */
@@ -95,8 +116,17 @@ class SalesGroup extends Model
             ->orderBy('id')
             ->first();
 
-        return $existing ?? static::create([
+        if ($existing) {
+            return $existing;
+        }
+
+        $lastNumber = static::query()
+            ->when($partyId === null, fn ($q) => $q->whereNull('party_id'), fn ($q) => $q->where('party_id', $partyId))
+            ->max('session_number');
+
+        return static::create([
             'party_id' => $partyId,
+            'session_number' => ($lastNumber ?? 0) + 1,
             'status' => 'open',
             'created_by' => $adminId,
         ]);

@@ -6,6 +6,8 @@ use App\Models\Admin;
 use App\Models\Announcement;
 use App\Models\MenuItem;                    // DXA: adaugat (Meniu bar - produse)
 use App\Models\Party;                       // DXA: adaugat (Petreceri)
+use App\Models\ReceptionReport;            // DXA: adaugat (Recepție - raportări)
+use App\Models\ReceptionSession;           // DXA: adaugat (Recepție - raportări)
 use App\Models\Sale;                       // DXA: adaugat (Bar - vanzari)
 use App\Models\SalesGroup;                 // DXA: adaugat (Bar - vanzari)
 use App\Models\StockItem;                   // DXA: adaugat (Bar - stocuri)
@@ -18,6 +20,12 @@ use Livewire\Component;
 #[Layout('layouts.admin')]
 class Dashboard extends Component
 {
+    /** „+12,50 lei” / „−3,00 lei” / „0,00 lei” (DXA: Recepție - raportări). */
+    private static function signedLei(float $n): string
+    {
+        return ($n > 0 ? '+' : ($n < 0 ? '−' : '')).number_format(abs($n), 2, ',', '.').' lei';
+    }
+
     public function render()
     {
         $now = now();
@@ -145,7 +153,46 @@ class Dashboard extends Component
             'inventory' => round((float) $counts30->sum(fn ($s) => $s->inventory_value), 2),
         ];
 
+        // DXA: adaugat (Recepție - raportări): indicatori dirijați de o listă (se pot adăuga alții). Alerta „sesiune uitată”
+        // se ridică doar pentru petreceri viitoare / în desfășurare; sesiunile petrecerilor încheiate nu fac zgomot.
+        $openSessions = ReceptionSession::query()->open()->with('party')->get();
+        $staleSessions = $openSessions->filter(fn (ReceptionSession $s) => $s->isStale() && in_array($s->party?->state(), ['upcoming', 'live'], true));
+
+        $lastReceptionReport = ReceptionReport::query()->where('status', 'finalized')->with('party')
+            ->orderByDesc('finalized_at')->orderByDesc('id')->first();
+        $receptionReports30 = ReceptionReport::query()->where('status', 'finalized')
+            ->where('finalized_at', '>=', $now->copy()->subDays(30))->get();
+
+        $receptionCards = [
+            [
+                'label' => 'Sesiuni de recepție deschise',
+                'value' => (string) $openSessions->count(),
+                'hint' => $staleSessions->isNotEmpty()
+                    ? $staleSessions->count().' de peste '.ReceptionSession::STALE_HOURS.' ore — de închis'
+                    : ($openSessions->isEmpty() ? 'casa e închisă' : 'se închid din Raportări'),
+                'accent' => $staleSessions->isNotEmpty() ? 'warning' : ($openSessions->isNotEmpty() ? 'info' : 'neutral'),
+                'href' => route('admin.reception.reports.index'),
+            ],
+            [
+                'label' => 'Ultima diferență de casă',
+                'value' => $lastReceptionReport ? static::signedLei((float) $lastReceptionReport->cash_diff) : '—',
+                'hint' => $lastReceptionReport
+                    ? 'Nr. '.$lastReceptionReport->number().($lastReceptionReport->party ? ' · '.\Illuminate\Support\Str::limit($lastReceptionReport->party->name, 18) : '')
+                    : 'nicio raportare de recepție încă',
+                'accent' => ! $lastReceptionReport ? 'neutral' : (abs((float) $lastReceptionReport->cash_diff) < 0.005 ? 'success' : 'warning'),
+                'href' => $lastReceptionReport ? route('admin.reception.reports.show', $lastReceptionReport) : route('admin.reception.reports.index'),
+            ],
+            [
+                'label' => 'Diferențe de casă (30 zile)',
+                'value' => $receptionReports30->isEmpty() ? '—' : static::signedLei((float) $receptionReports30->sum('cash_diff')),
+                'hint' => $receptionReports30->count().' '.($receptionReports30->count() === 1 ? 'raportare' : 'raportări'),
+                'accent' => $receptionReports30->isEmpty() ? 'neutral' : (abs((float) $receptionReports30->sum('cash_diff')) < 0.005 ? 'success' : 'warning'),
+                'href' => route('admin.reception.reports.index', ['status' => 'finalized']),
+            ],
+        ];
+
         return view('livewire.admin.dashboard', [
+            'receptionCards' => $receptionCards, // DXA: adaugat (Recepție - raportări)
             'liveCount' => $liveCount,
             'scheduledCount' => $publishedActive()->whereNotNull('starts_at')->where('starts_at', '>', $now)->count(),
             'draftCount' => Announcement::where('status', 'draft')->count(),

@@ -13,6 +13,11 @@
         @livewire(\App\Livewire\Admin\Settings\MenuCategories::class)
     </div>
 
+    {{-- DXA: adaugat (Setări - metode de plată): panou cu salvare imediată, înlocuiește fosta secțiune „Tokeni” --}}
+    <div class="mb-5">
+        @livewire(\App\Livewire\Admin\Settings\PaymentMethods::class)
+    </div>
+
     <form wire:submit="save" class="space-y-5">
         @foreach ($this->sections() as $section)
             <div class="bg-surface border border-border rounded-2xl p-6">

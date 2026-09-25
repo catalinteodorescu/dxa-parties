@@ -93,6 +93,13 @@ class Index extends Component
     {
         $party = Party::findOrFail($id);
 
+        // DXA: adaugat (Recepție): intrările sunt evidențe de încasări, deci petrecerea nu se șterge cât le are.
+        if ($party->entries()->exists() || $party->tokenTransactions()->exists()) {
+            session()->flash('error', 'Petrecerea are intrări sau vânzări de tokeni înregistrate la Recepție și nu poate fi ștearsă.');
+
+            return;
+        }
+
         if ($party->image_path) {
             Storage::disk('public')->delete($party->image_path);
         }

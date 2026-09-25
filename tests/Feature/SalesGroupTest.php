@@ -44,6 +44,7 @@ it('records a mixed-payment sale with price and cost snapshots, and rejects paym
     $admin = salesAdmin();
     [$cocktail] = salesCocktail($admin);
     $group = SalesGroup::openFor(null, $admin->id);
+    \App\Support\PaymentMethods::setActive('credit', true); // creditele sunt oprite implicit (Setări > Metode de plată)
 
     // 30 lei = 10 cash + 5 credit + 3 tokeni x 5 lei
     $sale = SaleRecorder::record($group, [['menu_item_id' => $cocktail->id, 'qty' => 1]], [

@@ -14,14 +14,13 @@
 >
     @php
         $money = fn ($n) => number_format((float) $n, 2, ',', '.');
-        $methodLabels = \App\Models\SalePayment::METHODS;
+        $methodLabels = \App\Support\PaymentMethods::labels();
         $hasFilters = $group !== 'all' || $state !== 'all' || $method !== 'all' || $product !== 'all' || $dateFrom !== '' || $dateTo !== '';
 
         $groupOptions = ['all' => 'Toate sesiunile', 'none' => 'Fără sesiune (vânzări simple)'] + $groups->mapWithKeys(fn ($g) => [$g->id => $g->label()])->all();
         $productOptions = ['all' => 'Toate produsele'] + $menuItems->mapWithKeys(fn ($m) => [$m->id => $m->name])->all();
         $methodOptions = ['all' => 'Toate plățile'] + $methodLabels;
         $stateOptions = ['all' => 'Toate stările', 'completed' => 'Finalizate', 'cancelled' => 'Anulate'];
-        $partyOptions = ['' => 'Fără petrecere'] + $parties->mapWithKeys(fn ($p) => [$p->id => $p->name.' · '.$p->starts_at?->format('d.m.Y')])->all();
     @endphp
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
@@ -30,15 +29,34 @@
             <p class="mt-1 text-sm text-ink-soft">Toate vânzările din bar. O sesiune de vânzări (ex. o petrecere) e comună tuturor barmanilor; vânzările simple, de exemplu la un curs, nu aparțin niciunei sesiuni. Stocul se actualizează la finalizarea raportării.</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
-            <x-btn variant="neutral" wire:click="openNewGroup">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                Sesiune nouă
-            </x-btn>
             <x-btn variant="primary" :href="route('admin.sales.create', $group !== 'all' ? ['group' => $group] : [])" wire:navigate>
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Vânzare nouă
             </x-btn>
         </div>
+    </div>
+
+    {{-- Sesiuni deschise --}}
+    <div class="rounded-2xl border border-border bg-surface p-5 mb-5">
+        <h3 class="text-sm font-semibold text-ink">Sesiuni deschise</h3>
+
+        @forelse ($openSessions as $s)
+            <div wire:key="open-session-{{ $s->id }}" class="mt-3 rounded-xl border border-border px-4 py-3 md:flex md:items-center md:justify-between md:gap-4">
+                <div class="min-w-0">
+                    <span class="block font-medium text-ink truncate">{{ $s->party?->name ?? 'Fără petrecere' }}</span>
+                    <span class="block text-xs text-ink-soft">
+                        Sesiune {{ $s->session_number }} · deschisă din {{ $s->created_at->format('d.m.Y H:i') }}
+                        <span class="text-ink-soft/40">·</span> {{ $s->sales_count }} {{ $s->sales_count === 1 ? 'vânzare' : 'vânzări' }}
+                        <span class="text-ink-soft/40">·</span> {{ $money($s->sales_revenue ?? 0) }} lei
+                    </span>
+                </div>
+                <div class="mt-3 md:mt-0 shrink-0">
+                    <x-btn variant="neutral" size="sm" outline :href="route('admin.sales.index', ['group' => $s->id])" wire:navigate>Vezi vânzările</x-btn>
+                </div>
+            </div>
+        @empty
+            <p class="mt-3 text-sm text-ink-soft">Nicio sesiune deschisă. Se deschide singură la prima vânzare a unei petreceri (sau alegi „Fără petrecere” pentru o vânzare simplă).</p>
+        @endforelse
     </div>
 
     {{-- Filtre --}}
@@ -106,6 +124,10 @@
                             @endforeach
                         </div>
 
+                        @if ($sale->customer)
+                            <p class="mt-1.5 text-xs text-ink-soft">Client: <span class="font-medium text-ink">{{ $sale->customer->name }}</span></p>
+                        @endif
+
                         @if ($sale->isCancelled())
                             <p class="mt-1.5 text-xs text-danger">Motiv anulare: {{ $sale->cancel_reason }}</p>
                         @endif
@@ -136,26 +158,6 @@
 
     <div class="mt-4">
         {{ $sales->onEachSide(1)->links('pagination.dxa') }}
-    </div>
-
-    {{-- Popup: grup nou --}}
-    <div x-show="$wire.newGroupOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-ink/40" wire:click="closeNewGroup"></div>
-        <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
-            <h3 class="text-base font-semibold text-ink">Sesiune de vânzări nouă</h3>
-            <p class="mt-1 text-sm text-ink-soft">O singură sesiune deschisă per petrecere; dacă există deja, o selectăm.</p>
-
-            <div class="mt-4">
-                <label class="block text-sm font-medium text-ink mb-1.5">Petrecere</label>
-                <x-select wire:model="newGroupParty" :options="$partyOptions" />
-                @error('newGroupParty') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
-            </div>
-
-            <div class="mt-6 flex items-center justify-end gap-3">
-                <button type="button" wire:click="closeNewGroup" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Anulează</button>
-                <x-btn variant="primary" wire:click="createGroup">Deschide sesiunea</x-btn>
-            </div>
-        </div>
     </div>
 
     {{-- Popup: anulare vânzare (motiv obligatoriu) --}}

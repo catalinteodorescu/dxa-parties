@@ -2,20 +2,21 @@
     $card = 'rounded-2xl border border-border bg-surface p-5';
     $money = fn ($n) => number_format((float) $n, 2, ',', '.').' lei';
     $signed = fn ($n, $suffix = '') => ((float) $n > 0 ? '+' : ((float) $n < 0 ? '−' : '')).number_format(abs((float) $n), $suffix === ' lei' ? 2 : 0, ',', '.').$suffix;
-    $fmtVal = function ($type, $v) use ($money) {
+    $fmtVal = function ($type, $v) use ($money, $signed) {
         if ($v === null) {
             return '—';
         }
 
         return match ($type) {
             'money' => $money($v),
+            'money_signed' => $signed($v, ' lei'), // diferență cu semn (ex. casa de recepție)
             'percent' => number_format((float) $v, 1, ',', '.').'%',
             default => number_format((float) $v, 0, ',', '.'),
         };
     };
     // Diferenta fata de petrecerea comparata: [text, clasa] sau null. 'up' = mai mare e mai bine, 'down' = mai mic e mai bine.
     $delta = function ($type, $a, $b, $dir) {
-        if ($a === null || $b === null) {
+        if ($a === null || $b === null || $type === 'money_signed') {
             return null;
         }
         $diff = (float) $a - (float) $b;
@@ -35,7 +36,7 @@
         return ['text' => $text, 'class' => $class];
     };
     $cmpShort = $compareParty ? \Illuminate\Support\Str::limit($compareParty->name, 22).' · '.$compareParty->start_date->format('d.m') : '';
-    $methodColors = ['cash' => 'bg-primary', 'token' => 'bg-info', 'credit' => 'bg-purple', 'benefit' => 'bg-success'];
+    $methodLabels = \App\Support\PaymentMethods::labels();
 @endphp
 
 <div class="max-w-4xl">
@@ -78,15 +79,12 @@
                 Comparat cu
                 <a href="{{ route('admin.parties.stats', $compareParty) }}" wire:navigate class="text-primary hover:underline">{{ $compareParty->name }}</a>
                 ({{ $compareParty->start_date->format('d.m.Y') }}).
-                @if ($compareIsDefault)
-                    Aleasă automat: petrecerea precedentă de același tip — poți alege alta din listă.
-                @endif
                 Sub fiecare valoare, „vs” arată valoarea petrecerii comparate.
             </p>
         @elseif (count($compareOptions) === 1)
             <p class="mt-2 text-xs text-ink-soft">Nu există alte petreceri cu raportări finalizate.</p>
         @else
-            <p class="mt-2 text-xs text-ink-soft">Nicio petrecere anterioară de același tip cu raportări finalizate — alege manual una din listă.</p>
+            <p class="mt-2 text-xs text-ink-soft">Alege o petrecere din listă ca să compari, sau lasă „Fără comparație”.</p>
         @endif
     </div>
 
@@ -96,22 +94,50 @@
             <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-primary hover:underline">Raportare</a>
             legată de petrecere este finalizată.
         </div>
+
+        {{-- DXA: adaugat (Recepție): intrările se văd și fără raportări --}}
+        @if ($stats->attendance)
+            <div class="mt-4">
+                @include('livewire.admin.parties._stats-attendance', ['headline' => true])
+            </div>
+        @endif
+        @if ($stats->reception)
+            @include('livewire.admin.parties._stats-reception')
+        @endif
+        @if ($stats->tokens)
+            @include('livewire.admin.parties._stats-tokens')
+        @endif
+        @if ($stats->participants)
+            @include('livewire.admin.parties._stats-participants')
+        @endif
     @else
-        {{-- KPI --}}
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        {{-- KPI: cost / profit (mereu primele, cardurile mari) --}}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             @foreach ($kpis as $k)
                 @if ($k->group === 'primary')
                     @include('livewire.admin.parties._stats-kpi', ['big' => true])
                 @endif
             @endforeach
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            @foreach ($kpis as $k)
-                @if ($k->group === 'secondary')
-                    @include('livewire.admin.parties._stats-kpi', ['big' => false])
-                @endif
-            @endforeach
-        </div>
+
+        {{-- DXA: adaugat — separare vizuala pe teme (header simplu + grid), in loc de un singur
+             grid nediferentiat; ordinea e fixa, o tema fara date pentru petrecerea curenta nu apare. --}}
+        @php
+            $kpiGroups = ['bar' => 'Bar', 'reception' => 'Recepție', 'tokens' => 'Tokeni', 'participants' => 'Participanți'];
+        @endphp
+        @foreach ($kpiGroups as $groupKey => $groupLabel)
+            @php $groupKpis = collect($kpis)->where('group', $groupKey); @endphp
+            @if ($groupKpis->isNotEmpty())
+                <div class="mb-4">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-ink-soft/70 mb-2">{{ $groupLabel }}</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        @foreach ($groupKpis as $k)
+                            @include('livewire.admin.parties._stats-kpi', ['big' => false])
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        @endforeach
 
         {{-- Curba vânzărilor pe ore de ceas --}}
         <div class="{{ $card }} mb-4">
@@ -197,9 +223,9 @@
                 <p class="mt-2 text-sm text-ink-soft">Fără plăți din aplicație în raportările incluse.</p>
             @else
                 @php
-                    $bar = function ($s) use ($methodColors) {
+                    $bar = function ($s) use ($methodLabels) {
                         $out = [];
-                        foreach (array_keys(\App\Models\SalePayment::METHODS) as $m) {
+                        foreach (array_keys($methodLabels) as $m) {
                             $amt = $s->payments[$m]['amount'] ?? 0;
                             if ($amt > 0 && $s->payments_total > 0) {
                                 $out[] = [$m, $amt / $s->payments_total * 100];
@@ -211,18 +237,18 @@
                 @endphp
                 <div class="mt-3 flex h-3 w-full rounded-full bg-bg">
                     @foreach ($bar($stats) as [$m, $pct])
-                        <div class="{{ $methodColors[$m] ?? 'bg-ink-soft' }} first:rounded-l-full last:rounded-r-full" style="width: {{ $pct }}%" title="{{ \App\Models\SalePayment::METHODS[$m] }} {{ number_format($pct, 1, ',', '.') }}%"></div>
+                        <div class="{{ \App\Support\PaymentMethods::color($m) }} first:rounded-l-full last:rounded-r-full" style="width: {{ $pct }}%" title="{{ $methodLabels[$m] }} {{ number_format($pct, 1, ',', '.') }}%"></div>
                     @endforeach
                 </div>
                 @if ($cmp && $cmp->payments_total > 0)
                     <div class="mt-1.5 flex h-1.5 w-full rounded-full bg-bg opacity-60">
                         @foreach ($bar($cmp) as [$m, $pct])
-                            <div class="{{ $methodColors[$m] ?? 'bg-ink-soft' }} first:rounded-l-full last:rounded-r-full" style="width: {{ $pct }}%"></div>
+                            <div class="{{ \App\Support\PaymentMethods::color($m) }} first:rounded-l-full last:rounded-r-full" style="width: {{ $pct }}%"></div>
                         @endforeach
                     </div>
                 @endif
                 <div class="mt-3 space-y-1.5">
-                    @foreach (\App\Models\SalePayment::METHODS as $m => $label)
+                    @foreach ($methodLabels as $m => $label)
                         @php
                             $amt = $stats->payments[$m]['amount'] ?? 0;
                             $cAmt = $cmp?->payments[$m]['amount'] ?? 0;
@@ -230,7 +256,7 @@
                         @if ($amt > 0 || $cAmt > 0)
                             <div class="flex items-baseline justify-between gap-3 text-sm">
                                 <span class="inline-flex items-center gap-2 text-ink">
-                                    <span class="inline-block w-2.5 h-2.5 rounded-full {{ $methodColors[$m] ?? 'bg-ink-soft' }}"></span>{{ $label }}
+                                    <span class="inline-block w-2.5 h-2.5 rounded-full {{ \App\Support\PaymentMethods::color($m) }}"></span>{{ $label }}
                                     @if ($m === 'token' && ($stats->payments[$m]['tokens'] ?? 0) > 0)
                                         <span class="text-xs text-ink-soft">{{ number_format($stats->payments[$m]['tokens'], 0, ',', '.') }} tk</span>
                                     @endif
@@ -360,7 +386,19 @@
             @endif
         </div>
 
-        {{-- Aici se adaugă secțiunea „Participanți & intrări” când apare modulul Recepție ($stats->attendance). --}}
+        {{-- DXA: adaugat (Recepție) --}}
+        @if ($stats->attendance)
+            @include('livewire.admin.parties._stats-attendance', ['headline' => false])
+        @endif
+        @if ($stats->reception)
+            @include('livewire.admin.parties._stats-reception')
+        @endif
+        @if ($stats->tokens)
+            @include('livewire.admin.parties._stats-tokens')
+        @endif
+        @if ($stats->participants)
+            @include('livewire.admin.parties._stats-participants')
+        @endif
 
         <p class="mb-2 text-[11px] leading-relaxed text-ink-soft">
             Doar raportări finalizate. Venitul, costul și profitul includ și liniile introduse manual în Raportare; bonurile, curba pe ore,

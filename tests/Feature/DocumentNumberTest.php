@@ -12,6 +12,7 @@ use App\Models\StockRequisition;
 use App\Services\StockReportPdfExporter;
 use App\Services\StockRequisitionPdfExporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -32,6 +33,33 @@ it('numbers a report like an invoice: id / date', function () {
 
     expect($report->number())->toBe($report->id.' / 23.09.2026')
         ->and($report->title())->toBe('Raportare nr. '.$report->id.' / 23.09.2026');
+});
+
+it('locks the report date to the day the draft was started — never the session\'s date, never manually edited', function () {
+    $admin = numberAdmin();
+    $this->actingAs($admin, 'admin');
+
+    Carbon::setTestNow('2026-09-20 10:00:00');
+    $c = Livewire::test(Form::class)->set('opening_float', '10'); // orice camp, ca sa creeze draftul
+    $report = StockReport::first();
+    expect($report->date->format('Y-m-d'))->toBe('2026-09-20');
+
+    // O zi mai tarziu, ataseaza o sesiune deschisa cu ZIUA EI diferita: data raportarii NU o urmeaza —
+    // ramane ziua in care a fost pornita raportarea, nu ziua sesiunii.
+    Carbon::setTestNow('2026-09-21 11:00:00');
+    $group = SalesGroup::openFor(null, $admin->id);
+    $c->set('sales_group_id', (string) $group->id);
+    expect($report->fresh()->date->format('Y-m-d'))->toBe('2026-09-20')
+        ->and($c->get('date'))->toBe('2026-09-20');
+
+    // Inca o zi mai tarziu, o scoate: tot 20.09 (data raportarii nu s-a miscat niciodata).
+    Carbon::setTestNow('2026-09-22 09:00:00');
+    $c->set('sales_group_id', '');
+    expect($report->fresh()->date->format('Y-m-d'))->toBe('2026-09-20');
+
+    // Niciun input de dată în UI, la nicio stare.
+    $c->assertDontSee('type="date"', false);
+    Carbon::setTestNow();
 });
 
 it('numbers a requisition like an invoice: id / creation date', function () {
@@ -74,7 +102,7 @@ it('shows the numbers in the reports list and the requisitions list', function (
     Livewire::test(RequisitionsIndex::class)->assertSee('Nr. '.$req->number());
 });
 
-it('tells which draft already holds an open sales session instead of saying there are none', function () {
+it('blocks starting a second draft while one is already open, with an explicit message and a link to it', function () {
     $admin = numberAdmin();
     $this->actingAs($admin, 'admin');
     $group = SalesGroup::openFor(null, $admin->id);
@@ -82,26 +110,14 @@ it('tells which draft already holds an open sales session instead of saying ther
     Livewire::test(Form::class)->set('sales_group_id', (string) $group->id);
     $holder = StockReport::first();
 
-    // O raportare nouă: sesiunea e luată de draftul existent -> mesaj cu numărul lui și link către el.
+    // Regula globala: un singur draft neterminat. O raportare noua nu se mai creeaza —
+    // pagina arata direct mesajul, cu link catre draftul existent.
     Livewire::test(Form::class)
-        ->assertSee('e deja aleasă în')
+        ->assertSee('Ai deja un draft deschis')
         ->assertSee('raportarea nr. '.$holder->number())
-        ->assertSee(route('admin.stock-reports.edit', $holder))
-        ->assertDontSee('Nu există sesiuni de vânzări deschise');
-});
+        ->assertSee(route('admin.stock-reports.edit', $holder));
 
-it('explains which draft holds the session when someone tries to pick it again', function () {
-    $admin = numberAdmin();
-    $this->actingAs($admin, 'admin');
-    $group = SalesGroup::openFor(null, $admin->id);
-
-    Livewire::test(Form::class)->set('sales_group_id', (string) $group->id);
-    $holder = StockReport::first();
-
-    Livewire::test(Form::class)
-        ->set('sales_group_id', (string) $group->id)
-        ->assertSet('sales_group_id', '')
-        ->assertSee('deja folosită în raportarea nr. '.$holder->number());
+    expect(StockReport::count())->toBe(1);
 });
 
 it('still says there are no open sessions when there really are none', function () {

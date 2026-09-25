@@ -15,6 +15,7 @@ use App\Models\StockRequisition;
 use App\Models\StockRequisitionItem;
 use App\Services\ActivityLogger;
 use App\Services\StockReportPdfExporter;
+use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -104,6 +105,11 @@ class Form extends Component
     // Un raport finalizat e doar de vizualizat - toate scrierile sunt blocate.
     public bool $readOnly = false;
 
+    // DXA: adaugat — regula globala "un singur draft": daca exista deja un draft neterminat
+    // (indiferent de petrecere/sesiune), pagina nu creeaza altul; arata mesaj explicit cu link
+    // catre cel existent (vezi render() + form.blade.php, sectiunea $blocked).
+    public ?StockReport $blockedByExisting = null;
+
     public function mount(?StockReport $report = null): void
     {
         abort_unless(Auth::guard('admin')->check(), 403);
@@ -131,7 +137,35 @@ class Form extends Component
                 $this->loadDraftLines();
             }
         } else {
+            // Regula globala: un singur draft neterminat in tot sistemul. Daca exista deja
+            // unul, nu cream altul — ramanem pe pagina cu mesaj explicit (vezi render()).
+            if ($existing = StockReport::openDraft()) {
+                $this->blockedByExisting = $existing;
+
+                return;
+            }
+
             $this->date = now()->format('Y-m-d');
+
+            // Preselectie de la cardul "Sesiuni deschise" (Index -> buton "Adu in
+            // raportare"): petrecere + sesiunea ei de vanzari, daca sunt date in query.
+            $partyParam = request()->integer('party') ?: null;
+            if ($partyParam && Party::whereKey($partyParam)->exists()) {
+                $this->party_id = (string) $partyParam;
+            }
+
+            $groupParam = request()->integer('sales_group') ?: null;
+            if ($groupParam && ($group = SalesGroup::open()->find($groupParam))) {
+                $this->sales_group_id = (string) $group->id;
+                if ($this->party_id === '' && $group->party_id) {
+                    $this->party_id = (string) $group->party_id;
+                }
+            }
+
+            if ($this->party_id !== '' || $this->sales_group_id !== '') {
+                $this->ensureReport();
+                $this->persistHeader();
+            }
 
             // Preincarcare dintr-un necesar (buton "Raporteaza din acest necesar"
             // din lista de Necesare -> create?requisition={id}). Creeaza draftul
@@ -287,7 +321,7 @@ class Form extends Component
             return;
         }
 
-        if (in_array($name, ['date', 'party_id', 'note'], true)) {
+        if (in_array($name, ['party_id', 'note'], true)) {
             $this->persistHeader();
 
             // Petrecere aleasa + niciun grup ales: propunem automat grupul deschis al petrecerii.
@@ -449,14 +483,33 @@ class Form extends Component
         $this->persistHeader();
     }
 
+    /**
+     * Data raportării — needitabilă, mereu recalculată aici, niciodată din input: cu sesiune aleasă, data
+     * DESCHIDERII acelei sesiuni (nu ziua calendaristică în care se face efectiv închiderea, posibil după
+     * miezul nopții); fără sesiune, ziua în care a fost pornită raportarea (data creării ei), fixă, sau azi
+     * cât încă nu există rândul (înainte de primul autosave).
+     */
+    /**
+     * Data raportării — needitabilă, mereu ziua în care a fost pornit draftul (data lui created_at), sau azi
+     * cât încă nu există rândul (înainte de primul autosave). Nu depinde de sesiunea de vânzări aleasă — o
+     * raportare cu sesiune poate fi la fel de bine făcută a doua zi dimineață, iar data trebuie să reflecte
+     * ziua raportării propriu-zise, nu deschiderea sesiunii.
+     */
+    private function resolveDate(): string
+    {
+        return $this->report?->exists ? $this->report->created_at->format('Y-m-d') : now()->format('Y-m-d');
+    }
+
     private function persistHeader(): void
     {
         if (! $this->report || ! $this->report->exists) {
             return;
         }
 
+        $this->date = $this->resolveDate();
+
         $this->report->update([
-            'date' => $this->date !== '' ? $this->date : now()->format('Y-m-d'),
+            'date' => $this->date,
             'party_id' => $this->party_id !== '' ? (int) $this->party_id : null,
             'sales_group_id' => $this->sales_group_id !== '' ? (int) $this->sales_group_id : null,
             'include_loose_sales' => $this->include_loose_sales,
@@ -546,7 +599,7 @@ class Form extends Component
         }
 
         $this->report = StockReport::create([
-            'date' => $this->date !== '' ? $this->date : now()->format('Y-m-d'),
+            'date' => $this->resolveDate(),
             'status' => 'draft',
             'party_id' => $this->party_id !== '' ? (int) $this->party_id : null,
             'sales_group_id' => $this->sales_group_id !== '' ? (int) $this->sales_group_id : null,
@@ -554,6 +607,8 @@ class Form extends Component
             'note' => $this->note !== '' ? $this->note : null,
             'created_by' => Auth::guard('admin')->id(),
         ] + $this->closingFieldValues());
+
+        $this->date = $this->report->date->format('Y-m-d');
 
         return $this->report;
     }
@@ -1015,8 +1070,12 @@ class Form extends Component
             'expectedTokens' => $expectedTokens,
             'countedTokens' => $countedTokens,
             'tokensDiff' => $countedTokens !== null ? $countedTokens - $expectedTokens : null,
-            'creditIn' => (float) ($payments['credit']['amount'] ?? 0),
-            'benefitIn' => (float) ($payments['benefit']['amount'] ?? 0),
+            // Restul incasarilor (card, transfer, credite, custom, beneficii...): nu intra in cash-ul asteptat.
+            'otherIn' => collect($payments)
+                ->except([PaymentMethods::CASH, PaymentMethods::TOKEN])
+                ->map(fn ($p) => (float) $p['amount'])
+                ->filter(fn ($amount) => $amount > 0)
+                ->all(),
             'manualRevenue' => $manualRevenue,
             'rows' => $rows,
             'countedItems' => $counted,
@@ -1049,6 +1108,13 @@ class Form extends Component
 
     public function render()
     {
+        // Regula globala "un singur draft": nu s-a creat nimic, doar aratam mesajul.
+        if ($this->blockedByExisting) {
+            return view('livewire.admin.stock-reports.form', [
+                'blocked' => $this->blockedByExisting,
+            ]);
+        }
+
         // Raport finalizat: continut read-only din miscarile reale (staging e gol).
         if ($this->readOnly && $this->report) {
             return view('livewire.admin.stock-reports.form', [

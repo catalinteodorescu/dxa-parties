@@ -25,9 +25,9 @@
         <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
              class="fixed inset-0 bg-ink/40 z-30 md:hidden"></div>
 
-        {{-- Sidebar: off-canvas pe mobil, fix pe desktop --}}
+        {{-- Sidebar: off-canvas pe mobil, fix pe desktop (sticky, inaltime = viewport, scroll propriu pe nav) --}}
         <aside
-            class="w-64 shrink-0 bg-surface border-r border-border flex flex-col fixed inset-y-0 left-0 z-40 transform transition-transform duration-200 md:relative md:translate-x-0 md:z-auto"
+            class="w-64 shrink-0 bg-surface border-r border-border flex flex-col fixed inset-y-0 left-0 z-40 transform transition-transform duration-200 md:sticky md:top-0 md:h-screen md:self-start md:translate-x-0 md:z-auto"
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
         >
             {{-- Brand text (wordmark), pe verde solid --}}
@@ -226,6 +226,66 @@
                         </a>
                     </div>
                 </div>
+
+                {{-- Grup collapsabil: Recepție --}}
+                {{-- DXA: adaugat (Recepție) — Intrări + Tokeni + Raportări (închiderea casei). --}}
+                <div x-data="{ receptionOpen: true }" class="pt-4">
+                    <button type="button" @click="receptionOpen = ! receptionOpen"
+                            class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
+                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+                        </svg>
+                        <span>Recepție</span>
+                        <svg class="w-3.5 h-3.5 ml-auto shrink-0 transition-transform" :class="receptionOpen ? 'rotate-180' : ''"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+
+                    <div x-show="receptionOpen"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 -translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
+
+                        <a href="{{ route('admin.reception.index') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.reception.index') || request()->routeIs('admin.reception.create') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                            Intrări
+                        </a>
+
+                        <a href="{{ route('admin.reception.tokens') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.reception.tokens') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"/><path d="M9 9h6M12 9v7"/>
+                            </svg>
+                            Tokeni
+                        </a>
+
+                        <a href="{{ route('admin.reception.reports.index') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.reception.reports.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/>
+                            </svg>
+                            Raportări
+                        </a>
+                    </div>
+                </div>
+
+                {{-- DXA: adaugat (Participanți) --}}
+                <a href="{{ route('admin.participants.index') }}" wire:navigate @click="sidebarOpen = false"
+                   class="mt-4 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                          {{ request()->routeIs('admin.participants.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Participanți
+                </a>
 
                 {{-- Grupurile urmatoare (Credite utilizatori, Card fidelitate)
                      se adaugă aici, fiecare in grupul potrivit, pe măsură ce le construim. --}}

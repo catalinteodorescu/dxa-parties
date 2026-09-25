@@ -1,7 +1,7 @@
 <div class="max-w-3xl">
     @php
         $money = fn ($n) => number_format((float) $n, 2, ',', '.');
-        $groupOptions = ['' => 'Fără sesiune (vânzare simplă)'] + $groups->mapWithKeys(fn ($g) => [$g->id => $g->label()])->all();
+        $partyOptions = ['' => 'Fără petrecere (vânzare simplă)'] + $parties->mapWithKeys(fn ($p) => [$p->id => $p->name.' · '.$p->starts_at?->format('d.m.Y')])->all();
         $menuItemOptions = $menuItems->mapWithKeys(fn ($m) => [$m->id => $m->name.' · '.number_format((float) $m->price, 2, ',', '.').' lei'])->all();
         $inputClass = 'w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
     @endphp
@@ -13,11 +13,16 @@
 
     @error('form') <x-alert type="error" class="mb-4">{{ $message }}</x-alert> @enderror
 
-    {{-- Grup --}}
+    {{-- Petrecere --}}
     <section class="mb-5 rounded-2xl border border-border bg-surface p-4">
-        <label class="block text-sm font-medium text-ink mb-1.5">Sesiune de vânzări</label>
-        <x-select wire:model="sales_group_id" placeholder="Fără sesiune (vânzare simplă)" :options="$groupOptions" />
-        <p class="mt-1.5 text-xs text-ink-soft">Alege sesiunea petrecerii, dacă vânzarea ține de una; altfel las-o „Fără sesiune". Sesiuni noi se deschid din pagina <a href="{{ route('admin.sales.index') }}" wire:navigate class="text-primary hover:underline">Vânzări</a>.</p>
+        <label class="block text-sm font-medium text-ink mb-1.5">Petrecere</label>
+        <x-select wire:model="party_id" live placeholder="Fără petrecere (vânzare simplă)" :options="$partyOptions" />
+        <p class="mt-1.5 text-xs text-ink-soft">Sesiunea de vânzări se deschide (sau se reia, dacă există deja una) automat, la salvare. Alege „Fără petrecere” pentru o vânzare simplă (ex. apă la un curs).</p>
+    </section>
+
+    {{-- Client (participant) - opțional: cine cumpără; pentru „cine a cheltuit cel mai mult” --}}
+    <section class="mb-5 rounded-2xl border border-border bg-surface p-4">
+        @include('livewire.admin._participant-picker', ['single' => true, 'label' => 'Client', 'hint' => 'participant, opțional'])
     </section>
 
     {{-- Produse --}}

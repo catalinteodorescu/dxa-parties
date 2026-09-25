@@ -6,7 +6,6 @@
         $lbl = 'block text-sm font-medium text-ink';
         $card = 'bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-5';
         $err = 'error-msg mt-1.5 text-sm text-danger';
-        $paymentMethods = \App\Models\Party::PAYMENT_METHODS;
         $guestStyles = \App\Models\Party::GUEST_STYLES;
         $programTypes = \App\Models\Party::PROGRAM_TYPES;
         $guestNames = collect($guests)->pluck('name')->filter()->values();
@@ -82,12 +81,12 @@
                     </div>
                     <div>
                         <label for="start_time" class="{{ $lbl }}">Ora început</label>
-                        <input type="time" step="900" id="start_time" wire:model="start_time" class="mt-1.5 {{ $in }}">
+                        <input type="time" step="300" id="start_time" wire:model="start_time" class="mt-1.5 {{ $in }}">
                         @error('start_time') <p class="{{ $err }}">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label for="end_time" class="{{ $lbl }}">Ora sfârșit</label>
-                        <input type="time" step="900" id="end_time" wire:model="end_time" class="mt-1.5 {{ $in }}">
+                        <input type="time" step="300" id="end_time" wire:model="end_time" class="mt-1.5 {{ $in }}">
                         @error('end_time') <p class="{{ $err }}">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -144,8 +143,8 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <input type="time" step="900" wire:model="days.{{ $di }}.start_time" class="{{ $in }}" title="Ora început">
-                            <input type="time" step="900" wire:model="days.{{ $di }}.end_time" class="{{ $in }}" title="Ora sfârșit">
+                            <input type="time" step="300" wire:model="days.{{ $di }}.start_time" class="{{ $in }}" title="Ora început">
+                            <input type="time" step="300" wire:model="days.{{ $di }}.end_time" class="{{ $in }}" title="Ora sfârșit">
                             <input type="text" wire:model="days.{{ $di }}.dresscode" placeholder="Dresscode" class="{{ $in }}">
                         </div>
                         @error('days.'.$di.'.date') <p class="{{ $err }}">{{ $message }}</p> @enderror
@@ -155,8 +154,8 @@
                             @foreach ($day['program'] ?? [] as $pi => $item)
                                 <div wire:key="day-{{ $day['date'] ?? $di }}-item-{{ $pi }}" class="rounded-lg border border-border bg-bg/40 p-2.5 space-y-2">
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                        <input type="time" step="900" wire:model="days.{{ $di }}.program.{{ $pi }}.start" class="{{ $in }}" title="De la">
-                                        <input type="time" step="900" wire:model="days.{{ $di }}.program.{{ $pi }}.end" class="{{ $in }}" title="Până la">
+                                        <input type="time" step="300" wire:model="days.{{ $di }}.program.{{ $pi }}.start" class="{{ $in }}" title="De la">
+                                        <input type="time" step="300" wire:model="days.{{ $di }}.program.{{ $pi }}.end" class="{{ $in }}" title="Până la">
                                         <x-dropdown-select path="days.{{ $di }}.program.{{ $pi }}.type" :options="$programTypes" :selected="$item['type'] ?? ''" placeholder="Tip" />
                                     </div>
                                     <input type="text" wire:model="days.{{ $di }}.program.{{ $pi }}.title" placeholder="Titlu (ex. Workshop Bachata Sensual)" class="{{ $in }}">
@@ -348,31 +347,26 @@
 
         {{-- ============ Modalități plată ============ --}}
         <div class="{{ $card }}">
-            <h3 class="text-sm font-semibold text-ink">Modalități de plată</h3>
+            <div>
+                <h3 class="text-sm font-semibold text-ink">Modalități de plată</h3>
+                <p class="mt-1 text-xs text-ink-soft leading-relaxed">
+                    Alege ce se acceptă la această petrecere. Lista vine din
+                    <a href="{{ route('admin.settings.index') }}" wire:navigate class="text-primary hover:underline">Setări</a>,
+                    unde se adaugă și metodele noi. Tokenii se folosesc doar la bar; creditele plătesc și intrarea, și barul; la bar, cash se acceptă mereu.
+                </p>
+                @if (empty($payment_methods))
+                    <p class="mt-1 text-xs text-warning">Nicio metodă bifată — se acceptă toate metodele active din Setări.</p>
+                @endif
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                @foreach ($paymentMethods as $key => $label)
-                    <label class="flex items-center gap-2.5 text-sm text-ink">
-                        <input type="checkbox" wire:model="payment_predefined.{{ $key }}" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
-                        {{ $label }}
+                @foreach ($paymentChoices as $key => $choice)
+                    <label wire:key="pay-{{ $key }}" class="flex items-center gap-2.5 text-sm {{ $choice['enabled'] ? 'text-ink' : 'text-ink-soft' }}">
+                        <input type="checkbox" value="{{ $key }}" wire:model="payment_methods" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                        {{ $choice['label'] }}
+                        @unless ($choice['enabled']) <span class="text-xs text-warning">(dezactivată)</span> @endunless
+                        @if ($key === 'token') <span class="text-xs text-ink-soft/70">doar la bar</span> @endif
                     </label>
                 @endforeach
-            </div>
-            <div>
-                <span class="text-xs font-medium text-ink-soft">Alte modalități</span>
-                <div class="mt-2 space-y-2">
-                    @foreach ($payment_custom as $i => $pc)
-                        <div wire:key="pay-{{ $i }}" class="flex items-center gap-2">
-                            <input type="text" wire:model="payment_custom.{{ $i }}" placeholder="ex. Revolut" class="{{ $in }}">
-                            <button type="button" wire:click="removePaymentCustom({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            </button>
-                        </div>
-                    @endforeach
-                </div>
-                <button type="button" wire:click="addPaymentCustom" class="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Adaugă modalitate
-                </button>
             </div>
         </div>
 

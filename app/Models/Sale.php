@@ -67,6 +67,12 @@ class Sale extends Model
         return $this->hasMany(SaleLine::class);
     }
 
+    /** Participantul căruia i s-a făcut vânzarea (null = client neidentificat). FK doar în cod, nu în DB. */
+    public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Participant::class, 'customer_id');
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(SalePayment::class);

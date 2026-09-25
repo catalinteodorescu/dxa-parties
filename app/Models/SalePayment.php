@@ -7,13 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalePayment extends Model
 {
-    public const METHODS = [
-        'cash' => 'Cash',
-        'token' => 'Tokeni',
-        'credit' => 'Credit (app)',
-        'benefit' => 'Beneficiu',
-    ];
-
     protected $fillable = [
         'sale_id',
         'method',
