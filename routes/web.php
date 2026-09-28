@@ -3,6 +3,7 @@
 use App\Livewire\Admin\Account\Edit as AccountEdit;
 use App\Livewire\Admin\Announcements\Form as AnnouncementForm;
 use App\Livewire\Admin\Announcements\Index as AnnouncementsIndex;
+use App\Livewire\Admin\Bar\Stats as BarStatsPage; // DXA: adaugat (Bar - statistici agregate)
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\ForgotPassword;
 use App\Livewire\Admin\Invite\Complete as InviteComplete;
@@ -16,10 +17,12 @@ use App\Livewire\Admin\Participants\Show as ParticipantsShow;     // DXA: adauga
 use App\Livewire\Admin\Participants\Stats as ParticipantsStats;   // DXA: adaugat (Participanți - statistici)
 use App\Livewire\Admin\Parties\Form as PartyForm;       // DXA: adaugat (Petreceri - view single)
 use App\Livewire\Admin\Parties\Index as PartiesIndex;     // DXA: adaugat (Petreceri - statistici)
+use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage; // DXA: adaugat (Petreceri - statistici agregate)
 use App\Livewire\Admin\Parties\Show as PartiesShow;
 use App\Livewire\Admin\Parties\Stats as PartiesStats; // DXA: adaugat (Setari)
 use App\Livewire\Admin\Reception\Form as ReceptionForm;
 use App\Livewire\Admin\Reception\Index as ReceptionIndex;       // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\Reception\Stats as ReceptionStatsPage;  // DXA: adaugat (Receptie - statistici agregate)
 use App\Livewire\Admin\Reception\Tokens as ReceptionTokens;    // DXA: adaugat (Bar - raportari)
 use App\Livewire\Admin\ReceptionReports\Form as ReceptionReportForm;      // DXA: adaugat (Participanți)
 use App\Livewire\Admin\ReceptionReports\Index as ReceptionReportsIndex;        // DXA: adaugat (Participanți)
@@ -76,6 +79,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // DXA: adaugat (Petreceri)
             Route::get('/parties', PartiesIndex::class)->name('parties.index');
             Route::get('/parties/create', PartyForm::class)->name('parties.create');
+            // 'overview' inainte de '{party}' (ca la /participants/stats), altfel ruta cu wildcard il inghite.
+            Route::get('/parties/overview', PartiesOverviewPage::class)->name('parties.overview'); // DXA: adaugat (statistici agregate)
             Route::get('/parties/{party}/edit', PartyForm::class)->name('parties.edit');
             Route::get('/parties/{party}', PartiesShow::class)->name('parties.show'); // DXA: adaugat
             Route::get('/parties/{party}/stats', PartiesStats::class)->name('parties.stats'); // DXA: adaugat (statistici)
@@ -120,6 +125,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/stocks/reports', StockReportsIndex::class)->name('stock-reports.index');
             Route::get('/stocks/reports/create', StockReportForm::class)->name('stock-reports.create');
             Route::get('/stocks/reports/{report}/edit', StockReportForm::class)->name('stock-reports.edit');
+            Route::get('/bar/stats', BarStatsPage::class)->name('bar.stats'); // DXA: adaugat (Bar - statistici agregate)
+
+            // DXA: adaugat (Receptie - statistici agregate)
+            Route::get('/reception/stats', ReceptionStatsPage::class)->name('reception.stats');
 
             // DXA: adaugat (Setari)
             Route::get('/settings', SettingsIndex::class)->name('settings.index');

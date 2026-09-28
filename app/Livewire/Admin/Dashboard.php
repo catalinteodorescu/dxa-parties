@@ -16,6 +16,7 @@ use App\Models\StockItem;                   // DXA: adaugat (Bar - stocuri)
 use App\Models\StockReport;                 // DXA: adaugat (Bar - raportari)
 use App\Models\StockRequisition;            // DXA: adaugat (Bar - necesare)
 use App\Services\LoyaltyLedger;             // DXA: adaugat (Card de fidelitate)
+use App\Services\PartiesOverview;           // DXA: adaugat (Petreceri - dashboard, statistici agregate)
 use App\Services\TokenLedger;               // DXA: adaugat (Participanți - dashboard, tokeni)
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -61,6 +62,11 @@ class Dashboard extends Component
             ->whereNotNull('starts_at')
             ->where('starts_at', '>', $now)
             ->count();
+
+        // DXA: adaugat (Petreceri - dashboard, statistici agregate). Reutilizeaza PartiesOverview
+        // (deja construit pentru pagina Petreceri > Statistici) — zero calcul nou aici.
+        $partiesTotals = PartiesOverview::totals();
+        $partiesSummary = PartiesOverview::summary();
 
         // DXA: adaugat (Bar - necesare + raportari)
         $requisitionsOpenCount = StockRequisition::where('status', 'open')->count();
@@ -219,6 +225,8 @@ class Dashboard extends Component
             'nextParty' => $partiesUpcomingList->first(),
             'partyUpcomingCount' => $partyUpcomingCount,
             'partyDraftCount' => Party::where('status', 'draft')->count(),
+            'partiesTotals' => $partiesTotals,
+            'partiesSummary' => $partiesSummary,
 
             // DXA: adaugat (Meniu bar - produse)
             'menuItemsActiveCount' => MenuItem::where('is_active', true)->count(),

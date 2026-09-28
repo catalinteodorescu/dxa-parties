@@ -124,6 +124,31 @@
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/></svg></x-slot:icon>
             </x-stat-card>
 
+            {{-- DXA: adaugat (Petreceri - dashboard, statistici agregate). Reutilizeaza PartiesOverview, zero calcul nou. --}}
+            <x-stat-card :value="$partiesTotals->count" label="Total petreceri" hint="{{ $partiesTotals->basic }} simple · {{ $partiesTotals->festival }} festival" accent="purple" :href="route('admin.parties.overview')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg></x-slot:icon>
+            </x-stat-card>
+
+            <x-stat-card :value="$money($partiesSummary->revenue).' lei'" label="Venit bar" hint="all-time" accent="success" :href="route('admin.bar.stats')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/><path d="M21 12h-4a2 2 0 0 0 0 4h4"/></svg></x-slot:icon>
+            </x-stat-card>
+
+            <x-stat-card :value="$money($partiesSummary->profit).' lei'" label="Profit bar" hint="all-time" accent="success" :href="route('admin.bar.stats')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></svg></x-slot:icon>
+            </x-stat-card>
+
+            <x-stat-card :value="$partiesSummary->entries_total" label="Intrări totale" :hint="$partiesSummary->entries_avg === null ? 'all-time' : 'medie '.$partiesSummary->entries_avg.' / petrecere'" accent="info" :href="route('admin.reception.stats')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></x-slot:icon>
+            </x-stat-card>
+
+            <x-stat-card :value="$money($partiesSummary->entries_revenue).' lei'" label="Venit intrare" hint="all-time" accent="warning" :href="route('admin.reception.stats')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></x-slot:icon>
+            </x-stat-card>
+
+            <x-action-card label="Statistici" accent="primary" :href="route('admin.parties.overview')">
+                <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></x-slot:icon>
+            </x-action-card>
+
             <x-action-card label="Petrecere nouă" accent="primary" :href="route('admin.parties.create')">
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></x-slot:icon>
             </x-action-card>

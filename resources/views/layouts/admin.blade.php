@@ -47,6 +47,56 @@
                     Dashboard
                 </a>
 
+                {{-- Grup collapsabil: Petreceri --}}
+                {{-- DXA: adaugat (Petreceri) — Adaugă + Listă + Statistici (agregate, all-time). --}}
+                <div x-data="{ partiesOpen: true }" class="pt-4">
+                    <button type="button" @click="partiesOpen = ! partiesOpen"
+                            class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
+                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/>
+                        </svg>
+                        <span>Petreceri</span>
+                        <svg class="w-3.5 h-3.5 ml-auto shrink-0 transition-transform" :class="partiesOpen ? 'rotate-180' : ''"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </button>
+
+                    <div x-show="partiesOpen"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 -translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
+
+                        <a href="{{ route('admin.parties.create') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.parties.create') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 12h14"/><path d="M12 5v14"/>
+                            </svg>
+                            Adaugă
+                        </a>
+
+                        <a href="{{ route('admin.parties.index') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.parties.index') || request()->routeIs('admin.parties.show') || request()->routeIs('admin.parties.edit') || request()->routeIs('admin.parties.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/>
+                            </svg>
+                            Listă
+                        </a>
+
+                        <a href="{{ route('admin.parties.overview') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.parties.overview') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
+                            </svg>
+                            Statistici
+                        </a>
+                    </div>
+                </div>
+
                 {{-- Grup collapsabil: Conținut --}}
                 <div x-data="{ contentOpen: true }" class="pt-4">
                     <button type="button" @click="contentOpen = ! contentOpen"
@@ -66,15 +116,6 @@
                          x-transition:enter-start="opacity-0 -translate-y-1"
                          x-transition:enter-end="opacity-100 translate-y-0"
                          class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
-
-                        <a href="{{ route('admin.parties.index') }}" wire:navigate @click="sidebarOpen = false"
-                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
-                                  {{ request()->routeIs('admin.parties.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
-                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/>
-                            </svg>
-                            Petreceri
-                        </a>
 
                         <a href="{{ route('admin.announcements.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
@@ -155,6 +196,16 @@
                             </svg>
                             Raportări
                         </a>
+
+                        {{-- DXA: adaugat (Bar - statistici agregate) --}}
+                        <a href="{{ route('admin.bar.stats') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.bar.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
+                            </svg>
+                            Statistici
+                        </a>
                     </div>
                 </div>
 
@@ -204,6 +255,16 @@
                                 <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/>
                             </svg>
                             Raportări
+                        </a>
+
+                        {{-- DXA: adaugat (Receptie - statistici agregate) --}}
+                        <a href="{{ route('admin.reception.stats') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.reception.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
+                            </svg>
+                            Statistici
                         </a>
                     </div>
                 </div>
