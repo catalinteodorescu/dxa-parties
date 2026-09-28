@@ -46,7 +46,7 @@
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
                     <x-btn variant="neutral" size="sm" outline wire:click="exportPdf" wire:loading.attr="disabled" wire:target="exportPdf">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
                         Export PDF
                     </x-btn>
                     <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-sm text-ink-soft hover:text-ink">← Înapoi la Raportări</a>
@@ -227,7 +227,7 @@
             <section class="mb-5 rounded-2xl border border-border border-l-2 border-l-success bg-surface p-4">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-success-soft text-success shrink-0">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                     </span>
                     <h3 class="text-base font-semibold text-ink">Intrări</h3>
                     <span class="text-xs text-ink-soft">aprovizionare — produs de stoc + cantitate + cost/unitate (opțional — dacă lipsește, CMP rămâne neschimbat)</span>
@@ -267,7 +267,7 @@
                                                 </div>
                                                 <button type="button" wire:click="importRequisitionItem({{ $it->id }})"
                                                         class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary-soft text-primary text-xs font-medium px-2.5 py-1.5 hover:bg-primary hover:text-white transition-colors">
-                                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                                                     Adaugă
                                                 </button>
                                             </div>
@@ -289,7 +289,7 @@
                     <div wire:key="entry-group-{{ $reqId }}" class="rounded-2xl border border-primary/30 bg-surface mb-3 overflow-visible">
                         <div class="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-primary/20 bg-primary-soft/30 rounded-t-2xl">
                             <div class="flex items-center gap-2 min-w-0">
-                                <svg class="w-4 h-4 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2" width="6" height="4" rx="1"/></svg>
+                                <svg class="w-4 h-4 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
                                 <span class="text-sm font-medium text-ink truncate">din necesar {{ $reqLabel }}</span>
                             </div>
                             <button type="button" wire:click="removeRequisitionGroup({{ $reqId }})"
@@ -322,7 +322,7 @@
                                         @endif
                                         <button type="button" wire:click="removeEntry({{ $i }})" title="Elimină"
                                                 class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
-                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                         </button>
                                     </div>
 
@@ -375,7 +375,7 @@
                                 @if (! empty($line['stock_item_id']))
                                     <button type="button" wire:click="removeEntry({{ $i }})" title="Elimină"
                                             class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
-                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                     </button>
                                 @endif
                             </div>
@@ -399,7 +399,7 @@
             <section class="mb-5 rounded-2xl border border-border border-l-2 border-l-info bg-surface p-4">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-info-soft text-info shrink-0">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V7"/><path d="M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8"/><path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"/></svg>
                     </span>
                     <h3 class="text-base font-semibold text-ink">Vânzări</h3>
                     <span class="text-xs text-ink-soft">produs de meniu + cantitate — prețul e cel din meniu</span>
@@ -416,7 +416,7 @@
                         <x-select wire:model="sales_group_id" live placeholder="Alege o sesiune…" :options="$groupOptions" class="flex-1 min-w-0" />
                         <button type="button" wire:click="$refresh" title="Reîmprospătează vânzările" aria-label="Reîmprospătează vânzările"
                                 class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg border border-border bg-white text-ink-soft hover:bg-bg hover:text-ink">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
                         </button>
                     </div>
 
@@ -477,7 +477,7 @@
                                 @if (! empty($line['menu_item_id']))
                                     <button type="button" wire:click="removeSale({{ $i }})" title="Elimină"
                                             class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
-                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                     </button>
                                 @endif
                             </div>
@@ -501,7 +501,7 @@
             <section class="mb-5 rounded-2xl border border-border border-l-2 border-l-danger bg-surface p-4">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-danger/10 text-danger shrink-0">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                     </span>
                     <h3 class="text-base font-semibold text-ink">Pierderi</h3>
                     <span class="text-xs text-ink-soft">consum/stricăciune — produs de stoc + cantitate + motiv</span>
@@ -525,7 +525,7 @@
                                 @if (! empty($line['stock_item_id']))
                                     <button type="button" wire:click="removeLoss({{ $i }})" title="Elimină"
                                             class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
-                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                     </button>
                                 @endif
                             </div>
@@ -561,7 +561,7 @@
             <section class="mb-5 rounded-2xl border border-border border-l-2 border-l-purple bg-surface p-4">
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-3">
                     <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-purple/10 text-purple shrink-0">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><polyline points="9 14 11 16 15 12"/></svg>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
                     </span>
                     <h3 class="text-base font-semibold text-ink">Inventar</h3>
                     <span class="text-xs text-ink-soft">opțional — compară ce ai numărat cu ce arată aplicația</span>
@@ -650,7 +650,7 @@
                 <div class="mt-4 pt-4 border-t border-border" x-data="{ open: {{ $closing['countedItems'] > 0 ? 'true' : 'false' }}, q: '' }">
                     <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                         <button type="button" @click="open = !open" class="flex items-center gap-2 text-left">
-                            <svg class="w-4 h-4 text-ink-soft transition-transform" :class="open ? 'rotate-90' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            <svg class="w-4 h-4 text-ink-soft transition-transform" :class="open ? 'rotate-90' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                             <span class="text-sm font-semibold text-ink">Inventar</span>
                             <span class="text-xs text-ink-soft">{{ $closing['countedItems'] }} numărate din {{ count($closing['rows']) }}</span>
                         </button>
@@ -741,12 +741,12 @@
                 class="flex flex-wrap items-center gap-3 pt-1"
             >
                 <x-btn variant="primary" wire:click="saveDraft" wire:loading.attr="disabled" wire:target="saveDraft">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/></svg>
                     Salvează draftul
                 </x-btn>
 
                 <x-btn variant="info" @click="finalizeOpen = true; confirmed = false">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
                     Finalizează
                 </x-btn>
 

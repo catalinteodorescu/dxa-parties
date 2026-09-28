@@ -72,6 +72,7 @@
         <tr><td>Fond de casă</td><td class="num">{{ $money($fig->opening_float) }} lei</td></tr>
         <tr><td>+ Încasat din intrări (cash)</td><td class="num">{{ $money($fig->cash_entries) }} lei</td></tr>
         <tr><td>+ Încasat din tokeni (cash)</td><td class="num">{{ $money($fig->cash_tokens) }} lei</td></tr>
+        <tr><td>+ Încasat din credite (cash)</td><td class="num">{{ $money($fig->cash_credits) }} lei</td></tr>
         <tr>
             <td>
                 − Predat / scos din casă
@@ -108,8 +109,9 @@
             <tr><td><span class="muted">&nbsp;&nbsp;{{ $t['name'] }}</span></td><td class="num">{{ $t['count'] }} × · {{ $money($t['revenue']) }} lei</td></tr>
         @endforeach
         <tr><td>Tokeni vânduți</td><td class="num">{{ number_format($fig->tokens_sold, 0, ',', '.') }} în {{ $fig->token_sales }} {{ $fig->token_sales === 1 ? 'vânzare' : 'vânzări' }} · {{ $money($fig->tokens_amount) }} lei</td></tr>
-        @if ($fig->entries_cancelled > 0 || $fig->token_sales_cancelled > 0)
-            <tr><td class="muted">Anulate (nu intră în totaluri)</td><td class="num muted">{{ $fig->entries_cancelled }} intrări · {{ $fig->token_sales_cancelled }} vânzări de tokeni</td></tr>
+        <tr><td>Credite vândute</td><td class="num">{{ $fig->credit_sales }} {{ $fig->credit_sales === 1 ? 'vânzare' : 'vânzări' }} · {{ $money($fig->credits_amount) }} lei</td></tr>
+        @if ($fig->entries_cancelled > 0 || $fig->token_sales_cancelled > 0 || $fig->credit_sales_cancelled > 0)
+            <tr><td class="muted">Anulate (nu intră în totaluri)</td><td class="num muted">{{ $fig->entries_cancelled }} intrări · {{ $fig->token_sales_cancelled }} vânzări de tokeni · {{ $fig->credit_sales_cancelled }} vânzări de credite</td></tr>
         @endif
     </table>
 

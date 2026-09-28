@@ -18,7 +18,10 @@ class Participant extends Model
 
     protected function casts(): array
     {
-        return ['anonymized_at' => 'datetime'];
+        return [
+            'anonymized_at' => 'datetime',
+            'credit_balance' => 'decimal:2',
+        ];
     }
 
     protected static function booted(): void
@@ -31,6 +34,12 @@ class Participant extends Model
     public function entries(): HasMany
     {
         return $this->hasMany(PartyEntry::class);
+    }
+
+    /** DXA: adaugat (Portofelul de credite). Ledgerul complet; soldul e cache în credit_balance. */
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class);
     }
 
     public function isAnonymized(): bool

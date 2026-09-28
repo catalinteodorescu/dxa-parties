@@ -68,7 +68,7 @@
                 <button type="button" :disabled="!price || !qty"
                         class="inline-flex items-center gap-1 rounded-md bg-primary text-white text-xs font-medium px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         @click="$wire.set('{{ $path }}', String(Math.round((price / qty) * 10000) / 10000)); open = false; price = ''; qty = {{ $defaultQty ? (float) $defaultQty : "''" }};">
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                     Aplică
                 </button>
             </div>

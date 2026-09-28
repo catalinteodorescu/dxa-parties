@@ -28,9 +28,7 @@
     @if ($dismissible)
         <button type="button" aria-label="Închide" @click="{{ $onClose }}"
                 class="shrink-0 -mr-1.5 -mt-1 inline-flex items-center justify-center w-6 h-6 rounded-md opacity-60 hover:opacity-100 hover:bg-black/5 transition">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
     @endif
 </div>

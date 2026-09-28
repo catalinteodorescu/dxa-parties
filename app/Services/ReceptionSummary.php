@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\CreditTransaction;
+use App\Models\CreditTransactionPayment;
 use App\Models\PartyEntry;
 use App\Models\PartyEntryPayment;
 use App\Models\ReceptionSession;
@@ -11,11 +13,11 @@ use App\Support\PaymentMethods;
 
 /**
  * DXA: adaugat (Recepție - raportări). Totalurile unei sesiuni de recepție, calculate din înregistrările ei NEANULATE:
- * intrări (pe tip de bilet), vânzări de tokeni și încasările pe metodă (intrări + tokeni). Folosit de draftul
- * raportării (live) și la finalizare (de unde se îngheață în snapshot).
+ * intrări (pe tip de bilet), vânzări de tokeni, vânzări de credite și încasările pe metodă (intrări + tokeni + credite).
+ * Folosit de draftul raportării (live) și la finalizare (de unde se îngheață în snapshot).
  *
  * `methods` = încasări pe metodă, [cheie => lei], în ordinea metodelor din Setări. „Beneficiu” nu apare (nu e plată).
- * `cash_entries` / `cash_tokens` = partea de cash din intrări, respectiv din vânzările de tokeni.
+ * `cash_entries` / `cash_tokens` / `cash_credits` = partea de cash din intrări / vânzările de tokeni / vânzările de credite.
  */
 class ReceptionSummary
 {
@@ -36,6 +38,11 @@ class ReceptionSummary
             ->get(['id', 'tokens', 'amount', 'cancelled_at']);
         $activeSales = $sales->whereNull('cancelled_at');
 
+        $creditSales = CreditTransaction::query()->where('reception_session_id', $session->id)
+            ->where('type', CreditTransaction::LOAD)->where('source', CreditTransaction::SOURCE_RECEPTION)
+            ->get(['id', 'amount', 'cancelled_at']);
+        $activeCreditSales = $creditSales->whereNull('cancelled_at');
+
         $entryPay = PartyEntryPayment::query()
             ->join('party_entries', 'party_entries.id', '=', 'party_entry_payments.party_entry_id')
             ->where('party_entries.reception_session_id', $session->id)
@@ -53,8 +60,17 @@ class ReceptionSummary
             ->selectRaw('token_transaction_payments.method as method, SUM(token_transaction_payments.amount) as amount')
             ->pluck('amount', 'method');
 
+        $creditPay = CreditTransactionPayment::query()
+            ->join('credit_transactions', 'credit_transactions.id', '=', 'credit_transaction_payments.credit_transaction_id')
+            ->where('credit_transactions.reception_session_id', $session->id)
+            ->where('credit_transactions.type', CreditTransaction::LOAD)->where('credit_transactions.source', CreditTransaction::SOURCE_RECEPTION)
+            ->whereNull('credit_transactions.cancelled_at')
+            ->groupBy('credit_transaction_payments.method')
+            ->selectRaw('credit_transaction_payments.method as method, SUM(credit_transaction_payments.amount) as amount')
+            ->pluck('amount', 'method');
+
         $methods = [];
-        foreach ([$entryPay, $tokenPay] as $rows) {
+        foreach ([$entryPay, $tokenPay, $creditPay] as $rows) {
             foreach ($rows as $method => $amount) {
                 $methods[$method] = round(($methods[$method] ?? 0) + (float) $amount, 2);
             }
@@ -73,9 +89,13 @@ class ReceptionSummary
             'tokens_amount' => round((float) $activeSales->sum('amount'), 2),
             'token_sales' => $activeSales->count(),
             'token_sales_cancelled' => $sales->count() - $activeSales->count(),
+            'credits_amount' => round((float) $activeCreditSales->sum('amount'), 2),
+            'credit_sales' => $activeCreditSales->count(),
+            'credit_sales_cancelled' => $creditSales->count() - $activeCreditSales->count(),
             'methods' => $methods,
             'cash_entries' => round((float) ($entryPay[PaymentMethods::CASH] ?? 0), 2),
             'cash_tokens' => round((float) ($tokenPay[PaymentMethods::CASH] ?? 0), 2),
+            'cash_credits' => round((float) ($creditPay[PaymentMethods::CASH] ?? 0), 2),
         ];
     }
 }

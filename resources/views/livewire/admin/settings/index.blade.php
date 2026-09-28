@@ -97,7 +97,7 @@
                                                 class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors {{ $selected ? 'border-ink bg-bg font-semibold text-ink' : 'border-border bg-white text-ink-soft hover:border-ink-soft/40' }}">
                                             <span class="inline-flex items-center justify-center w-6 h-6 rounded-full shrink-0" style="background-color: {{ $opt['color'] }}">
                                                 @if ($selected)
-                                                    <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                    <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                                                 @endif
                                             </span>
                                             <span class="truncate">{{ $opt['label'] }}</span>

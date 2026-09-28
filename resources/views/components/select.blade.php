@@ -65,7 +65,7 @@
         <span x-text="labelFor(value)" :class="value ? 'text-ink' : 'text-ink-soft/60'" class="min-w-0 truncate text-left"></span>
         <svg class="w-4 h-4 shrink-0 text-ink-soft transition-transform" :class="open ? 'rotate-180' : ''"
              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
+            <path d="m6 9 6 6 6-6"/>
         </svg>
     </button>
 
@@ -82,8 +82,8 @@
                         class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-bg"
                         :class="String(value) === opt.value ? 'text-primary font-medium' : 'text-ink'">
                     <span x-text="opt.label" class="truncate"></span>
-                    <svg x-show="String(value) === opt.value" class="w-4 h-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
+                    <svg x-show="String(value) === opt.value" class="w-4 h-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5"/>
                     </svg>
                 </button>
             </template>

@@ -177,8 +177,15 @@ it('valideaza plata: total, metode acceptate la intrare, intrare gratuita, numar
     expect($rec([['method' => 'card', 'amount' => 30]], 51))->toThrow(DomainException::class, 'între 1 și 50');
     expect($rec([['method' => 'card', 'amount' => 30]], 1, 'Inexistent'))->toThrow(DomainException::class, 'nu există');
 
-    // Credite: accepta la intrare cand sunt active si alese pe petrecere.
-    expect($rec([['method' => 'card', 'amount' => 10], ['method' => 'credit', 'amount' => 20]])()->count())->toBe(1);
+    // Credite: accepta la intrare cand sunt active si alese pe petrecere — necesita exact un participant identificat.
+    $withCredit = fn (array $payments, array $participants = []) => fn () => EntryRecorder::record($party, 'Bilet', 1, $payments, adminId: $admin->id, participants: $participants);
+    expect($withCredit([['method' => 'card', 'amount' => 10], ['method' => 'credit', 'amount' => 20]]))
+        ->toThrow(DomainException::class, 'necesită exact un participant identificat');
+
+    $buyer = \App\Services\ParticipantRegistry::create('Cumpărător Credite', '0722'.random_int(100000, 999999));
+    \App\Services\CreditLedger::load($buyer, 50, \App\Models\CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');
+    expect($withCredit([['method' => 'card', 'amount' => 10], ['method' => 'credit', 'amount' => 20]], [$buyer->id])()->count())->toBe(1);
+    expect((float) \App\Services\CreditLedger::balance($buyer->fresh()))->toBe(30.0);
 
     // Gratuit: nicio plata.
     entryNow('22:00'); // gratuit pana la 22:30

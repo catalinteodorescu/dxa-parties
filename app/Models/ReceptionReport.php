@@ -39,6 +39,7 @@ class ReceptionReport extends Model
         'method_notes',
         'cash_entries',
         'cash_tokens',
+        'cash_credits',
         'expected_cash',
         'cash_diff',
         'snapshot',
@@ -56,6 +57,7 @@ class ReceptionReport extends Model
             'counted_cash' => 'decimal:2',
             'cash_entries' => 'decimal:2',
             'cash_tokens' => 'decimal:2',
+            'cash_credits' => 'decimal:2',
             'expected_cash' => 'decimal:2',
             'cash_diff' => 'decimal:2',
             'method_notes' => 'array',
@@ -162,6 +164,7 @@ class ReceptionReport extends Model
                 'opening_float' => (float) ($this->opening_float ?? 0),
                 'cash_entries' => (float) $this->cash_entries,
                 'cash_tokens' => (float) $this->cash_tokens,
+                'cash_credits' => (float) $this->cash_credits,
                 'handed_over' => (float) ($this->handed_over ?? 0),
                 'expected_cash' => (float) $this->expected_cash,
                 'counted_cash' => $this->counted_cash !== null ? (float) $this->counted_cash : null,
@@ -177,6 +180,9 @@ class ReceptionReport extends Model
                 'tokens_amount' => (float) ($s['tokens_amount'] ?? 0),
                 'token_sales' => (int) ($s['token_sales'] ?? 0),
                 'token_sales_cancelled' => (int) ($s['token_sales_cancelled'] ?? 0),
+                'credits_amount' => (float) ($s['credits_amount'] ?? 0),
+                'credit_sales' => (int) ($s['credit_sales'] ?? 0),
+                'credit_sales_cancelled' => (int) ($s['credit_sales_cancelled'] ?? 0),
             ];
         }
 
@@ -193,7 +199,7 @@ class ReceptionReport extends Model
 
         $float = (float) ($this->opening_float ?? 0);
         $handed = (float) ($this->handed_over ?? 0);
-        $expected = round($float + $sum->cash_entries + $sum->cash_tokens - $handed, 2);
+        $expected = round($float + $sum->cash_entries + $sum->cash_tokens + $sum->cash_credits - $handed, 2);
         $counted = $this->counted_cash !== null ? (float) $this->counted_cash : null;
 
         return (object) [
@@ -201,6 +207,7 @@ class ReceptionReport extends Model
             'opening_float' => $float,
             'cash_entries' => $sum->cash_entries,
             'cash_tokens' => $sum->cash_tokens,
+            'cash_credits' => $sum->cash_credits,
             'handed_over' => $handed,
             'expected_cash' => $expected,
             'counted_cash' => $counted,
@@ -216,6 +223,9 @@ class ReceptionReport extends Model
             'tokens_amount' => $sum->tokens_amount,
             'token_sales' => $sum->token_sales,
             'token_sales_cancelled' => $sum->token_sales_cancelled,
+            'credits_amount' => $sum->credits_amount,
+            'credit_sales' => $sum->credit_sales,
+            'credit_sales_cancelled' => $sum->credit_sales_cancelled,
         ];
     }
 
@@ -246,6 +256,7 @@ class ReceptionReport extends Model
                 'status' => 'finalized',
                 'cash_entries' => $fig->cash_entries,
                 'cash_tokens' => $fig->cash_tokens,
+                'cash_credits' => $fig->cash_credits,
                 'expected_cash' => $fig->expected_cash,
                 'cash_diff' => $fig->cash_diff,
                 'snapshot' => [
@@ -258,6 +269,9 @@ class ReceptionReport extends Model
                     'tokens_amount' => $fig->tokens_amount,
                     'token_sales' => $fig->token_sales,
                     'token_sales_cancelled' => $fig->token_sales_cancelled,
+                    'credits_amount' => $fig->credits_amount,
+                    'credit_sales' => $fig->credit_sales,
+                    'credit_sales_cancelled' => $fig->credit_sales_cancelled,
                     'methods' => $fig->methods,
                     'session_opened_at' => $session->created_at?->toDateTimeString(),
                 ],

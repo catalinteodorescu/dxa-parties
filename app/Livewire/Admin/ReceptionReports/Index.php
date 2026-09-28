@@ -98,6 +98,7 @@ class Index extends Component
             ->withCount([
                 'entries as entries_count' => fn ($q) => $q->whereNull('cancelled_at'),
                 'tokenSales as token_sales_count' => fn ($q) => $q->whereNull('cancelled_at'),
+                'creditSales as credit_sales_count' => fn ($q) => $q->whereNull('cancelled_at'),
             ])
             ->orderBy('created_at')
             ->get();

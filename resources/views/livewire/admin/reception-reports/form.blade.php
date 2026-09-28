@@ -33,7 +33,7 @@
         </div>
         @if (! $draft)
             <x-btn variant="neutral" wire:click="exportPdf" wire:loading.attr="disabled" wire:target="exportPdf" class="self-start">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
                 Export PDF
             </x-btn>
         @endif
@@ -67,7 +67,7 @@
     {{-- 1. Cash --}}
     <div class="{{ $card }} mb-4">
         <h3 class="text-sm font-semibold text-ink">1. Cash</h3>
-        <p class="mt-1 text-xs text-ink-soft">Doar cash-ul se numără. Cash așteptat = fond de casă + încasat din intrări + încasat din tokeni − predat/scos.</p>
+        <p class="mt-1 text-xs text-ink-soft">Doar cash-ul se numără. Cash așteptat = fond de casă + încasat din intrări + încasat din tokeni + încasat din credite − predat/scos.</p>
 
         <dl class="mt-4 divide-y divide-border text-sm">
             <div class="py-2.5 flex items-center justify-between gap-3">
@@ -87,6 +87,10 @@
             <div class="py-2.5 flex items-center justify-between gap-3">
                 <dt class="text-ink-soft">+ Încasat din tokeni (cash)</dt>
                 <dd class="text-ink">{{ $money($fig->cash_tokens) }} lei</dd>
+            </div>
+            <div class="py-2.5 flex items-center justify-between gap-3">
+                <dt class="text-ink-soft">+ Încasat din credite (cash)</dt>
+                <dd class="text-ink">{{ $money($fig->cash_credits) }} lei</dd>
             </div>
             <div class="py-2.5">
                 <div class="flex items-center justify-between gap-3">
@@ -171,6 +175,11 @@
                 <div class="text-lg font-semibold text-ink">{{ $money($fig->tokens_amount) }}</div>
                 <div class="text-[11px] text-ink-soft">lei, toate metodele</div>
             </div>
+            <div class="rounded-xl bg-bg px-3 py-2.5">
+                <div class="text-[11px] text-ink-soft">Credite vândute</div>
+                <div class="text-lg font-semibold text-ink">{{ $money($fig->credits_amount) }} <span class="text-xs font-normal text-ink-soft">lei</span></div>
+                <div class="text-[11px] text-ink-soft">în {{ $fig->credit_sales }} {{ $fig->credit_sales === 1 ? 'vânzare' : 'vânzări' }}</div>
+            </div>
         </div>
 
         @if ($fig->tickets)
@@ -181,11 +190,12 @@
             </ul>
         @endif
 
-        @if ($fig->entries_cancelled > 0 || $fig->token_sales_cancelled > 0)
+        @if ($fig->entries_cancelled > 0 || $fig->token_sales_cancelled > 0 || $fig->credit_sales_cancelled > 0)
             <p class="mt-3 text-xs text-ink-soft">
                 Anulate în sesiune (nu intră în totaluri):
                 {{ $fig->entries_cancelled }} {{ $fig->entries_cancelled === 1 ? 'intrare' : 'intrări' }},
-                {{ $fig->token_sales_cancelled }} {{ $fig->token_sales_cancelled === 1 ? 'vânzare de tokeni' : 'vânzări de tokeni' }}.
+                {{ $fig->token_sales_cancelled }} {{ $fig->token_sales_cancelled === 1 ? 'vânzare de tokeni' : 'vânzări de tokeni' }},
+                {{ $fig->credit_sales_cancelled }} {{ $fig->credit_sales_cancelled === 1 ? 'vânzare de credite' : 'vânzări de credite' }}.
             </p>
         @endif
     </div>
@@ -229,7 +239,7 @@
                     <div class="flex justify-between gap-3"><dt class="text-ink-soft">Cash așteptat</dt><dd class="text-ink">{{ $money($fig->expected_cash) }} lei</dd></div>
                     <div class="flex justify-between gap-3"><dt class="text-ink-soft">Cash numărat</dt><dd class="text-ink">{{ $money($fig->counted_cash) }} lei</dd></div>
                     <div class="flex justify-between gap-3"><dt class="text-ink-soft">Diferență</dt><dd class="font-semibold {{ $diffOk ? 'text-success' : 'text-warning' }}">{{ $signed($diff) }} lei</dd></div>
-                    <div class="flex justify-between gap-3"><dt class="text-ink-soft">Intrări · tokeni vânduți</dt><dd class="text-ink">{{ $fig->entries_count }} · {{ number_format($fig->tokens_sold, 0, ',', '.') }}</dd></div>
+                    <div class="flex justify-between gap-3"><dt class="text-ink-soft">Intrări · tokeni vânduți · credite vândute</dt><dd class="text-ink">{{ $fig->entries_count }} · {{ number_format($fig->tokens_sold, 0, ',', '.') }} · {{ $money($fig->credits_amount) }} lei</dd></div>
                 </dl>
                 <p class="mt-3 text-xs text-ink-soft">Ireversibil: valorile se îngheață, iar sesiunea se închide — intrările și vânzările ei nu se mai pot anula. Următoarea înregistrare deschide o sesiune nouă.</p>
                 <div class="mt-5 flex items-center justify-end gap-3">

@@ -457,10 +457,13 @@ it('in inventarul de final, incasarile care nu sunt cash sau tokeni apar pe meto
     PaymentMethods::setActive('credit', true);
     $custom = PaymentMethods::create('Vouchere partenere');
 
+    $buyer = \App\Services\ParticipantRegistry::create('Cu Credite', '0722'.random_int(100000, 999999));
+    \App\Services\CreditLedger::load($buyer, 50, \App\Models\CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');
+
     $group = SalesGroup::openFor(null, $admin->id);
     SaleRecorder::record($group, payLine($cocktail), [['method' => 'cash', 'amount' => 30]], adminId: $admin->id);
     SaleRecorder::record($group, payLine($cocktail), [['method' => 'card', 'amount' => 30]], adminId: $admin->id);
-    SaleRecorder::record($group, payLine($cocktail), [['method' => 'credit', 'amount' => 30]], adminId: $admin->id);
+    SaleRecorder::record($group, payLine($cocktail), [['method' => 'credit', 'amount' => 30]], adminId: $admin->id, participantId: $buyer->id);
     SaleRecorder::record($group, payLine($cocktail), [['method' => $custom->key, 'amount' => 30]], adminId: $admin->id);
     SaleRecorder::record($group, payLine($cocktail), [['method' => 'benefit', 'amount' => 30]], adminId: $admin->id);
 

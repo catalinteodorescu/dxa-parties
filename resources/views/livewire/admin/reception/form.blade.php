@@ -15,7 +15,8 @@
         askCancel(kind, target, info) { this.cancelKind = kind; this.cancelTarget = target; this.cancelInfo = info; this.cancelReason = ''; this.cancelOpen = true; },
         tryCancel() {
             if (this.cancelReason.trim().length < 3) { return; }
-            this.$wire.call(this.cancelKind === 'token' ? 'cancelTokenSale' : 'cancel', this.cancelTarget, this.cancelReason);
+            const action = this.cancelKind === 'token' ? 'cancelTokenSale' : (this.cancelKind === 'credit' ? 'cancelCreditSale' : 'cancel');
+            this.$wire.call(action, this.cancelTarget, this.cancelReason);
             this.cancelOpen = false;
         },
     }"
@@ -199,6 +200,11 @@
                 @if ($party)
                     @livewire(\App\Livewire\Admin\Reception\TokenSale::class, ['partyId' => $party->id], key('token-sale-'.$party->id))
                 @endif
+
+                {{-- DXA: adaugat (Portofelul de credite - Etapa 2): vânzare de credite pentru petrecerea aleasă --}}
+                @if ($party)
+                    @livewire(\App\Livewire\Admin\Reception\CreditSale::class, ['partyId' => $party->id], key('credit-sale-'.$party->id))
+                @endif
             </div>
 
             {{-- Coloana din dreapta: ultimele intrări și ultimele vânzări de tokeni (~5 rânduri, apoi scroll) --}}
@@ -300,20 +306,67 @@
                             </div>
                         @endif
                     </div>
+
+                    {{-- DXA: adaugat (Portofelul de credite - Etapa 2) --}}
+                    <div class="{{ $card }}">
+                        <h3 class="text-sm font-semibold text-ink">Ultimele vânzări de credite</h3>
+                        @if ($creditCancelMessage)
+                            <x-alert type="success" class="mt-3">{{ $creditCancelMessage }}</x-alert>
+                        @endif
+                        @if ($creditCancelError)
+                            <x-alert type="error" class="mt-3">{{ $creditCancelError }}</x-alert>
+                        @endif
+                        @if ($recentCredits->isEmpty())
+                            <p class="mt-2 text-sm text-ink-soft">Nicio vânzare de credite încă.</p>
+                        @else
+                            <div class="mt-3 {{ $listBox }}">
+                                @foreach ($recentCredits as $ct)
+                                    @php $creditInfo = $money($ct->amount).' lei credite'; @endphp
+                                    <div wire:key="csale-{{ $ct->id }}" class="rounded-xl border border-border px-3 py-2 {{ $ct->isCancelled() ? 'bg-bg' : 'bg-surface' }}">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-medium {{ $ct->isCancelled() ? 'text-ink-soft line-through' : 'text-ink' }}">
+                                                    {{ $creditInfo }}
+                                                </div>
+                                                <div class="mt-0.5 text-xs text-ink-soft">
+                                                    {{ $ct->occurred_at->format('H:i') }}
+                                                    @if ($ct->createdBy) · {{ $ct->createdBy->name }} @endif
+                                                    @foreach ($ct->payments as $pay)
+                                                        · {{ $methodLabels[$pay->method] ?? $pay->method }} {{ $money($pay->amount) }}
+                                                    @endforeach
+                                                </div>
+                                                @if ($ct->participant)
+                                                    <div class="mt-0.5 text-xs text-ink">{{ $ct->participant->name }}</div>
+                                                @endif
+                                                @if ($ct->isCancelled())
+                                                    <div class="mt-0.5 text-xs text-danger">Anulat: {{ $ct->cancel_reason }}</div>
+                                                @endif
+                                            </div>
+                                            @unless ($ct->isCancelled())
+                                                <x-btn variant="danger" size="sm" outline
+                                                       x-on:click="askCancel('credit', {{ $ct->id }}, '{{ addslashes($creditInfo) }}')">Anulează</x-btn>
+                                            @endunless
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
     @endif
 
-    {{-- Anulare (intrare sau vânzare de tokeni): motiv obligatoriu --}}
+    {{-- Anulare (intrare, vânzare de tokeni sau de credite): motiv obligatoriu --}}
     <div x-show="cancelOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-ink/40" @click="cancelOpen = false"></div>
         <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
-            <h3 class="text-base font-semibold text-ink" x-text="cancelKind === 'token' ? 'Anulează vânzarea de tokeni' : 'Anulează intrarea'"></h3>
+            <h3 class="text-base font-semibold text-ink" x-text="cancelKind === 'token' ? 'Anulează vânzarea de tokeni' : (cancelKind === 'credit' ? 'Anulează vânzarea de credite' : 'Anulează intrarea')"></h3>
             <p class="mt-2 text-sm text-ink-soft">
                 Anulezi <span class="font-medium text-ink" x-text="cancelInfo"></span>.
-                <span x-show="cancelKind !== 'token'">Intrarea rămâne în istoric, marcată ca anulată.</span>
+                <span x-show="cancelKind === 'entry'">Intrarea rămâne în istoric, marcată ca anulată.</span>
                 <span x-show="cancelKind === 'token'">Se poate doar dacă tokenii nu au fost deja folosiți la bar.</span>
+                <span x-show="cancelKind === 'credit'">Se poate doar dacă creditele nu au fost deja folosite.</span>
             </p>
             <input type="text" x-model="cancelReason" maxlength="255" placeholder="Motiv (obligatoriu)" x-on:keydown.enter.prevent="tryCancel()"
                    class="mt-3 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">

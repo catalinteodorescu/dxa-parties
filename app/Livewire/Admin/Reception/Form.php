@@ -3,10 +3,12 @@
 namespace App\Livewire\Admin\Reception;
 
 use App\Livewire\Admin\Concerns\PicksParticipants;
+use App\Models\CreditTransaction;
 use App\Models\Party;
 use App\Models\PartyEntry;
 use App\Models\ReceptionSession;
 use App\Models\TokenTransaction;
+use App\Services\CreditLedger;
 use App\Services\EntryRecorder;
 use App\Services\PartyStats;
 use App\Services\TokenLedger;
@@ -24,6 +26,9 @@ use Livewire\Component;
  * Toată logica stă în App\Services\EntryRecorder (o va refolosi și PWA-ul); aici doar interfața.
  * Petrecerea se preselectează automat (cea în desfășurare, altfel cea care urmează); se pot alege doar
  * petreceri publicate și neîncheiate.
+ *
+ * DXA: adaugat (Portofelul de credite - Etapa 2). Vânzarea de credite (cardul CreditSale, în oglindă cu
+ * TokenSale) e a treia acțiune a ecranului, cu lista ei de „Ultimele vânzări de credite” + anulare.
  */
 #[Layout('layouts.admin')]
 class Form extends Component
@@ -58,6 +63,10 @@ class Form extends Component
     public ?string $tokenCancelMessage = null;
 
     public ?string $tokenCancelError = null;
+
+    public ?string $creditCancelMessage = null;
+
+    public ?string $creditCancelError = null;
 
     public function mount(): void
     {
@@ -100,6 +109,7 @@ class Form extends Component
     {
         $this->message = $this->error = null;
         $this->entryCancelMessage = $this->entryCancelError = $this->tokenCancelMessage = $this->tokenCancelError = null;
+        $this->creditCancelMessage = $this->creditCancelError = null;
         $this->resetEntryForm();
         $this->syncTicket();
     }
@@ -234,6 +244,13 @@ class Form extends Component
         // doar re-randare
     }
 
+    /** Vânzare de credite făcută în cardul CreditSale (sau anulată aici): reafișează listele din dreapta. */
+    #[On('credits-changed')]
+    public function refreshCredits(): void
+    {
+        // doar re-randare
+    }
+
     /** Anulează o vânzare de tokeni din lista din dreapta (motiv obligatoriu; doar dacă tokenii nu au fost folosiți la bar). */
     public function cancelTokenSale(int $id, string $reason): void
     {
@@ -245,6 +262,20 @@ class Form extends Component
             $this->dispatch('tokens-changed');
         } catch (DomainException $e) {
             $this->tokenCancelError = $e->getMessage();
+        }
+    }
+
+    /** DXA: adaugat (Etapa 2). Anulează o vânzare de credite din lista din dreapta (motiv obligatoriu; doar dacă creditele nu au fost deja folosite). */
+    public function cancelCreditSale(int $id, string $reason): void
+    {
+        $this->creditCancelMessage = $this->creditCancelError = null;
+
+        try {
+            CreditLedger::cancel($id, $reason, Auth::guard('admin')->id());
+            $this->creditCancelMessage = 'Vânzarea de credite a fost anulată.';
+            $this->dispatch('credits-changed');
+        } catch (DomainException $e) {
+            $this->creditCancelError = $e->getMessage();
         }
     }
 
@@ -372,11 +403,21 @@ class Form extends Component
                 ->limit(30)->get()
             : collect();
 
+        // DXA: adaugat (Etapa 2). Ultimele vanzari de credite ale petrecerii (coloana din dreapta).
+        $recentCredits = $party
+            ? CreditTransaction::query()
+                ->where('party_id', $party->id)->where('type', CreditTransaction::LOAD)->where('source', CreditTransaction::SOURCE_RECEPTION)
+                ->with(['payments', 'createdBy', 'participant'])
+                ->orderByDesc('occurred_at')->orderByDesc('id')
+                ->limit(30)->get()
+            : collect();
+
         $picker = $this->participantPickerData($party, true);
 
         return view('livewire.admin.reception.form', [
             ...$picker,
             'recentTokens' => $recentTokens,
+            'recentCredits' => $recentCredits,
             'party' => $party,
             'partyOptions' => $partyOptions,
             'tickets' => $tickets,

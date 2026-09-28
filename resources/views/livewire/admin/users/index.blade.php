@@ -43,10 +43,7 @@
         </div>
         @if ($isSuper)
             <x-btn variant="primary" :href="route('admin.users.create')" wire:navigate class="self-start">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Adaugă admin
             </x-btn>
         @endif
@@ -104,9 +101,7 @@
                                                 class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 transition-colors
                                                        {{ $admin->role === 'superadmin' ? 'bg-primary text-white' : 'bg-surface border border-border text-ink-soft' }}">
                                             {{ $admin->role === 'superadmin' ? 'Superadmin' : 'Admin' }}
-                                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <polyline points="6 9 12 15 18 9"/>
-                                            </svg>
+                                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                                         </button>
                                         <div x-show="openDropdown === 'role-{{ $admin->id }}'" x-cloak
                                              class="absolute z-10 mt-1 w-40 right-0 md:right-auto md:left-0 rounded-lg border border-border bg-surface shadow-lg py-1">
@@ -114,9 +109,7 @@
                                                 @if ($admin->role === $roleVal)
                                                     <div class="flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-ink-soft/50 cursor-default select-none">
                                                         <span>{{ $roleLabel }}</span>
-                                                        <svg class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                                            <polyline points="20 6 9 17 4 12"/>
-                                                        </svg>
+                                                        <svg class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                                                     </div>
                                                 @else
                                                     <button type="button"
@@ -148,9 +141,7 @@
                                             class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 transition-colors
                                                    {{ $admin->is_active ? 'bg-primary-soft text-primary' : 'bg-surface border border-border text-ink-soft' }}">
                                         {{ $admin->is_active ? 'Activ' : 'Inactiv' }}
-                                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="6 9 12 15 18 9"/>
-                                        </svg>
+                                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                                     </button>
                                     <div x-show="openDropdown === 'status-{{ $admin->id }}'" x-cloak
                                          class="absolute z-10 mt-1 w-56 right-0 md:right-auto md:left-0 rounded-lg border border-border bg-surface shadow-lg py-1">
@@ -158,9 +149,7 @@
                                         @if ($admin->is_active)
                                             <div class="flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-ink-soft/50 cursor-default select-none">
                                                 <span>Activ</span>
-                                                <svg class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="20 6 9 17 4 12"/>
-                                                </svg>
+                                                <svg class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                                             </div>
                                         @else
                                             <button type="button"
@@ -173,9 +162,7 @@
                                         @if (! $admin->is_active)
                                             <div class="flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-ink-soft/50 cursor-default select-none">
                                                 <span>Inactiv</span>
-                                                <svg class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="20 6 9 17 4 12"/>
-                                                </svg>
+                                                <svg class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                                             </div>
                                         @else
                                             <button type="button"
@@ -209,10 +196,11 @@
                                 <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                                        x-on:click="askConfirm('Șterge admin', 'Sigur vrei să ștergi contul lui {{ addslashes($admin->name ?: $admin->phone) }}? Acțiunea nu poate fi anulată.', 'deleteAdmin', [{{ $admin->id }}])">
                                     <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                        <path d="M10 11v6M14 11v6"/>
-                                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                                        <path d="M10 11v6"/>
+                                        <path d="M14 11v6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                                        <path d="M3 6h18"/>
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                     </svg>
                                 </x-btn>
                             @endunless

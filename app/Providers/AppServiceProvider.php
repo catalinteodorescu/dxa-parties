@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\SmsSender;
+use App\Services\CreditLedger;
 use App\Services\Sms\LogSmsSender;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
@@ -26,5 +27,8 @@ class AppServiceProvider extends ServiceProvider
 
         // DXA: adaugat (Recepție - tokeni): tokenii nu se pot opri cât mai sunt în circulație (se casează întâi).
         PaymentMethods::registerGuard(PaymentMethods::TOKEN, fn () => TokenLedger::offBlockReason(), 'token-ledger');
+
+        // DXA: adaugat (Portofelul de credite): creditele nu se pot opri cât participanții mai au sold > 0.
+        PaymentMethods::registerGuard(PaymentMethods::CREDIT, fn () => CreditLedger::offBlockReason(), 'credit-ledger');
     }
 }

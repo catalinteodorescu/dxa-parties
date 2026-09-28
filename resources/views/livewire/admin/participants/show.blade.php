@@ -2,13 +2,41 @@
     $card = 'rounded-2xl border border-border bg-surface p-5';
     $input = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
     $money = fn ($n) => number_format((float) $n, 2, ',', '.');
+    $signed = fn ($n) => ($n > 0 ? '+' : ($n < 0 ? '−' : '')).number_format(abs((float) $n), 2, ',', '.');
     $fmt = fn ($d) => $d ? \Illuminate\Support\Carbon::parse($d)->format('d.m.Y H:i') : '—';
     $anonymized = $participant->isAnonymized();
+    $creditTypeClass = [
+        'load' => 'bg-primary-soft text-primary',
+        'payment' => 'bg-info/10 text-info',
+        'refund' => 'bg-warning/10 text-warning',
+        'adjustment' => 'bg-bg text-ink-soft',
+    ];
 @endphp
-<div class="max-w-3xl">
+<div
+    class="max-w-3xl"
+    x-data="{
+        creditTab: 'load',
+        confirmOpen: false,
+        confirmTitle: '',
+        confirmMessage: '',
+        confirmMethod: '',
+        confirmArgs: [],
+        askConfirm(title, message, method, args = []) {
+            this.confirmTitle = title;
+            this.confirmMessage = message;
+            this.confirmMethod = method;
+            this.confirmArgs = args;
+            this.confirmOpen = true;
+        },
+        runConfirm() {
+            this.$wire.call(this.confirmMethod, ...this.confirmArgs);
+            this.confirmOpen = false;
+        },
+    }"
+>
     <div class="mb-5">
         <a href="{{ route('admin.participants.index') }}" wire:navigate class="inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
             Înapoi la Participanți
         </a>
     </div>
@@ -71,6 +99,105 @@
         </div>
     </div>
 
+    {{-- Date --}}
+    @unless ($anonymized)
+        <div class="{{ $card }} mb-4">
+            <h3 class="text-sm font-semibold text-ink">Date</h3>
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-5 gap-2">
+                <input type="text" wire:model="name" maxlength="120" placeholder="Nume" class="sm:col-span-2 {{ $input }}">
+                <input type="text" inputmode="tel" wire:model="phone" maxlength="20" placeholder="Telefon" x-on:keydown.enter.prevent="$wire.save()" class="sm:col-span-2 {{ $input }}">
+                <x-btn variant="warning" wire:click="save">Salvează</x-btn>
+            </div>
+            <p class="mt-2 text-xs text-ink-soft">Telefonul e cheia participantului: când își face cont în aplicație cu același număr, istoricul se păstrează.</p>
+        </div>
+    @endunless
+
+    {{-- Portofel de credite --}}
+    <div class="{{ $card }} mb-4">
+        <div class="flex items-center justify-between gap-3">
+            <h3 class="text-sm font-semibold text-ink">Portofel de credite</h3>
+            <div class="text-right">
+                <div class="text-2xl font-semibold text-ink">{{ $money($creditBalance) }} <span class="text-xs font-normal text-ink-soft">lei</span></div>
+            </div>
+        </div>
+        <p class="mt-1 text-xs text-ink-soft leading-relaxed">1 credit = 1 leu. Nu expiră. Fără refund automat — doar manual, cu motiv.</p>
+
+        {{-- Tab-uri: cele 3 acțiuni una câte una, nu deodată --}}
+        <div class="mt-4 flex items-center gap-1 border-b border-border">
+            <button type="button" @click="creditTab = 'load'"
+                    :class="creditTab === 'load' ? 'border-primary text-primary' : 'border-transparent text-ink-soft hover:text-ink'"
+                    class="px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors">
+                Încărcare manuală
+            </button>
+            <button type="button" @click="creditTab = 'adjust'"
+                    :class="creditTab === 'adjust' ? 'border-primary text-primary' : 'border-transparent text-ink-soft hover:text-ink'"
+                    class="px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors">
+                Ajustare
+            </button>
+            <button type="button" @click="creditTab = 'refund'"
+                    :class="creditTab === 'refund' ? 'border-primary text-primary' : 'border-transparent text-ink-soft hover:text-ink'"
+                    class="px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors">
+                Refund manual
+            </button>
+        </div>
+
+        <div class="mt-3">
+            {{-- Încărcare manuală --}}
+            <div x-show="creditTab === 'load'" x-cloak>
+                <div class="space-y-1.5 max-w-sm">
+                    <input type="text" inputmode="decimal" wire:model="creditLoadAmount" placeholder="Sumă (lei)" class="{{ $input }}">
+                    <input type="text" wire:model="creditLoadNote" maxlength="255" placeholder="Motiv (obligatoriu)" class="{{ $input }}">
+                    <x-btn variant="primary" wire:click="loadCredits">Încarcă</x-btn>
+                </div>
+            </div>
+
+            {{-- Ajustare --}}
+            <div x-show="creditTab === 'adjust'" x-cloak>
+                <div class="space-y-1.5 max-w-sm">
+                    <input type="text" inputmode="decimal" wire:model="creditAdjustAmount" placeholder="ex. 20 sau -20" class="{{ $input }}">
+                    <input type="text" wire:model="creditAdjustReason" maxlength="255" placeholder="Motiv (obligatoriu)" class="{{ $input }}">
+                    <x-btn variant="neutral" wire:click="adjustCredits">Ajustează</x-btn>
+                </div>
+            </div>
+
+            {{-- Refund manual --}}
+            <div x-show="creditTab === 'refund'" x-cloak>
+                <div class="space-y-1.5 max-w-sm">
+                    <input type="text" inputmode="decimal" wire:model="creditRefundAmount" placeholder="Sumă (lei)" class="{{ $input }}">
+                    <input type="text" wire:model="creditRefundReason" maxlength="255" placeholder="Motiv (obligatoriu)" class="{{ $input }}">
+                    <x-btn variant="danger" outline wire:click="refundCredits">Refundează</x-btn>
+                </div>
+            </div>
+        </div>
+
+        @if ($creditTransactions->isNotEmpty())
+            <div class="mt-4 pt-4 border-t border-border">
+                <div class="text-xs font-medium text-ink-soft mb-2">Istoric credite</div>
+                <div class="space-y-2">
+                    @foreach ($creditTransactions as $ct)
+                        <div wire:key="ct-{{ $ct->id }}" class="rounded-xl border border-border px-3.5 py-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 {{ $creditTypeClass[$ct->type] ?? 'bg-bg text-ink-soft' }}">{{ $ct->typeLabel() }}</span>
+                                <span class="text-sm font-medium text-ink">{{ $signed($ct->amount) }} lei</span>
+                                <span class="text-xs text-ink-soft">{{ $ct->sourceLabel() }}</span>
+                            </div>
+                            <div class="mt-0.5 text-xs text-ink-soft">
+                                {{ $ct->occurred_at->format('d.m.Y H:i') }}
+                                @if ($ct->createdBy) · {{ $ct->createdBy->name }} @endif
+                            </div>
+                            @if ($ct->note)
+                                <div class="mt-0.5 text-xs text-ink-soft">{{ $ct->note }}</div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+                @if ($totalCreditTransactions > $creditTransactions->count())
+                    <p class="mt-2 text-[11px] text-ink-soft">Se afișează ultimele {{ $creditTransactions->count() }} din {{ $totalCreditTransactions }}.</p>
+                @endif
+            </div>
+        @endif
+    </div>
+
     {{-- Pe petreceri --}}
     @if ($spend->parties->isNotEmpty())
         <div class="{{ $card }} mb-4">
@@ -93,19 +220,6 @@
             </div>
         </div>
     @endif
-
-    {{-- Date --}}
-    @unless ($anonymized)
-        <div class="{{ $card }} mb-4">
-            <h3 class="text-sm font-semibold text-ink">Date</h3>
-            <div class="mt-3 grid grid-cols-1 sm:grid-cols-5 gap-2">
-                <input type="text" wire:model="name" maxlength="120" placeholder="Nume" class="sm:col-span-2 {{ $input }}">
-                <input type="text" inputmode="tel" wire:model="phone" maxlength="20" placeholder="Telefon" x-on:keydown.enter.prevent="$wire.save()" class="sm:col-span-2 {{ $input }}">
-                <x-btn variant="warning" wire:click="save">Salvează</x-btn>
-            </div>
-            <p class="mt-2 text-xs text-ink-soft">Telefonul e cheia participantului: când își face cont în aplicație cu același număr, istoricul se păstrează.</p>
-        </div>
-    @endunless
 
     {{-- Istoric --}}
     <div class="{{ $card }} mb-4">
@@ -138,17 +252,42 @@
         @if ($totalEntries === 0)
             <p class="mt-1 text-xs text-ink-soft leading-relaxed">Participantul n-are nicio intrare, deci poate fi șters complet.</p>
             <div class="mt-3">
-                <x-btn variant="danger" outline wire:click="delete" wire:confirm="Ștergi definitiv acest participant?">Șterge participantul</x-btn>
+                <x-btn variant="danger" outline
+                       x-on:click="askConfirm('Șterge participantul', 'Ștergi definitiv acest participant? Acțiunea nu poate fi anulată.', 'delete')">
+                    Șterge participantul
+                </x-btn>
             </div>
         @elseif (! $anonymized)
             <p class="mt-1 text-xs text-ink-soft leading-relaxed">
                 Are intrări înregistrate, deci nu se șterge. Poți să-l anonimizezi: numele și telefonul se golesc, iar intrările rămân doar ca număr în statistici. Nu se poate anula.
             </p>
             <div class="mt-3">
-                <x-btn variant="danger" outline wire:click="anonymize" wire:confirm="Anonimizezi acest participant? Numele și telefonul se șterg definitiv.">Anonimizează</x-btn>
+                <x-btn variant="danger" outline
+                       x-on:click="askConfirm('Anonimizează participantul', 'Anonimizezi acest participant? Numele și telefonul se șterg definitiv.', 'anonymize')">
+                    Anonimizează
+                </x-btn>
             </div>
         @else
             <p class="mt-1 text-xs text-ink-soft">Participantul a fost anonimizat; intrările rămân doar ca număr în statistici.</p>
         @endif
+    </div>
+
+    {{-- Modal de confirmare, pentru ștergere/anonimizare --}}
+    <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-ink/40" @click="confirmOpen = false"></div>
+        <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
+            <h3 class="text-base font-semibold text-ink" x-text="confirmTitle"></h3>
+            <p class="mt-2 text-sm text-ink-soft" x-text="confirmMessage"></p>
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <button type="button" @click="confirmOpen = false"
+                        class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">
+                    Renunță
+                </button>
+                <button type="button" @click="runConfirm()"
+                        class="rounded-lg bg-danger hover:bg-danger/90 text-white text-sm font-medium px-4 py-2 transition-colors">
+                    Confirmă
+                </button>
+            </div>
+        </div>
     </div>
 </div>

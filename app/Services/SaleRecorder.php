@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\MenuItem;
+use App\Models\Participant;
 use App\Models\Sale;
 use App\Models\SalesGroup;
 use App\Support\PaymentMethods;
@@ -41,13 +42,14 @@ class SaleRecorder
         string $identifiedBy = 'phone',
     ): Sale {
         // Participantul (client identificat): validat inainte de tranzactie; se salveaza ca customer_id + identified_by.
+        $participant = null;
         if ($participantId !== null) {
-            ParticipantRegistry::usable($participantId);
+            $participant = ParticipantRegistry::usable($participantId);
             $extra['customer_id'] = $participantId;
             $extra['identified_by'] = $identifiedBy;
         }
 
-        return DB::transaction(function () use ($group, $lines, $payments, $source, $adminId, $extra, $enforceMethods) {
+        return DB::transaction(function () use ($group, $lines, $payments, $source, $adminId, $extra, $enforceMethods, $participant) {
             // Sesiunea (optionala) se reincarca cu lock: nu se poate adauga o vanzare intr-o
             // sesiune care se inchide chiar acum (finalizarea unei Raportari).
             if ($group !== null) {
@@ -101,6 +103,16 @@ class SaleRecorder
                 throw new \DomainException('Plățile ('.number_format($paid, 2, ',', '.').' lei) nu acoperă exact totalul ('.number_format($total, 2, ',', '.').' lei).');
             }
 
+            // Plata cu credite: necesita un participant identificat (creditele ies din portofelul lui).
+            // La $enforceMethods = false (seedere/importuri istorice) nu se impune — nu exista garantia unui portofel real.
+            $creditAmount = round(array_sum(array_map(
+                fn ($r) => $r['method'] === PaymentMethods::CREDIT ? (float) $r['amount'] : 0.0,
+                $paymentRows
+            )), 2);
+            if ($creditAmount > 0 && $participant === null && $enforceMethods) {
+                throw new \DomainException('Plata cu credite necesită un participant identificat.');
+            }
+
             $sale = Sale::create(array_merge([
                 'sales_group_id' => $group?->id,
                 'source' => $source,
@@ -112,6 +124,10 @@ class SaleRecorder
 
             $sale->lines()->createMany($lineRows);
             $sale->payments()->createMany($paymentRows);
+
+            if ($creditAmount > 0 && $participant !== null) {
+                CreditLedger::pay($participant, $creditAmount, Sale::class, $sale->id, $adminId);
+            }
 
             return $sale;
         });

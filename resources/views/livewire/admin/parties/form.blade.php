@@ -50,7 +50,7 @@
                             <img src="{{ asset('storage/'.$existingImage) }}" alt="" class="w-28 h-28 object-cover rounded-xl border border-border">
                         @else
                             <div class="w-28 h-28 rounded-xl border border-dashed border-border bg-bg flex items-center justify-center text-ink-soft/40">
-                                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                             </div>
                         @endif
                     </div>
@@ -163,13 +163,13 @@
                                         <input type="text" list="dxa-guest-names" wire:model="days.{{ $di }}.program.{{ $pi }}.guest" placeholder="Invitat (opțional)" class="{{ $in }}">
                                         <input type="text" wire:model="days.{{ $di }}.program.{{ $pi }}.room" placeholder="Sală (opțional)" class="{{ $in }}">
                                         <button type="button" wire:click="removeProgramItem({{ $di }}, {{ $pi }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
                                         </button>
                                     </div>
                                 </div>
                             @endforeach
                             <button type="button" wire:click="addProgramItem({{ $di }})" class="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                                 Adaugă în program
                             </button>
                         </div>
@@ -221,7 +221,7 @@
                                     <img src="{{ asset('storage/'.$g['photo_path']) }}" class="w-16 h-16 object-cover rounded-lg border border-border">
                                 @else
                                     <div class="w-16 h-16 rounded-lg border border-dashed border-border bg-bg flex items-center justify-center text-ink-soft/40">
-                                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+                                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                     </div>
                                 @endif
                             </div>
@@ -258,7 +258,7 @@
             </div>
 
             <button type="button" wire:click="addGuest" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Adaugă invitat
             </button>
         </div>
@@ -274,7 +274,7 @@
                         <input type="text" wire:model="music_styles.{{ $i }}.style" placeholder="Stil (ex. Bachata)" class="{{ $in }}">
                         <input type="number" step="1" min="1" wire:model="music_styles.{{ $i }}.frequency" placeholder="Nr. melodii" class="{{ $in }}">
                         <button type="button" wire:click="removeMusicStyle({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
                         </button>
                     </div>
                     @error('music_styles.'.$i.'.frequency') <p class="{{ $err }}">{{ $message }}</p> @enderror
@@ -282,7 +282,7 @@
             </div>
 
             <button type="button" wire:click="addMusicStyle" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Adaugă stil
             </button>
 
@@ -310,7 +310,7 @@
                             <input type="text" wire:model="ticket_types.{{ $ti }}.name" placeholder="Nume bilet (ex. Full pass)" class="{{ $in }}">
                             <input type="number" step="0.01" min="0" wire:model="ticket_types.{{ $ti }}.price" placeholder="Preț (lei)" class="{{ $in }}">
                             <button type="button" wire:click="removeTicketType({{ $ti }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Șterge biletul">
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                             </button>
                         </div>
                         @error('ticket_types.'.$ti.'.price') <p class="{{ $err }}">{{ $message }}</p> @enderror
@@ -325,13 +325,13 @@
                                         <input type="number" step="0.01" min="0" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.price" placeholder="Preț" class="{{ $in }}">
                                         <input type="datetime-local" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.until" class="accent-primary [color-scheme:light] {{ $in }}" title="Valabil până la (data și ora)">
                                         <button type="button" wire:click="removeTicketDiscount({{ $ti }}, {{ $dii }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
                                         </button>
                                     </div>
                                 @endforeach
                             </div>
                             <button type="button" wire:click="addTicketDiscount({{ $ti }})" class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                                 Adaugă reducere
                             </button>
                         </div>
@@ -339,7 +339,7 @@
                 @endforeach
 
                 <button type="button" wire:click="addTicketType" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                     Adaugă tip de bilet
                 </button>
             </div>
@@ -382,7 +382,7 @@
                             <x-dropdown-select path="contacts.{{ $i }}.admin_id" :options="$contactOptions" :selected="$c['admin_id'] ?? ''" placeholder="Alege…" class="flex-1" />
                             @if (count($contacts) > 1)
                                 <button type="button" wire:click="removeContact({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Șterge contactul">
-                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                             @endif
                         </div>
@@ -404,7 +404,7 @@
             </div>
 
             <button type="button" wire:click="addContact" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Adaugă persoană de contact
             </button>
         </div>
@@ -418,14 +418,14 @@
                         <input type="text" wire:model="links.{{ $i }}.label" placeholder="Etichetă buton" class="{{ $in }}">
                         <input type="url" wire:model="links.{{ $i }}.url" placeholder="https://…" class="{{ $in }}">
                         <button type="button" wire:click="removeLink({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
                         </button>
                     </div>
                     @error('links.'.$i.'.url') <p class="{{ $err }}">{{ $message }}</p> @enderror
                 @endforeach
             </div>
             <button type="button" wire:click="addLink" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Adaugă link
             </button>
         </div>
@@ -439,13 +439,13 @@
                         <input type="text" wire:model="custom_fields.{{ $i }}.label" placeholder="Etichetă" class="{{ $in }}">
                         <input type="text" wire:model="custom_fields.{{ $i }}.value" placeholder="Valoare" class="{{ $in }}">
                         <button type="button" wire:click="removeCustomField({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
                         </button>
                     </div>
                 @endforeach
             </div>
             <button type="button" wire:click="addCustomField" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Adaugă câmp
             </button>
         </div>
@@ -476,7 +476,7 @@
             <div class="flex items-center justify-between gap-3">
                 <h3 class="text-sm font-semibold text-ink">Descriere</h3>
                 <x-btn variant="info" size="sm" outline wire:click="generateDescription" wire:loading.attr="disabled" wire:target="generateDescription">
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.8L18.7 9l-4.8 1.9L12 15.7 10.1 10.9 5.3 9l4.8-1.2z"/><path d="M18 15l.7 1.8L20.5 17.5 18.7 18.2 18 20l-.7-1.8L15.5 17.5l1.8-.7z"/></svg>
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
                     Generează descriere
                 </x-btn>
             </div>

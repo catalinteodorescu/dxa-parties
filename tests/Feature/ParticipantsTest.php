@@ -199,6 +199,25 @@ it('blocheaza a doua intrare a aceluiasi participant in aceeasi sesiune, dar nu 
     expect(ParticipantRegistry::visitCounts([$ion->id]))->toBe([$ion->id => 4]);
 });
 
+it('recepția: „participant nou” apare ca popup, nu inline, si butonul de deschidere e doar iconita', function () {
+    $this->actingAs(partAdmin(), 'admin');
+    partParty();
+
+    $c = Livewire::test(ReceptionForm::class)
+        ->assertDontSee('+ Participant nou')      // butonul e doar iconita (svg), nu text
+        ->assertSet('newParticipant', false)
+        ->assertDontSeeHtml('aria-label="Închide"');
+
+    $c->call('toggleNewParticipant')
+        ->assertSet('newParticipant', true)
+        ->assertSeeHtml('aria-label="Închide"')   // popup-ul a aparut
+        ->assertSee('Participant nou');
+
+    $c->call('toggleNewParticipant')
+        ->assertSet('newParticipant', false)
+        ->assertDontSeeHtml('aria-label="Închide"');
+});
+
 it('recepția: cauta, adauga si scoate participanti, iar numarul de persoane creste automat', function () {
     $this->actingAs(partAdmin(), 'admin');
     partParty();

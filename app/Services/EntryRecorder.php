@@ -124,7 +124,14 @@ class EntryRecorder
         $totalCents = $unitCents * $count;
         $queue = self::normalizePayments($party, $payments, $totalCents);
 
-        $entries = DB::transaction(function () use ($party, $quote, $count, $unit, $unitCents, $queue, $reason, $overridden, $adminId, $at, $participantIds) {
+        // Plata cu credite: necesita exact un participant identificat (creditele ies din portofelul lui —
+        // cu mai multi identificati in acelasi grup nu s-ar sti al cui portofel se debiteaza).
+        $creditCents = array_sum(array_map(fn ($q) => $q[0] === PaymentMethods::CREDIT ? $q[1] : 0, $queue));
+        if ($creditCents > 0 && count($participantIds) !== 1) {
+            throw new DomainException('Plata cu credite la intrare necesită exact un participant identificat (creditele ies din portofelul lui).');
+        }
+
+        $entries = DB::transaction(function () use ($party, $quote, $count, $unit, $unitCents, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents) {
             // Sesiunea de recepție deschisă a petrecerii (se deschide singură la prima înregistrare).
             $session = ReceptionSession::openFor($party->id, $adminId);
             $batch = (string) Str::uuid();
@@ -159,6 +166,11 @@ class EntryRecorder
                 }
 
                 $rows->push($entry);
+            }
+
+            if ($creditCents > 0) {
+                $participant = Participant::query()->findOrFail($participantIds[0]);
+                CreditLedger::pay($participant, $creditCents / 100, PartyEntry::class, $rows->first()->id, $adminId, $at);
             }
 
             return $rows;

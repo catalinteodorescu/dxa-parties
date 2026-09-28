@@ -7,6 +7,7 @@ use App\Livewire\Admin\Reception\Form as ReceptionForm;
 use App\Livewire\Admin\Reception\TokenSale;
 use App\Livewire\Admin\Sales\Form as SaleForm;
 use App\Models\Admin;
+use App\Models\CreditTransaction;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Participant;
@@ -17,6 +18,7 @@ use App\Models\SalesGroup;
 use App\Models\StockItem;
 use App\Models\StockReport;
 use App\Models\TokenTransaction;
+use App\Services\CreditLedger;
 use App\Services\EntryRecorder;
 use App\Services\ParticipantRegistry;
 use App\Services\ParticipantStats;
@@ -336,32 +338,59 @@ it('statisticile arata participantii si fara raportari finalizate (intrari si to
         ->assertSee('Nicio raportare finalizată');
 });
 
-it('lista de participanti: coloane de cheltuieli si sortare dupa bar, tokeni, intrari', function () {
+it('lista de participanti: coloane de intrari, tokeni cheltuiti, credite cheltuite si sortare dupa ele', function () {
     $admin = spendAdmin();
     $this->actingAs($admin, 'admin');
     $party = spendParty();
+    \App\Support\PaymentMethods::setActive(\App\Support\PaymentMethods::CREDIT, true);
     $ion = ParticipantRegistry::create('Ion Popescu', '0722 111 111');
     $ana = ParticipantRegistry::create('Ana Ionescu', '0722 222 222');
     $bogdan = ParticipantRegistry::create('Bogdan Ilie', '0722 333 333');
 
-    spendBarSale($party, $admin, 'cash', $ion->id);
-    spendBarSale($party, $admin, 'cash', $ion->id);
-    spendBarSale($party, $admin, 'cash', $ana->id);
-    TokenLedger::sell($party, 40, [['method' => 'cash', 'amount' => 200]], $admin->id, participantId: $bogdan->id);
-    EntryRecorder::record($party, 'Bilet', 2, [['method' => 'cash', 'amount' => 60]], adminId: $admin->id, participants: [$ana->id, $bogdan->id]);
+    // Ion: 2 vanzari de bar platite cu tokeni (6+6 = 12 tokeni cheltuiti), 0 intrari.
+    spendBarSale($party, $admin, 'token', $ion->id);
+    spendBarSale($party, $admin, 'token', $ion->id);
+
+    // Ana: 1 intrare platita partial cu credite (20 lei credite cheltuite).
+    CreditLedger::load($ana, 50, CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');
+    EntryRecorder::record($party, 'Bilet', 1, [['method' => 'cash', 'amount' => 10], ['method' => 'credit', 'amount' => 20]], adminId: $admin->id, participants: [$ana->id]);
+
+    // Bogdan: 1 intrare cash (fara tokeni/credite).
+    EntryRecorder::record($party, 'Bilet', 1, [['method' => 'cash', 'amount' => 30]], adminId: $admin->id, participants: [$bogdan->id]);
 
     $names = fn ($component) => $component->viewData('participants')->pluck('name')->all();
 
-    $c = Livewire::test(ParticipantsIndex::class)->assertSee('Cheltuit la bar')->assertSee('Tokeni cumpărați');
-    expect($names($c))->toBe(['Ana Ionescu', 'Bogdan Ilie', 'Ion Popescu']);                       // implicit: dupa nume
+    $c = Livewire::test(ParticipantsIndex::class)->assertSee('Intrări')->assertSee('Tokeni cheltuiți')->assertSee('Credite cheltuite')
+        ->assertDontSee('Cheltuit la bar')->assertDontSee('Tokeni cumpărați');
+    expect($names($c))->toBe(['Ana Ionescu', 'Bogdan Ilie', 'Ion Popescu']);                        // implicit: dupa nume
 
-    expect($names($c->set('sort', 'bar')))->toBe(['Ion Popescu', 'Ana Ionescu', 'Bogdan Ilie']);    // 60 > 30 > 0
-    expect($names($c->set('sort', 'tokens')))->toBe(['Bogdan Ilie', 'Ana Ionescu', 'Ion Popescu']); // 40 > 0 = 0 (apoi nume)
     expect($names($c->set('sort', 'entries')))->toBe(['Ana Ionescu', 'Bogdan Ilie', 'Ion Popescu']); // 1 = 1 > 0 (apoi nume)
+    expect($names($c->set('sort', 'tokens')))->toBe(['Ion Popescu', 'Ana Ionescu', 'Bogdan Ilie']);  // 12 > 0 = 0 (apoi nume)
+    expect($names($c->set('sort', 'credits')))->toBe(['Ana Ionescu', 'Bogdan Ilie', 'Ion Popescu']); // 20 > 0 = 0 (apoi nume)
 
-    $first = $c->set('sort', 'bar')->viewData('participants')->first();
-    expect((float) $first->bar_spent)->toBe(60.0)->and((int) $first->entries_count)->toBe(0);
-    $c->set('sort', 'valoare-necunoscuta')->assertOk();                                             // sortare invalida = dupa nume
+    $first = $c->set('sort', 'tokens')->viewData('participants')->first();
+    expect((int) $first->tokens_spent)->toBe(12)->and((int) $first->entries_count)->toBe(0);
+
+    $ana2 = $c->set('sort', 'credits')->viewData('participants')->first();
+    expect((float) $ana2->credits_spent)->toBe(20.0);
+
+    $c->set('sort', 'valoare-necunoscuta')->assertOk();                                              // sortare invalida = dupa nume
+});
+
+it('lista de participanti: sterge/anonimizeaza direct din lista, cu confirmare', function () {
+    $admin = spendAdmin();
+    $this->actingAs($admin, 'admin');
+    $party = spendParty();
+    $fresh = ParticipantRegistry::create('Fara Intrari', '0722 444 444');
+    $withEntry = ParticipantRegistry::create('Cu Intrare', '0722 555 555');
+    EntryRecorder::record($party, 'Bilet', 1, [['method' => 'cash', 'amount' => 30]], adminId: $admin->id, participants: [$withEntry->id]);
+
+    $c = Livewire::test(ParticipantsIndex::class);
+    $c->call('delete', $fresh->id);
+    expect(Participant::find($fresh->id))->toBeNull();
+
+    $c->call('anonymize', $withEntry->id);
+    expect($withEntry->fresh()->isAnonymized())->toBeTrue();
 });
 
 it('la salvarea unei intrări cu participanți, cardul de tokeni al aceleiași petreceri primește chip-uri rapide de selecție', function () {

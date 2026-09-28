@@ -45,13 +45,15 @@ it('records a mixed-payment sale with price and cost snapshots, and rejects paym
     [$cocktail] = salesCocktail($admin);
     $group = SalesGroup::openFor(null, $admin->id);
     \App\Support\PaymentMethods::setActive('credit', true); // creditele sunt oprite implicit (Setări > Metode de plată)
+    $buyer = \App\Services\ParticipantRegistry::create('Cu Credite', '0722'.random_int(100000, 999999));
+    \App\Services\CreditLedger::load($buyer, 20, \App\Models\CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');
 
     // 30 lei = 10 cash + 5 credit + 3 tokeni x 5 lei
     $sale = SaleRecorder::record($group, [['menu_item_id' => $cocktail->id, 'qty' => 1]], [
         ['method' => 'cash', 'amount' => 10],
         ['method' => 'credit', 'amount' => 5],
         ['method' => 'token', 'tokens' => 3],
-    ], adminId: $admin->id);
+    ], adminId: $admin->id, participantId: $buyer->id);
 
     expect((float) $sale->total)->toBe(30.0)
         ->and($sale->payments()->count())->toBe(3)

@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Admin\Participants;
 
+use App\Models\CreditTransaction;
 use App\Models\Participant;
 use App\Models\PartyEntry;
 use App\Models\SalePayment;
-use App\Models\TokenTransaction;
 use App\Services\ParticipantRegistry;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +26,7 @@ class Index extends Component
     #[Url(as: 'q')]
     public string $search = '';
 
-    /** Sortare: name | bar (cheltuit la bar) | tokens (tokeni cumpărați) | entries | last (ultima intrare). */
+    /** Sortare: name | entries | tokens (tokeni cheltuiți) | credits (credite cheltuite). */
     #[Url(as: 'sortare')]
     public string $sort = 'name';
 
@@ -73,34 +73,58 @@ class Index extends Component
         $this->adding = false;
     }
 
+    /** Șterge (fără intrări) sau anonimizează (cu intrări) direct din listă — aceeași regulă ca în fișa participantului. */
+    public function delete(int $id): void
+    {
+        $this->message = $this->error = null;
+
+        try {
+            ParticipantRegistry::delete(Participant::findOrFail($id));
+            $this->message = 'Participantul a fost șters.';
+        } catch (DomainException $e) {
+            $this->error = $e->getMessage();
+        }
+    }
+
+    public function anonymize(int $id): void
+    {
+        $this->message = $this->error = null;
+
+        try {
+            ParticipantRegistry::anonymize(Participant::findOrFail($id));
+            $this->message = 'Participantul a fost anonimizat.';
+        } catch (DomainException $e) {
+            $this->error = $e->getMessage();
+        }
+    }
+
     public function render()
     {
-        $sort = in_array($this->sort, ['name', 'bar', 'tokens', 'entries', 'last'], true) ? $this->sort : 'name';
+        $sort = in_array($this->sort, ['name', 'entries', 'tokens', 'credits'], true) ? $this->sort : 'name';
         $this->sort = $sort;
         $q = trim($this->search);
         $digits = preg_replace('/\D+/', '', $q) ?? '';
         $phonePart = $digits !== '' ? ltrim(str_starts_with($digits, '0') ? substr($digits, 1) : $digits, '0') : '';
 
-        // Metrici pe participant, calculate in query ca sa se poata sorta: intrari valabile, cheltuit la bar (fara beneficii),
-        // tokeni cumparati, ultima intrare (definitiile: App\Services\ParticipantStats).
+        // Metrici pe participant, calculate in query ca sa se poata sorta: intrari valabile, tokeni cheltuiti
+        // (sale_payments cu metoda token), credite cheltuite (CreditTransaction::PAYMENT, neanulate).
         $participants = Participant::query()
             ->select('participants.*')
             ->selectSub(PartyEntry::query()->active()->whereColumn('party_entries.participant_id', 'participants.id')->selectRaw('COUNT(*)'), 'entries_count')
-            ->selectSub(PartyEntry::query()->active()->whereColumn('party_entries.participant_id', 'participants.id')->selectRaw('MAX(entered_at)'), 'last_at')
             ->selectSub(
                 SalePayment::query()
                     ->join('sales', 'sales.id', '=', 'sale_payments.sale_id')
                     ->whereColumn('sales.customer_id', 'participants.id')
                     ->where('sales.status', 'completed')
-                    ->where('sale_payments.method', '!=', 'benefit')
-                    ->selectRaw('COALESCE(SUM(sale_payments.amount), 0)'),
-                'bar_spent'
+                    ->where('sale_payments.method', 'token')
+                    ->selectRaw('COALESCE(SUM(sale_payments.tokens), 0)'),
+                'tokens_spent'
             )
             ->selectSub(
-                TokenTransaction::query()->active()->where('type', TokenTransaction::SOLD)
-                    ->whereColumn('token_transactions.participant_id', 'participants.id')
-                    ->selectRaw('COALESCE(SUM(tokens), 0)'),
-                'tokens_bought'
+                CreditTransaction::query()->active()->where('type', CreditTransaction::PAYMENT)
+                    ->whereColumn('credit_transactions.participant_id', 'participants.id')
+                    ->selectRaw('COALESCE(SUM(-amount), 0)'),
+                'credits_spent'
             )
             ->when($q !== '', function ($query) use ($q, $phonePart) {
                 $query->where(function ($w) use ($q, $phonePart) {
@@ -111,10 +135,9 @@ class Index extends Component
                 });
             })
             ->orderByRaw('anonymized_at IS NOT NULL')
-            ->when($this->sort === 'bar', fn ($query) => $query->orderByDesc('bar_spent'))
-            ->when($this->sort === 'tokens', fn ($query) => $query->orderByDesc('tokens_bought'))
             ->when($this->sort === 'entries', fn ($query) => $query->orderByDesc('entries_count'))
-            ->when($this->sort === 'last', fn ($query) => $query->orderByRaw('last_at IS NULL')->orderByDesc('last_at'))
+            ->when($this->sort === 'tokens', fn ($query) => $query->orderByDesc('tokens_spent'))
+            ->when($this->sort === 'credits', fn ($query) => $query->orderByDesc('credits_spent'))
             ->orderBy('name')
             ->paginate(15);
 
@@ -122,10 +145,9 @@ class Index extends Component
             'participants' => $participants,
             'sortOptions' => [
                 'name' => 'Nume',
-                'bar' => 'Cheltuit la bar',
-                'tokens' => 'Tokeni cumpărați',
                 'entries' => 'Intrări',
-                'last' => 'Ultima intrare',
+                'tokens' => 'Tokeni cheltuiți',
+                'credits' => 'Credite cheltuite',
             ],
             'total' => Participant::query()->whereNull('anonymized_at')->count(),
         ]);

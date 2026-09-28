@@ -11,8 +11,6 @@
         <p class="mt-1 text-sm text-ink-soft">Înregistrare manuală din admin. Stocul nu se modifică acum, ci la finalizarea raportării.</p>
     </div>
 
-    @error('form') <x-alert type="error" class="mb-4">{{ $message }}</x-alert> @enderror
-
     {{-- Petrecere --}}
     <section class="mb-5 rounded-2xl border border-border bg-surface p-4">
         <label class="block text-sm font-medium text-ink mb-1.5">Petrecere</label>
@@ -38,7 +36,7 @@
                     @if (! empty($line['menu_item_id']))
                         <button type="button" wire:click="removeLine({{ $i }})" title="Elimină"
                                 class="shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                         </button>
                     @endif
                 </div>
@@ -76,7 +74,7 @@
                     @if (count($payments) > 1)
                         <button type="button" wire:click="removePayment({{ $i }})" title="Elimină plata"
                                 class="ml-auto shrink-0 inline-flex items-center justify-center w-[42px] h-[42px] rounded-lg text-ink-soft/60 hover:text-danger hover:bg-danger/10">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                         </button>
                     @endif
                 </div>
@@ -95,6 +93,11 @@
                 </span>
             @endif
         </div>
+        @error('form')
+            <div class="mt-4 pt-3 border-t border-border">
+                <x-alert type="error">{{ $message }}</x-alert>
+            </div>
+        @enderror
     </section>
 
     <div class="flex items-center gap-3">

@@ -63,6 +63,12 @@ class ReceptionSession extends Model
         return $this->hasMany(TokenTransaction::class)->where('type', TokenTransaction::SOLD);
     }
 
+    /** DXA: adaugat (Portofelul de credite - Etapa 2). Vânzările de credite ale sesiunii (`load`/`reception`). */
+    public function creditSales(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class)->where('type', CreditTransaction::LOAD)->where('source', CreditTransaction::SOURCE_RECEPTION);
+    }
+
     public function report(): HasOne
     {
         return $this->hasOne(ReceptionReport::class);

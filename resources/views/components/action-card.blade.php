@@ -17,6 +17,6 @@
     <span class="text-sm font-medium text-ink">{{ $label }}</span>
     <svg class="absolute top-2.5 right-2.5 w-3.5 h-3.5 text-ink-soft/40 opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all"
          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>
+        <path d="M7 7h10v10"/><path d="M7 17 17 7"/>
     </svg>
 </a>
