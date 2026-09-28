@@ -4,7 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Models\Admin;
 use App\Models\Announcement;
+use App\Models\LoyaltyCard;                 // DXA: adaugat (Card de fidelitate)
 use App\Models\MenuItem;                    // DXA: adaugat (Meniu bar - produse)
+use App\Models\Participant;                 // DXA: adaugat (Participanți)
 use App\Models\Party;                       // DXA: adaugat (Petreceri)
 use App\Models\ReceptionReport;            // DXA: adaugat (Recepție - raportări)
 use App\Models\ReceptionSession;           // DXA: adaugat (Recepție - raportări)
@@ -13,7 +15,10 @@ use App\Models\SalesGroup;                 // DXA: adaugat (Bar - vanzari)
 use App\Models\StockItem;                   // DXA: adaugat (Bar - stocuri)
 use App\Models\StockReport;                 // DXA: adaugat (Bar - raportari)
 use App\Models\StockRequisition;            // DXA: adaugat (Bar - necesare)
+use App\Services\LoyaltyLedger;             // DXA: adaugat (Card de fidelitate)
+use App\Services\TokenLedger;               // DXA: adaugat (Participanți - dashboard, tokeni)
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -177,7 +182,7 @@ class Dashboard extends Component
                 'label' => 'Ultima diferență de casă',
                 'value' => $lastReceptionReport ? static::signedLei((float) $lastReceptionReport->cash_diff) : '—',
                 'hint' => $lastReceptionReport
-                    ? 'Nr. '.$lastReceptionReport->number().($lastReceptionReport->party ? ' · '.\Illuminate\Support\Str::limit($lastReceptionReport->party->name, 18) : '')
+                    ? 'Nr. '.$lastReceptionReport->number().($lastReceptionReport->party ? ' · '.Str::limit($lastReceptionReport->party->name, 18) : '')
                     : 'nicio raportare de recepție încă',
                 'accent' => ! $lastReceptionReport ? 'neutral' : (abs((float) $lastReceptionReport->cash_diff) < 0.005 ? 'success' : 'warning'),
                 'href' => $lastReceptionReport ? route('admin.reception.reports.show', $lastReceptionReport) : route('admin.reception.reports.index'),
@@ -190,6 +195,13 @@ class Dashboard extends Component
                 'href' => route('admin.reception.reports.index', ['status' => 'finalized']),
             ],
         ];
+
+        // DXA: adaugat (Participanți - dashboard). Tablou scurt: participanți, tokeni în circulație, carduri de
+        // fidelitate active (doar cât fidelitatea e activă global) — fiecare cu link direct la pagina lui.
+        $participantsTotal = Participant::whereNull('anonymized_at')->count();
+        $participantsNewThisMonth = Participant::where('created_at', '>=', $now->copy()->startOfMonth())->count();
+        $loyaltyOn = LoyaltyLedger::enabled();
+        $loyaltyActiveCards = $loyaltyOn ? LoyaltyCard::where('status', LoyaltyCard::ACTIVE)->count() : null;
 
         return view('livewire.admin.dashboard', [
             'receptionCards' => $receptionCards, // DXA: adaugat (Recepție - raportări)
@@ -243,6 +255,13 @@ class Dashboard extends Component
             'lastCountedReport' => $lastCountedReport,
             'lastCount' => $lastCount,
             'countTotals30' => $countTotals30,
+
+            // DXA: adaugat (Participanți - dashboard)
+            'participantsTotal' => $participantsTotal,
+            'participantsNewThisMonth' => $participantsNewThisMonth,
+            'tokensCirculation' => TokenLedger::circulation(),
+            'loyaltyOn' => $loyaltyOn,
+            'loyaltyActiveCards' => $loyaltyActiveCards,
         ]);
     }
 }

@@ -198,6 +198,136 @@
         @endif
     </div>
 
+    {{-- Card de fidelitate --}}
+    @if ($loyaltyOn || $loyaltyEnrolled)
+        <div class="{{ $card }} mb-4">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="text-sm font-semibold text-ink">Card de fidelitate</h3>
+                @if (! $loyaltyEnrolled)
+                    <x-btn variant="primary" size="sm" wire:click="toggleEnroll">Înrolează la fidelitate</x-btn>
+                @endif
+            </div>
+
+            @if (! $loyaltyEnrolled)
+                <p class="mt-2 text-xs text-ink-soft leading-relaxed">Participantul nu e înrolat — nu are card. Odată înrolat, primește automat o ștampilă la fiecare intrare identificată pe o petrecere care acordă fidelitate.</p>
+            @else
+                {{-- Vizual: card tip credit card, gradient terracotta --}}
+                <div class="mt-3 max-w-xs rounded-2xl p-5 text-white shadow-md" style="background: linear-gradient(135deg, var(--color-primary-bright), var(--color-primary) 55%, var(--color-primary-dark));">
+                    <div class="min-w-0">
+                        <div class="text-base font-semibold truncate">{{ $participant->name }}</div>
+                        <div class="text-xs text-white/80">{{ $participant->phone ?: 'fără telefon' }}</div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2.5 max-w-[266px]">
+                        @for ($i = 0; $i < $loyaltyCard->stamps_required; $i++)
+                            @php($s = $loyaltyStamps->get($i))
+                            <div wire:key="circle-{{ $i }}" class="w-9 h-9 rounded-full flex items-center justify-center border-2 {{ $s ? 'bg-white/25 border-white' : 'border-white/40' }}" title="{{ $s ? $s->stamped_at->format('d.m.Y') : 'necompletat' }}">
+                                @if ($s)
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                @else
+                                    <span class="text-xs text-white/60">{{ $i + 1 }}</span>
+                                @endif
+                            </div>
+                        @endfor
+                        @php($free = $loyaltyStamps->get($loyaltyCard->stamps_required))
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed {{ $free ? 'bg-white/25 border-white' : 'border-white/60' }}" title="{{ $free ? 'intrare gratis folosită '.$free->stamped_at->format('d.m.Y') : 'intrare gratis' }}">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7Z"/></svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between gap-3 text-[11px] text-white/70">
+                        <span>
+                            creat {{ $loyaltyCard->created_at->format('d.m.Y') }}
+                            @if ($lastAt) · ultima intrare {{ \Illuminate\Support\Carbon::parse($lastAt)->format('d.m.Y') }} @endif
+                        </span>
+                        <span class="shrink-0">#{{ $loyaltyCardNumber }}</span>
+                    </div>
+                </div>
+
+                {{-- Ajustare manuală --}}
+                <div class="mt-4">
+                    <div class="text-xs font-medium text-ink-soft mb-2">Ajustează ștampile</div>
+                    <div class="space-y-1.5 max-w-sm">
+                        <input type="text" inputmode="numeric" wire:model="loyaltyAdjustDelta" placeholder="ex. 3 sau -1" class="{{ $input }}">
+                        <input type="text" wire:model="loyaltyAdjustReason" maxlength="255" placeholder="Motiv (obligatoriu)" class="{{ $input }}">
+                        <x-btn variant="neutral" wire:click="adjustLoyaltyStamps">Ajustează</x-btn>
+                    </div>
+                    <p class="mt-1.5 text-[11px] text-ink-soft">Util și pentru a prelua ștampilele unui card fizic mai vechi.</p>
+                </div>
+
+                {{-- Istoric ștampile --}}
+                @if ($loyaltyHistory->isNotEmpty())
+                    <div class="mt-4 pt-4 border-t border-border">
+                        <div class="text-xs font-medium text-ink-soft mb-2">Istoric ștampile</div>
+                        <div class="space-y-2">
+                            @foreach ($loyaltyHistory as $row)
+                                <div wire:key="lh-{{ $row->key }}" class="rounded-xl border border-border px-3.5 py-2 {{ $row->voided ? 'bg-bg' : '' }}">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 {{ $row->voided ? 'bg-bg text-ink-soft line-through' : 'bg-primary-soft text-primary' }}">
+                                            {{ \App\Models\LoyaltyStamp::SOURCE_LABELS[$row->source] ?? $row->source }}{{ $row->count > 1 ? ' ×'.$row->count : '' }}
+                                        </span>
+                                        <span class="text-xs text-ink-soft">{{ $row->stamped_at->format('d.m.Y H:i') }}</span>
+                                        <span class="text-xs text-ink-soft">· Card #{{ $row->card_number }}</span>
+                                        @if ($row->party_name)
+                                            <span class="text-xs text-ink-soft">· {{ $row->party_name }}</span>
+                                        @endif
+                                    </div>
+                                    @if ($row->reason)
+                                        <div class="mt-0.5 text-xs text-ink-soft">{{ $row->reason }}</div>
+                                    @endif
+                                    @if ($row->voided)
+                                        <div class="mt-0.5 text-xs text-danger">anulată: {{ $row->void_reason }}</div>
+                                    @elseif ($row->activeCount < $row->count)
+                                        <div class="mt-0.5 text-xs text-danger">{{ $row->count - $row->activeCount }} din {{ $row->count }} anulate</div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Stack de carduri arhivate --}}
+                @if ($loyaltyArchived->isNotEmpty())
+                    <div class="mt-4 pt-4 border-t border-border">
+                        <div class="text-xs font-medium text-ink-soft mb-2">Carduri anterioare (completate)</div>
+                        <div class="space-y-1.5">
+                            @foreach ($loyaltyArchived as $ac)
+                                <div wire:key="lc-{{ $ac->id }}" class="rounded-xl border border-border px-3.5 py-2 text-xs text-ink-soft flex items-center justify-between">
+                                    <span>Card #{{ $loyaltyCardNumbers[$ac->id] ?? $ac->id }} — {{ $ac->totalCircles() }} ștampile</span>
+                                    <span>completat {{ $ac->completed_at?->format('d.m.Y') }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            @endif
+        </div>
+
+        {{-- Înrolare, ca popup --}}
+        @if ($enrollOpen)
+            <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-ink/40" wire:click="toggleEnroll"></div>
+                <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
+                    <div class="flex items-center justify-between gap-3">
+                        <h3 class="text-base font-semibold text-ink">Înrolează la fidelitate</h3>
+                        <button type="button" wire:click="toggleEnroll" aria-label="Închide" class="h-7 w-7 inline-flex items-center justify-center rounded-lg text-ink-soft hover:bg-bg">×</button>
+                    </div>
+                    <p class="mt-2 text-xs text-ink-soft leading-relaxed">Pornește un card nou. Dacă participantul are deja un card fizic cu ștampile adunate, le poți prelua acum.</p>
+                    <div class="mt-3 space-y-2">
+                        <input type="text" inputmode="numeric" wire:model="enrollInitialStamps" placeholder="Ștampile deja adunate (opțional, implicit 0)"
+                               x-on:keydown.enter.prevent="$wire.enrollLoyalty()"
+                               class="{{ $input }}">
+                        @if ($error)
+                            <p class="text-sm text-danger">{{ $error }}</p>
+                        @endif
+                    </div>
+                    <div class="mt-4 flex items-center justify-end gap-3">
+                        <button type="button" wire:click="toggleEnroll" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Renunță</button>
+                        <x-btn variant="primary" wire:click="enrollLoyalty">Înrolează</x-btn>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endif
+
     {{-- Pe petreceri --}}
     @if ($spend->parties->isNotEmpty())
         <div class="{{ $card }} mb-4">

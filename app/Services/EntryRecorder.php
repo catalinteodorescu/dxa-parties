@@ -173,6 +173,23 @@ class EntryRecorder
                 CreditLedger::pay($participant, $creditCents / 100, PartyEntry::class, $rows->first()->id, $adminId, $at);
             }
 
+            // Ștampilare automată de fidelitate: doar pentru persoanele identificate, pe o petrecere eligibilă,
+            // și doar dacă intrarea chiar s-a plătit — o intrare gratuită din reducerea cu oră a petrecerii
+            // (preț 0, nu plata „Beneficiu” de fidelitate) nu acordă ștampilă.
+            if (LoyaltyLedger::partyEligible($party) && $participantIds !== [] && $unit > 0.0) {
+                $byParticipant = $rows->keyBy('participant_id');
+                foreach ($participantIds as $pid) {
+                    $entry = $byParticipant->get($pid);
+                    if (! $entry) {
+                        continue;
+                    }
+                    $participant = Participant::query()->find($pid);
+                    if ($participant) {
+                        LoyaltyLedger::recordEntryStamp($participant, $entry, $adminId, $at);
+                    }
+                }
+            }
+
             return $rows;
         });
 
@@ -211,6 +228,8 @@ class EntryRecorder
             'cancelled_by' => $adminId,
             'cancel_reason' => Str::limit($reason, 255, ''),
         ]);
+
+        LoyaltyLedger::voidStampsForEntries($entries->pluck('id')->all(), 'Intrarea a fost anulată: '.$reason, $adminId);
 
         $first = $entries->first();
         ActivityLogger::log('entries.cancelled', sprintf(
@@ -261,16 +280,29 @@ class EntryRecorder
         return $ids;
     }
 
-    /** Plata introdusa pe total -> [[metoda, centi], ...] (vezi PaymentRows::normalize). */
+    /**
+     * Plata introdusa pe total -> [[metoda, centi], ...] (vezi PaymentRows::normalize). Metoda „Beneficiu"
+     * (App\Support\PaymentMethods::BENEFIT) e adăugată la cele acceptate doar pe o petrecere eligibilă de
+     * fidelitate — e cum se plătește intrarea gratis (card digital complet SAU card fizic, fără participant
+     * ales; vezi App\Services\LoyaltyLedger).
+     */
     private static function normalizePayments(Party $party, array $payments, int $totalCents): array
     {
-        return PaymentRows::normalize(
-            PaymentMethods::forEntry($party),
-            $payments,
-            $totalCents,
-            'la intrare',
-            'Intrarea e gratuită: nu se înregistrează nicio plată.'
-        );
+        $allowed = self::entryMethods($party);
+
+        return PaymentRows::normalize($allowed, $payments, $totalCents, 'la intrare', 'Intrarea e gratuită: nu se înregistrează nicio plată.');
+    }
+
+    /** @return array<string, string> */
+    public static function entryMethods(Party $party): array
+    {
+        $allowed = PaymentMethods::forEntry($party);
+
+        if (LoyaltyLedger::partyEligible($party)) {
+            $allowed[PaymentMethods::BENEFIT] = PaymentMethods::label(PaymentMethods::BENEFIT);
+        }
+
+        return $allowed;
     }
 
     private static function cents(float $amount): int

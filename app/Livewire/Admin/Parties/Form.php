@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Parties;
 use App\Models\Admin;
 use App\Models\Party;
 use App\Services\ActivityLogger;
+use App\Services\LoyaltyLedger;
 use App\Support\Branding;
 use App\Support\HandlesImageUploads;
 use App\Support\PaymentMethods;
@@ -29,11 +30,14 @@ class Form extends Component
 
     // Identitate
     public string $name = '';
+
     public string $kind = 'basic';
 
     // Timp (simpla)
     public ?string $start_date = null;
+
     public ?string $start_time = null;
+
     public ?string $end_time = null;
 
     // Timp (festival): intervalul (start_date .. end_date) decide zilele din „Program pe zile"
@@ -47,6 +51,7 @@ class Form extends Component
 
     // Invitați (festival)
     public array $guests = [];
+
     public array $guestPhotos = [];
 
     // Stiluri muzică — ciclul de redare (ex. 3 bachata, 3 salsa, 2 kizomba, se reia)
@@ -54,7 +59,9 @@ class Form extends Component
 
     // Locatie
     public ?string $location_name = null;
+
     public ?string $location_address = null;
+
     public ?string $location_url = null;
 
     // Dresscode (simpla; la festival e pe zi)
@@ -62,22 +69,31 @@ class Form extends Component
 
     // Pret
     public bool $is_free = false;
+
     public array $ticket_types = [];   // [['name','price','discounts'=>[['label','price','until'],...]], ...]
 
     // Plata: cheile metodelor alese (din Setari > Metode de plata; lista goala = toate cele active)
     public array $payment_methods = [];
+
+    // DXA: adaugat (Card de fidelitate). Acordă ștampile la intrare ȘI acceptă plata „Beneficiu" (bonusul de
+    // fidelitate); vezi App\Services\LoyaltyLedger::partyEligible().
+    public bool $loyalty_eligible = false;
 
     // Contact (mai multe persoane)
     public array $contacts = [];       // [['admin_id','name','phone','note'], ...]
 
     // Extra
     public array $custom_fields = [];
+
     public array $links = [];
 
     // Plasare / stare
     public string $audience = 'all';
+
     public bool $in_carousel = false;
+
     public bool $is_active = true;
+
     public string $status = 'published';
 
     // Descriere
@@ -85,7 +101,9 @@ class Form extends Component
 
     // Imagine
     public $image = null;
+
     public ?string $existingImage = null;
+
     public bool $removeImage = false;
 
     public function mount(?Party $party = null): void
@@ -158,6 +176,7 @@ class Form extends Component
             }
 
             $this->payment_methods = array_values(array_filter($party->payment_methods ?? [], 'is_string'));
+            $this->loyalty_eligible = (bool) $party->loyalty_eligible;
         } else {
             $this->start_date = now()->next(Carbon::SATURDAY)->format('Y-m-d');
             $this->start_time = '21:00';
@@ -373,6 +392,7 @@ class Form extends Component
 
             'payment_methods' => ['array'],
             'payment_methods.*' => ['string', 'max:60'],
+            'loyalty_eligible' => ['boolean'],
 
             'contacts' => ['array'],
             'contacts.*.admin_id' => ['nullable', 'exists:admins,id'],
@@ -421,17 +441,40 @@ class Form extends Component
 
     // ---- Repeatere: comune ----------------------------------------------
 
-    public function addCustomField(): void { $this->custom_fields[] = ['label' => '', 'value' => '']; }
-    public function removeCustomField(int $i): void { unset($this->custom_fields[$i]); $this->custom_fields = array_values($this->custom_fields); }
+    public function addCustomField(): void
+    {
+        $this->custom_fields[] = ['label' => '', 'value' => ''];
+    }
 
-    public function addLink(): void { $this->links[] = ['label' => '', 'url' => '']; }
-    public function removeLink(int $i): void { unset($this->links[$i]); $this->links = array_values($this->links); }
+    public function removeCustomField(int $i): void
+    {
+        unset($this->custom_fields[$i]);
+        $this->custom_fields = array_values($this->custom_fields);
+    }
 
+    public function addLink(): void
+    {
+        $this->links[] = ['label' => '', 'url' => ''];
+    }
+
+    public function removeLink(int $i): void
+    {
+        unset($this->links[$i]);
+        $this->links = array_values($this->links);
+    }
 
     // ---- Repeatere: bilete ----------------------------------------------
 
-    public function addTicketType(): void { $this->ticket_types[] = $this->emptyTicketType(); }
-    public function removeTicketType(int $i): void { unset($this->ticket_types[$i]); $this->ticket_types = array_values($this->ticket_types); }
+    public function addTicketType(): void
+    {
+        $this->ticket_types[] = $this->emptyTicketType();
+    }
+
+    public function removeTicketType(int $i): void
+    {
+        unset($this->ticket_types[$i]);
+        $this->ticket_types = array_values($this->ticket_types);
+    }
 
     public function addTicketDiscount(int $ti): void
     {
@@ -446,8 +489,16 @@ class Form extends Component
 
     // ---- Repeatere: contacte --------------------------------------------
 
-    public function addContact(): void { $this->contacts[] = $this->emptyContact(); }
-    public function removeContact(int $i): void { unset($this->contacts[$i]); $this->contacts = array_values($this->contacts); }
+    public function addContact(): void
+    {
+        $this->contacts[] = $this->emptyContact();
+    }
+
+    public function removeContact(int $i): void
+    {
+        unset($this->contacts[$i]);
+        $this->contacts = array_values($this->contacts);
+    }
 
     // ---- Repeatere: festival --------------------------------------------
 
@@ -484,8 +535,16 @@ class Form extends Component
 
     // ---- Repeatere: stiluri muzică ---------------------------------------
 
-    public function addMusicStyle(): void { $this->music_styles[] = $this->emptyMusicStyle(); }
-    public function removeMusicStyle(int $i): void { unset($this->music_styles[$i]); $this->music_styles = array_values($this->music_styles); }
+    public function addMusicStyle(): void
+    {
+        $this->music_styles[] = $this->emptyMusicStyle();
+    }
+
+    public function removeMusicStyle(int $i): void
+    {
+        unset($this->music_styles[$i]);
+        $this->music_styles = array_values($this->music_styles);
+    }
 
     public function clearGuestPhoto(int $i): void
     {
@@ -497,7 +556,11 @@ class Form extends Component
 
     // ---- Ajutoare -------------------------------------------------------
 
-    public function clearImage(): void { $this->reset('image'); $this->removeImage = true; }
+    public function clearImage(): void
+    {
+        $this->reset('image');
+        $this->removeImage = true;
+    }
 
     /** Completeaza locatia cu datele scolii din Setari > Scoala (nume, adresa, link harta). */
     public function fillSchoolVenue(): void
@@ -796,7 +859,7 @@ class Form extends Component
                 foreach ($t['discounts'] as $d) {
                     $dt = ($d['label'] ?: 'ofertă').' '.$this->fmtPrice($d['price']);
                     if ($d['until']) {
-                        $dt .= ' până la '.\App\Models\Party::formatUntil($d['until']);
+                        $dt .= ' până la '.Party::formatUntil($d['until']);
                     }
                     $disc[] = $dt;
                 }
@@ -886,6 +949,7 @@ class Form extends Component
             'price_tiers' => [],      // deprecat
 
             'payment_methods' => $this->paymentMethodsList(),
+            'loyalty_eligible' => $this->loyalty_eligible,
 
             'contacts' => $contacts,
             // Compat: primul contact in coloanele vechi.
@@ -968,6 +1032,7 @@ class Form extends Component
             'contactOptions' => $contactOptions,
             'contactAdmins' => $contactAdmins,
             'paymentChoices' => PaymentMethods::partyChoices($this->party?->payment_methods ?? []),
+            'loyaltyEnabled' => LoyaltyLedger::enabled(),
         ]);
     }
 }

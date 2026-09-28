@@ -1,9 +1,12 @@
 <?php
 
 use App\Livewire\Admin\Parties\Form as PartyForm;
+use App\Livewire\Admin\Sales\Form;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
 use App\Livewire\Admin\Settings\PaymentMethods as PaymentMethodsPanel;
 use App\Models\Admin;
+use App\Models\AdminActivityLog;
+use App\Models\CreditTransaction;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Party;
@@ -11,6 +14,8 @@ use App\Models\Sale;
 use App\Models\SalePayment;
 use App\Models\SalesGroup;
 use App\Models\StockItem;
+use App\Services\CreditLedger;
+use App\Services\ParticipantRegistry;
 use App\Services\SaleRecorder;
 use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
@@ -262,17 +267,17 @@ it('formularul de vanzare din admin ofera doar metodele acceptate de petrecerea 
     SalesGroup::openFor($party->id, $admin->id);
 
     // Sesiunea e deja deschisă: formularul o alege automat (implicit), fără să mai fie nevoie s-o cauți.
-    $component = Livewire::test(\App\Livewire\Admin\Sales\Form::class);
+    $component = Livewire::test(Form::class);
     $component->assertSet('party_id', (string) $party->id);
-    expect(array_keys($component->instance()->methods()))->toBe(['cash', 'transfer', 'credit', 'benefit']);
+    expect(array_keys($component->instance()->methods()))->toBe(['cash', 'transfer', 'credit']);
 
     // "Fără petrecere": toate metodele.
     $component->set('party_id', '')->set('payments.0.method', 'card');
-    expect(array_keys($component->instance()->methods()))->toBe(['cash', 'card', 'transfer', 'revolut', 'token', 'credit', 'benefit']);
+    expect(array_keys($component->instance()->methods()))->toBe(['cash', 'card', 'transfer', 'revolut', 'token', 'credit']);
 
     // Revii la petrecere: randul cu o metoda neacceptata acolo (card) revine pe cash.
     $component->set('party_id', (string) $party->id)->assertSet('payments.0.method', 'cash');
-    expect(array_keys($component->instance()->methods()))->toBe(['cash', 'transfer', 'credit', 'benefit']);
+    expect(array_keys($component->instance()->methods()))->toBe(['cash', 'transfer', 'credit']);
 });
 
 it('precompleteaza o petrecere noua cu metodele active si salveaza cheile alese', function () {
@@ -404,7 +409,7 @@ it('logheaza schimbarile din Setari', function () {
     PaymentMethods::setActive('credit', true);
     PaymentMethods::setCreditsPurchasable(true);
 
-    expect(\App\Models\AdminActivityLog::pluck('action')->all())->toBe([
+    expect(AdminActivityLog::pluck('action')->all())->toBe([
         'settings.payment_method_toggled',
         'settings.payment_method_created',
         'settings.token_rate_changed',
@@ -457,8 +462,8 @@ it('in inventarul de final, incasarile care nu sunt cash sau tokeni apar pe meto
     PaymentMethods::setActive('credit', true);
     $custom = PaymentMethods::create('Vouchere partenere');
 
-    $buyer = \App\Services\ParticipantRegistry::create('Cu Credite', '0722'.random_int(100000, 999999));
-    \App\Services\CreditLedger::load($buyer, 50, \App\Models\CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');
+    $buyer = ParticipantRegistry::create('Cu Credite', '0722'.random_int(100000, 999999));
+    CreditLedger::load($buyer, 50, CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');
 
     $group = SalesGroup::openFor(null, $admin->id);
     SaleRecorder::record($group, payLine($cocktail), [['method' => 'cash', 'amount' => 30]], adminId: $admin->id);
@@ -467,7 +472,7 @@ it('in inventarul de final, incasarile care nu sunt cash sau tokeni apar pe meto
     SaleRecorder::record($group, payLine($cocktail), [['method' => $custom->key, 'amount' => 30]], adminId: $admin->id);
     SaleRecorder::record($group, payLine($cocktail), [['method' => 'benefit', 'amount' => 30]], adminId: $admin->id);
 
-    Livewire::test(\App\Livewire\Admin\StockReports\Form::class)
+    Livewire::test(App\Livewire\Admin\StockReports\Form::class)
         ->set('sales_group_id', (string) $group->id)
         ->set('opening_float', '50')
         ->set('counted_cash', '80')

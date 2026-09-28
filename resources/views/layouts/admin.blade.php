@@ -208,18 +208,59 @@
                     </div>
                 </div>
 
-                {{-- DXA: adaugat (Participanți) --}}
-                <a href="{{ route('admin.participants.index') }}" wire:navigate @click="sidebarOpen = false"
-                   class="mt-4 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
-                          {{ request()->routeIs('admin.participants.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
-                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>
-                    </svg>
-                    Participanți
-                </a>
+                {{-- Grup collapsabil: Participanți --}}
+                {{-- DXA: adaugat (Participanți) — Listă + Statistici (topuri) + Carduri (fidelitate). --}}
+                <div x-data="{ participantsOpen: true }" class="pt-4">
+                    <button type="button" @click="participantsOpen = ! participantsOpen"
+                            class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
+                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>
+                        </svg>
+                        <span>Participanți</span>
+                        <svg class="w-3.5 h-3.5 ml-auto shrink-0 transition-transform" :class="participantsOpen ? 'rotate-180' : ''"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </button>
 
-                {{-- Grupurile urmatoare (Credite utilizatori, Card fidelitate)
-                     se adaugă aici, fiecare in grupul potrivit, pe măsură ce le construim. --}}
+                    <div x-show="participantsOpen"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 -translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
+
+                        <a href="{{ route('admin.participants.index') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.participants.index') || request()->routeIs('admin.participants.show') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/>
+                            </svg>
+                            Listă
+                        </a>
+
+                        @if (\App\Services\LoyaltyLedger::enabled())
+                            <a href="{{ route('admin.loyalty.cards') }}" wire:navigate @click="sidebarOpen = false"
+                               class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                      {{ request()->routeIs('admin.loyalty.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>
+                                </svg>
+                                Carduri
+                            </a>
+                        @endif
+
+                        <a href="{{ route('admin.participants.stats') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.participants.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
+                            </svg>
+                            Statistici
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Grupul următor (Credite utilizatori) se adaugă aici, pe măsură ce-l construim. --}}
 
                 {{-- Grup collapsabil: Administratori --}}
                 <div x-data="{ adminsOpen: true }" class="pt-4">

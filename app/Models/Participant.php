@@ -42,6 +42,18 @@ class Participant extends Model
         return $this->hasMany(CreditTransaction::class);
     }
 
+    /** DXA: adaugat (Card de fidelitate). Toate cardurile (active + completate/arhivate), cel mai nou primul. */
+    public function loyaltyCards(): HasMany
+    {
+        return $this->hasMany(LoyaltyCard::class)->latest('id');
+    }
+
+    /** Înrolat la fidelitate? (are cel puțin un card, oricând creat). */
+    public function isLoyaltyEnrolled(): bool
+    {
+        return $this->loyaltyCards()->exists();
+    }
+
     public function isAnonymized(): bool
     {
         return $this->anonymized_at !== null;

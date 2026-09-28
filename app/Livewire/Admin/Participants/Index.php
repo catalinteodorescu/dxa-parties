@@ -6,6 +6,7 @@ use App\Models\CreditTransaction;
 use App\Models\Participant;
 use App\Models\PartyEntry;
 use App\Models\SalePayment;
+use App\Services\LoyaltyLedger;
 use App\Services\ParticipantRegistry;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,9 @@ use Livewire\WithPagination;
 /**
  * DXA: adaugat (Participanți - fundația). Lista participanților identificați (adăugați manual la recepție acum;
  * conturi din aplicație mai târziu), cu căutare după nume/telefon și adăugare. Logica: ParticipantRegistry.
+ *
+ * DXA: adaugat (Card de fidelitate). Buton cu icon care deschide un popup DOAR-AFIȘARE cu cardul de fidelitate
+ * al participantului (fără acțiuni — ajustarea/înrolarea rămân în fișa lui).
  */
 #[Layout('layouts.admin')]
 class Index extends Component
@@ -39,6 +43,9 @@ class Index extends Component
     public ?string $message = null;
 
     public ?string $error = null;
+
+    // DXA: adaugat (Card de fidelitate) — popup doar-afișare.
+    public ?int $loyaltyPopupParticipantId = null;
 
     public function updatingSearch(): void
     {
@@ -98,6 +105,16 @@ class Index extends Component
         }
     }
 
+    public function showLoyaltyCard(int $id): void
+    {
+        $this->loyaltyPopupParticipantId = $id;
+    }
+
+    public function closeLoyaltyCard(): void
+    {
+        $this->loyaltyPopupParticipantId = null;
+    }
+
     public function render()
     {
         $sort = in_array($this->sort, ['name', 'entries', 'tokens', 'credits'], true) ? $this->sort : 'name';
@@ -141,6 +158,23 @@ class Index extends Component
             ->orderBy('name')
             ->paginate(15);
 
+        $loyaltyPopupParticipant = null;
+        $loyaltyPopupCard = null;
+        $loyaltyPopupStamps = collect();
+        $loyaltyPopupCardNumber = null;
+        $loyaltyPopupLastAt = null;
+        if ($this->loyaltyPopupParticipantId) {
+            $loyaltyPopupParticipant = Participant::query()->find($this->loyaltyPopupParticipantId);
+            if ($loyaltyPopupParticipant && $loyaltyPopupParticipant->isLoyaltyEnrolled()) {
+                $loyaltyPopupCard = LoyaltyLedger::activeCard($loyaltyPopupParticipant);
+                if ($loyaltyPopupCard) {
+                    $loyaltyPopupStamps = $loyaltyPopupCard->stamps()->whereNull('voided_at')->orderBy('stamped_at')->orderBy('id')->get();
+                    $loyaltyPopupCardNumber = $loyaltyPopupParticipant->loyaltyCards()->where('id', '<=', $loyaltyPopupCard->id)->count();
+                    $loyaltyPopupLastAt = $loyaltyPopupParticipant->entries()->active()->max('entered_at');
+                }
+            }
+        }
+
         return view('livewire.admin.participants.index', [
             'participants' => $participants,
             'sortOptions' => [
@@ -150,6 +184,13 @@ class Index extends Component
                 'credits' => 'Credite cheltuite',
             ],
             'total' => Participant::query()->whereNull('anonymized_at')->count(),
+            // DXA: adaugat (Card de fidelitate).
+            'loyaltyOn' => LoyaltyLedger::enabled(),
+            'loyaltyPopupParticipant' => $loyaltyPopupParticipant,
+            'loyaltyPopupCard' => $loyaltyPopupCard,
+            'loyaltyPopupStamps' => $loyaltyPopupStamps,
+            'loyaltyPopupCardNumber' => $loyaltyPopupCardNumber,
+            'loyaltyPopupLastAt' => $loyaltyPopupLastAt,
         ]);
     }
 }

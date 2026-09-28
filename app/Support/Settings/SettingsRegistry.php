@@ -122,6 +122,31 @@ class SettingsRegistry
                     ],
                 ],
             ],
+            [
+                'key' => 'loyalty',
+                'label' => 'Card de fidelitate',
+                'description' => 'La X intrări, următoarea e gratis. Nu orice petrecere acordă ștampile — se alege pe fiecare petrecere în parte; nu orice participant are card — se înrolează din fișa lui.',
+                'fields' => [
+                    [
+                        'key' => 'loyalty_enabled',
+                        'type' => 'bool',
+                        'label' => 'Folosim carduri de fidelitate',
+                        'default' => false,
+                    ],
+                    [
+                        'key' => 'loyalty_stamps_required',
+                        'type' => 'number',
+                        'label' => 'Ștampile până la intrarea gratis',
+                        'help' => 'Un card nou pornește cu acest număr de cercuri + unul de „intrare gratis". Cardurile deja create nu se schimbă dacă modifici valoarea aici.',
+                        'default' => 10,
+                        'min' => 2,
+                        'max' => 50,
+                        'step' => 1,
+                        'depends_on' => 'loyalty_enabled',
+                        'rules' => ['required', 'integer', 'min:2', 'max:50'],
+                    ],
+                ],
+            ],
             // Sectiuni viitoare (nu inca implementate — doar exemplu de forma):
             // ['key' => 'lists', 'label' => 'Liste', 'fields' => [
             //     ['key' => 'items_per_page', 'type' => 'number', 'label' => 'Elemente per pagină', 'default' => 15],

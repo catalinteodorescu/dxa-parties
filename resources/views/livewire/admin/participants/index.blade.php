@@ -117,10 +117,13 @@
                         <x-btn variant="neutral" size="icon" outline tooltip="Vezi" :href="route('admin.participants.show', $p)" wire:navigate>
                             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                         </x-btn>
-                        <x-btn variant="warning" size="icon" outline tooltip="Editează" :href="route('admin.participants.show', $p)" wire:navigate>
-                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                        </x-btn>
-                        {{-- „Vezi card fidelitate” — pe viitor. --}}
+                        {{-- „Editează” a fost scos — ducea exact unde duce „Vezi” (nu există pagină de editare separată). --}}
+                        {{-- Card de fidelitate — popup doar-afișare (dacă e înrolat) --}}
+                        @if ($loyaltyOn && $p->isLoyaltyEnrolled())
+                            <x-btn variant="primary" size="icon" outline tooltip="Card de fidelitate" wire:click="showLoyaltyCard({{ $p->id }})">
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+                            </x-btn>
+                        @endif
                         @unless ($anonymized)
                             @if ((int) $p->entries_count === 0)
                                 <x-btn variant="danger" size="icon" outline tooltip="Șterge"
@@ -144,6 +147,53 @@
         </div>
 
         <div class="mt-4">{{ $participants->links() }}</div>
+    @endif
+
+    {{-- Card de fidelitate — popup doar-afișare --}}
+    @if ($loyaltyPopupParticipant && $loyaltyPopupCard)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-ink/40" wire:click="closeLoyaltyCard"></div>
+            <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
+                <div class="flex items-center justify-between gap-3">
+                    <h3 class="text-base font-semibold text-ink">Card de fidelitate</h3>
+                    <button type="button" wire:click="closeLoyaltyCard" aria-label="Închide" class="h-7 w-7 inline-flex items-center justify-center rounded-lg text-ink-soft hover:bg-bg">×</button>
+                </div>
+
+                <div class="mt-3 max-w-xs rounded-2xl p-5 text-white shadow-md" style="background: linear-gradient(135deg, var(--color-primary-bright), var(--color-primary) 55%, var(--color-primary-dark));">
+                    <div class="min-w-0">
+                        <div class="text-base font-semibold truncate">{{ $loyaltyPopupParticipant->name }}</div>
+                        <div class="text-xs text-white/80">{{ $loyaltyPopupParticipant->phone ?: 'fără telefon' }}</div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2.5 max-w-[266px]">
+                        @for ($i = 0; $i < $loyaltyPopupCard->stamps_required; $i++)
+                            @php($s = $loyaltyPopupStamps->get($i))
+                            <div wire:key="popup-circle-{{ $i }}" class="w-9 h-9 rounded-full flex items-center justify-center border-2 {{ $s ? 'bg-white/25 border-white' : 'border-white/40' }}" title="{{ $s ? $s->stamped_at->format('d.m.Y') : 'necompletat' }}">
+                                @if ($s)
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                @else
+                                    <span class="text-xs text-white/60">{{ $i + 1 }}</span>
+                                @endif
+                            </div>
+                        @endfor
+                        @php($free = $loyaltyPopupStamps->get($loyaltyPopupCard->stamps_required))
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed {{ $free ? 'bg-white/25 border-white' : 'border-white/60' }}" title="{{ $free ? 'intrare gratis folosită '.$free->stamped_at->format('d.m.Y') : 'intrare gratis' }}">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7Z"/></svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between gap-3 text-[11px] text-white/70">
+                        <span>
+                            creat {{ $loyaltyPopupCard->created_at->format('d.m.Y') }}
+                            @if ($loyaltyPopupLastAt) · ultima intrare {{ \Illuminate\Support\Carbon::parse($loyaltyPopupLastAt)->format('d.m.Y') }} @endif
+                        </span>
+                        <span class="shrink-0">#{{ $loyaltyPopupCardNumber }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center justify-end">
+                    <a href="{{ route('admin.participants.show', $loyaltyPopupParticipant) }}" wire:navigate class="text-sm font-medium text-primary hover:underline">Deschide fișa participantului →</a>
+                </div>
+            </div>
+        </div>
     @endif
 
     {{-- Modal de confirmare, pentru ștergere/anonimizare --}}

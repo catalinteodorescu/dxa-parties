@@ -4,8 +4,10 @@ namespace App\Livewire\Admin\Concerns;
 
 use App\Models\Participant;
 use App\Models\Party;
+use App\Services\LoyaltyLedger;
 use App\Services\ParticipantRegistry;
 use DomainException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -121,9 +123,13 @@ trait PicksParticipants
      * Datele pentru partialul _participant-picker: alesii, rezultatele căutării, numărul de intrări și, opțional,
      * avertismentul „a intrat deja” (doar la Intrări).
      *
-     * @return array{chosenParticipants: \Illuminate\Support\Collection, participantResults: \Illuminate\Support\Collection, participantVisits: array<int, int>, participantDupes: array<int, string>}
+     * DXA: adaugat (Card de fidelitate). $checkLoyalty (doar la Intrări, pe o petrecere eligibilă) adaugă
+     * participantLoyaltyReady: id => true pentru cei al căror card activ e gata de intrare gratis (badge +
+     * butonul „Aplică intrarea gratis” din picker).
+     *
+     * @return array{chosenParticipants: Collection, participantResults: Collection, participantVisits: array<int, int>, participantDupes: array<int, string>, participantLoyaltyReady: array<int, bool>, showLoyaltyAction: bool}
      */
-    protected function participantPickerData(?Party $party = null, bool $checkDuplicates = false): array
+    protected function participantPickerData(?Party $party = null, bool $checkDuplicates = false, bool $checkLoyalty = false): array
     {
         $chosen = $this->participantIds
             ? Participant::query()->whereIn('id', $this->participantIds)->get()->keyBy('id')
@@ -140,11 +146,23 @@ trait PicksParticipants
             }
         }
 
+        $loyaltyReady = [];
+        $showLoyaltyAction = $checkLoyalty && LoyaltyLedger::partyEligible($party);
+        if ($showLoyaltyAction) {
+            foreach ($chosenParticipants->merge($results) as $p) {
+                if (LoyaltyLedger::readyForFreeEntry($p)) {
+                    $loyaltyReady[$p->id] = true;
+                }
+            }
+        }
+
         return [
             'chosenParticipants' => $chosenParticipants,
             'participantResults' => $results,
             'participantVisits' => ParticipantRegistry::visitCounts($chosenParticipants->pluck('id')->merge($results->pluck('id'))->all()),
             'participantDupes' => $dupes,
+            'participantLoyaltyReady' => $loyaltyReady,
+            'showLoyaltyAction' => $showLoyaltyAction,
         ];
     }
 }

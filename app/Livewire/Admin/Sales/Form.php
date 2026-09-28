@@ -93,7 +93,11 @@ class Form extends Component
 
     /**
      * Metodele de plata alese in formular: cele active in Setari si acceptate de petrecerea sesiunii
-     * alese (fara sesiune = toate cele active), plus Beneficiu (voucher, mereu permis).
+     * alese (fara sesiune = toate cele active).
+     *
+     * DXA: adaugat (Card de fidelitate). „Beneficiu" nu mai apare aici — s-a mutat la intrare, unde e
+     * folosită pentru bonusul de fidelitate (vezi App\Services\EntryRecorder::entryMethods()). Rămâne
+     * mereu permisă din SaleRecorder (nu s-a schimbat acolo), pentru compatibilitate cu vânzări vechi.
      *
      * @return array<string, string>
      */
@@ -101,7 +105,7 @@ class Form extends Component
     {
         $party = $this->party_id !== '' ? Party::find((int) $this->party_id) : null;
 
-        return PaymentMethods::forBar($party) + [PaymentMethods::BENEFIT => PaymentMethods::label(PaymentMethods::BENEFIT)];
+        return PaymentMethods::forBar($party);
     }
 
     public function updated($name): void

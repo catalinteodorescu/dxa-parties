@@ -370,6 +370,21 @@
             </div>
         </div>
 
+        {{-- ============ Card de fidelitate ============ --}}
+        @if ($loyaltyEnabled)
+            <div class="{{ $card }}">
+                <label class="flex items-start gap-2.5 text-sm text-ink">
+                    <input type="checkbox" wire:model="loyalty_eligible" class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                    <span>
+                        <span class="font-medium">Acordă ștampile de fidelitate</span>
+                        <span class="block mt-0.5 text-xs text-ink-soft leading-relaxed">
+                            Participanții înrolați primesc automat o ștampilă la o intrare identificată. Controlează și acceptarea plății „Beneficiu" la intrare (folosită pentru bonusul de fidelitate — card digital complet sau card fizic).
+                        </span>
+                    </span>
+                </label>
+            </div>
+        @endif
+
         {{-- ============ Contact (mai multe persoane) ============ --}}
         <div class="{{ $card }}">
             <h3 class="text-sm font-semibold text-ink">Contact</h3>

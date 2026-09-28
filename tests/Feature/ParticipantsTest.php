@@ -1,8 +1,9 @@
 <?php
 
-use App\Livewire\Admin\Parties\Stats as PartyStatsPage;
 use App\Livewire\Admin\Participants\Index as ParticipantsIndex;
 use App\Livewire\Admin\Participants\Show as ParticipantsShow;
+use App\Livewire\Admin\Participants\Stats as ParticipantsStatsPage;
+use App\Livewire\Admin\Parties\Stats as PartyStatsPage;
 use App\Livewire\Admin\Reception\Form as ReceptionForm;
 use App\Models\Admin;
 use App\Models\AdminActivityLog;
@@ -16,6 +17,7 @@ use App\Services\PartyStats;
 use App\Support\Phone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -53,7 +55,7 @@ function partParty(array $overrides = []): Party
     ], $overrides));
 }
 
-function partEnter(Party $party, int $count = 1, array $participants = [], ?Carbon $at = null, bool $enforce = true): \Illuminate\Support\Collection
+function partEnter(Party $party, int $count = 1, array $participants = [], ?Carbon $at = null, bool $enforce = true): Collection
 {
     return EntryRecorder::record($party, 'Bilet', $count, [['method' => 'cash', 'amount' => 30 * $count]], adminId: null, at: $at, enforceState: $enforce, participants: $participants);
 }
@@ -374,4 +376,54 @@ it('meniul are linkul Participanți', function () {
     $this->actingAs(partAdmin(), 'admin');
 
     $this->get(route('admin.participants.index'))->assertOk()->assertSee(route('admin.participants.index'));
+});
+
+// ---- Statistici (topuri) ---------------------------------------------------
+
+it('ruta /participants/stats nu e capturata de {participant} (route model binding)', function () {
+    $this->actingAs(partAdmin(), 'admin');
+
+    $this->get(route('admin.participants.stats'))->assertOk()->assertSee('Statistici');
+});
+
+it('pagina Statistici: topuri si privire generala corecte', function () {
+    $this->actingAs(partAdmin(), 'admin');
+    $party = partParty();
+
+    $fidel = ParticipantRegistry::create('Fidel Popescu', '0722 200 001');
+    $ocazional = ParticipantRegistry::create('Ocazional Ionescu', '0722 200 002');
+    $fara = ParticipantRegistry::create('Fara Intrari', '0722 200 003');
+
+    ReceptionSession::currentFor($party->id)?->close();
+    partEnter($party, 1, [$fidel->id]);
+    ReceptionSession::currentFor($party->id)->close();
+    partEnter($party, 1, [$fidel->id]);
+    ReceptionSession::currentFor($party->id)->close();
+    partEnter($party, 1, [$ocazional->id]);
+
+    $c = Livewire::test(ParticipantsStatsPage::class)
+        ->assertOk()
+        ->assertSee('Fidel Popescu')
+        ->assertSee('Ocazional Ionescu')
+        ->assertDontSee('Fara Intrari');
+
+    expect($c->viewData('totalParticipants'))->toBe(3)
+        ->and($c->viewData('participantsWithEntries'))->toBe(2)
+        ->and($c->viewData('totalIdentifiedEntries'))->toBe(3)
+        ->and($c->viewData('distribution'))->toBe(['1' => 1, '2-5' => 1, '6+' => 0]);
+
+    $this->get(route('admin.participants.stats'))->assertOk()->assertSee('Cei mai fideli')->assertSee('Cei mai mari cheltuitori');
+});
+
+// ---- Dashboard: secțiunea Participanți -------------------------------------
+
+it('dashboard: sectiunea Participanti arata numarul de participanti si tokenii in circulatie', function () {
+    $this->actingAs(partAdmin(), 'admin');
+    ParticipantRegistry::create('Un Participant', '0722 200 004');
+
+    $this->get(route('admin.dashboard'))
+        ->assertOk()
+        ->assertSee('Participanți')
+        ->assertSee('Tokeni în circulație')
+        ->assertDontSee('Carduri active'); // fidelitatea nu e activata in acest test
 });

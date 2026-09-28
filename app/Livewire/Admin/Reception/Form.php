@@ -4,12 +4,14 @@ namespace App\Livewire\Admin\Reception;
 
 use App\Livewire\Admin\Concerns\PicksParticipants;
 use App\Models\CreditTransaction;
+use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyEntry;
 use App\Models\ReceptionSession;
 use App\Models\TokenTransaction;
 use App\Services\CreditLedger;
 use App\Services\EntryRecorder;
+use App\Services\LoyaltyLedger;
 use App\Services\PartyStats;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
@@ -304,7 +306,39 @@ class Form extends Component
     /** @return array<string, string> */
     private function entryMethods(): array
     {
-        return PaymentMethods::forEntry($this->currentParty());
+        $party = $this->currentParty();
+
+        return $party ? EntryRecorder::entryMethods($party) : PaymentMethods::forEntry(null);
+    }
+
+    /**
+     * DXA: adaugat (Card de fidelitate). Pre-completează plata cu metoda „Beneficiu" pe tot grupul, pentru
+     * participantul al cărui card activ e gata de intrare gratis (buton rapid din picker).
+     */
+    public function applyLoyaltyFreeEntry(int $participantId): void
+    {
+        $this->message = $this->error = null;
+        $party = $this->currentParty();
+
+        if (! $party || ! LoyaltyLedger::partyEligible($party)) {
+            $this->error = 'Petrecerea nu acordă fidelitate.';
+
+            return;
+        }
+        if (! in_array($participantId, $this->participantIds, true)) {
+            $this->error = 'Alege mai întâi participantul.';
+
+            return;
+        }
+
+        $participant = Participant::find($participantId);
+        if (! $participant || ! LoyaltyLedger::readyForFreeEntry($participant)) {
+            $this->error = 'Participantul nu are dreptul la intrare gratis chiar acum.';
+
+            return;
+        }
+
+        $this->payAll(PaymentMethods::BENEFIT);
     }
 
     private function quote(): ?object
@@ -412,7 +446,7 @@ class Form extends Component
                 ->limit(30)->get()
             : collect();
 
-        $picker = $this->participantPickerData($party, true);
+        $picker = $this->participantPickerData($party, true, true);
 
         return view('livewire.admin.reception.form', [
             ...$picker,

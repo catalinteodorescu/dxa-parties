@@ -14,11 +14,17 @@
     @if ($chosenParticipants->isNotEmpty())
         <div class="mb-2 flex flex-wrap gap-2">
             @foreach ($chosenParticipants as $cp)
-                <span wire:key="chosen-{{ $cp->id }}" class="inline-flex items-center gap-2 rounded-full border {{ isset($participantDupes[$cp->id]) ? 'border-danger bg-danger/10' : 'border-border bg-bg' }} pl-3 pr-1.5 py-1 text-xs text-ink">
+                <span wire:key="chosen-{{ $cp->id }}" class="inline-flex items-center gap-2 rounded-full border {{ isset($participantDupes[$cp->id]) ? 'border-danger bg-danger/10' : (($participantLoyaltyReady[$cp->id] ?? false) ? 'border-warning bg-warning/10' : 'border-border bg-bg') }} pl-3 pr-1.5 py-1 text-xs text-ink">
                     <span class="font-medium">{{ $cp->name }}</span>
                     <span class="text-ink-soft">{{ $cp->phone }} · {{ $participantVisits[$cp->id] ?? 0 }} intrări</span>
                     @if (isset($participantDupes[$cp->id]))
                         <span class="text-danger">a intrat deja în sesiunea curentă, la {{ $participantDupes[$cp->id] }}</span>
+                    @elseif ($participantLoyaltyReady[$cp->id] ?? false)
+                        <span class="inline-flex items-center gap-1 text-warning font-medium">🎁 Intrare gratis disponibilă</span>
+                        <button type="button" wire:click="applyLoyaltyFreeEntry({{ $cp->id }})"
+                                class="rounded-full bg-warning hover:bg-warning/90 text-white text-[11px] font-medium px-2.5 py-1 transition-colors">
+                            Aplică intrarea gratis
+                        </button>
                     @endif
                     <button type="button" wire:click="removeParticipant({{ $cp->id }})" aria-label="Scoate participantul"
                             class="h-5 w-5 rounded-full text-ink-soft hover:bg-border">×</button>
@@ -39,9 +45,12 @@
         <div class="mt-2 space-y-1.5">
             @foreach ($participantResults as $pr)
                 <button type="button" wire:key="found-{{ $pr->id }}" wire:click="addParticipant({{ $pr->id }})"
-                        class="w-full flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-left text-sm hover:bg-bg">
+                        class="w-full flex items-center justify-between gap-3 rounded-lg border {{ ($participantLoyaltyReady[$pr->id] ?? false) ? 'border-warning bg-warning/10' : 'border-border bg-surface' }} px-3 py-2 text-left text-sm hover:bg-bg">
                     <span class="min-w-0 truncate"><span class="font-medium text-ink">{{ $pr->name }}</span> <span class="text-ink-soft">{{ $pr->phone }}</span></span>
-                    <span class="shrink-0 text-xs text-ink-soft">{{ $participantVisits[$pr->id] ?? 0 }} intrări</span>
+                    <span class="shrink-0 text-xs {{ ($participantLoyaltyReady[$pr->id] ?? false) ? 'text-warning font-medium' : 'text-ink-soft' }}">
+                        @if ($participantLoyaltyReady[$pr->id] ?? false) 🎁 intrare gratis @endif
+                        {{ $participantVisits[$pr->id] ?? 0 }} intrări
+                    </span>
                 </button>
             @endforeach
         </div>
