@@ -47,7 +47,7 @@ class Form extends Component
     {
         abort_unless(Auth::guard('admin')->check(), 403);
 
-        $this->report = $report->load(['party', 'session', 'creator', 'finalizer']);
+        $this->report = $report->load(['party', 'session', 'creator', 'finalizer', 'submitter']);
 
         $this->opening_float = $this->fmt($report->opening_float);
         $this->handed_over = $this->fmt($report->handed_over);
@@ -111,6 +111,34 @@ class Form extends Component
         $this->confirming = false;
     }
 
+    /** Dialogul custom de confirmare a redeschiderii. */
+    public bool $confirmingReopen = false;
+
+    public function askReopen(): void
+    {
+        $this->error = null;
+        $this->confirmingReopen = true;
+    }
+
+    public function cancelReopen(): void
+    {
+        $this->confirmingReopen = false;
+    }
+
+    /** DXA: adaugat (PWA Recepție - raportare). Adminul redeschide o raportare trimisă din aplicație. */
+    public function reopen(): void
+    {
+        $this->error = null;
+        $this->confirmingReopen = false;
+
+        try {
+            $this->report->reopen((int) Auth::guard('admin')->id());
+            $this->report = $this->report->fresh(['party', 'session', 'creator', 'finalizer', 'submitter']);
+        } catch (DomainException $e) {
+            $this->error = $e->getMessage();
+        }
+    }
+
     public function exportPdf()
     {
         return ReceptionReportPdfExporter::stream($this->report);
@@ -139,7 +167,7 @@ class Form extends Component
 
         $this->report->update([
             'opening_float' => $this->money($this->opening_float, 'Fondul de casă'),
-            'handed_over' => $this->money($this->handed_over, 'Cash-ul predat/scos'),
+            'handed_over' => $this->money($this->handed_over, 'Banii scoși din casă'),
             'handed_note' => trim($this->handed_note) !== '' ? mb_substr(trim($this->handed_note), 0, 255) : null,
             'counted_cash' => $this->money($this->counted_cash, 'Cash-ul numărat'),
             'method_notes' => $notes ?: null,

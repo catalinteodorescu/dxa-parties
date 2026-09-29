@@ -75,6 +75,33 @@ trait PicksParticipants
         $this->participantsChanged();
     }
 
+    /**
+     * DXA: adaugat (Scanare QR). Apelat din scannerul camerei (PWA Recepție) cu conținutul codului citit.
+     * Alege participantul ca la selecția manuală; nu înregistrează nimic. Întoarce rezultatul pentru scanner.
+     *
+     * @return array{ok: bool, message: string}
+     */
+    public function scanParticipant(string $code): array
+    {
+        $this->participantError = null;
+        $participant = Participant::findByQrPayload($code);
+
+        if (! $participant) {
+            return ['ok' => false, 'message' => 'Cod necunoscut. Încearcă din nou.'];
+        }
+
+        $this->addParticipant($participant->id);
+
+        if ($this->participantError) {
+            $message = $this->participantError;
+            $this->participantError = null;
+
+            return ['ok' => false, 'message' => $message];
+        }
+
+        return ['ok' => true, 'message' => $participant->name];
+    }
+
     public function removeParticipant(int $id): void
     {
         $this->participantIds = array_values(array_filter($this->participantIds, fn ($p) => $p !== $id));

@@ -64,7 +64,7 @@
             <label class="block text-sm font-medium text-ink mb-1.5">Plată (pe total)</label>
 
             <div class="flex flex-wrap gap-2 mb-3">
-                @foreach ($methods as $key => $label)
+                @foreach ($topMethods as $key => $label)
                     <button type="button" wire:key="tpayall-{{ $key }}" wire:click="payAll('{{ $key }}')"
                             class="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-bg">Tot cu {{ $label }}</button>
                 @endforeach

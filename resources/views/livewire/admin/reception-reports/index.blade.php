@@ -135,7 +135,7 @@
                         @if ($report->isFinalized())
                             <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-info-soft text-info">Finalizat</span>
                         @else
-                            <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-primary-soft text-primary">Draft</span>
+                            <span class="inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 {{ $report->isSubmitted() ? 'bg-info-soft text-info' : 'bg-primary-soft text-primary' }}">{{ $report->isSubmitted() ? 'Trimisă din app' : 'Draft' }}</span>
                         @endif
                     </div>
 

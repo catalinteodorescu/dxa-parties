@@ -39,6 +39,18 @@ class Complete extends Component
             'activated_at' => now(),
         ]);
 
+        // DXA: adaugat (Utilizatori - acces pe aplicație): un cont fără acces la panou (ex. doar barman) își
+        // activează contul, dar nu intră în panoul web — se întoarce la login cu un mesaj.
+        if (! $admin->canAccess(Admin::APP_ADMIN)) {
+            ActivityLogger::log('admin.invite.completed', 'Și-a completat contul și a fost activat.', actor: $admin);
+
+            session()->flash('status', 'Contul tău a fost activat. Nu ai acces la panoul de administrare — folosește aplicația la care ai acces.');
+
+            $this->redirectRoute('admin.login', navigate: true);
+
+            return;
+        }
+
         Auth::guard('admin')->login($admin);
 
         request()->session()->regenerate();

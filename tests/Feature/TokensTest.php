@@ -2,14 +2,16 @@
 
 use App\Livewire\Admin\Parties\Index as PartiesIndex;
 use App\Livewire\Admin\Parties\Stats as PartyStatsPage;
-use App\Livewire\Admin\Reception\TokenSale;
+use App\Livewire\Admin\Reception\Form;
 use App\Livewire\Admin\Reception\Tokens as TokensPage;
+use App\Livewire\Admin\Reception\TokenSale;
 use App\Livewire\Admin\Settings\PaymentMethods as PaymentMethodsPanel;
 use App\Models\Admin;
 use App\Models\AdminActivityLog;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Party;
+use App\Models\Sale;
 use App\Models\SalesGroup;
 use App\Models\StockItem;
 use App\Models\TokenTransaction;
@@ -17,7 +19,6 @@ use App\Services\PartyStats;
 use App\Services\SaleRecorder;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
-use App\Support\Settings\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -59,7 +60,7 @@ function tokParty(?array $methods = null, array $overrides = []): Party
 }
 
 /** O vanzare la bar (produs de 30 lei) platita cu tokeni, in sesiunea petrecerii. */
-function tokBarSale(Party $party, Admin $admin, int $tokens): \App\Models\Sale
+function tokBarSale(Party $party, Admin $admin, int $tokens): Sale
 {
     static $item = null;
     if ($item === null || ! MenuItem::find($item)) {
@@ -299,7 +300,7 @@ it('ecranul Recepție arata ultimele vanzari de tokeni in coloana din dreapta si
     $this->actingAs($admin, 'admin');
     $party = tokParty();
 
-    $c = Livewire::test(\App\Livewire\Admin\Reception\Form::class)->assertSee('Nicio vânzare de tokeni încă.');
+    $c = Livewire::test(Form::class)->assertSee('Nicio vânzare de tokeni încă.');
 
     $tx = TokenLedger::sell($party, 20, [['method' => 'cash', 'amount' => 100]], $admin->id);
     $c->dispatch('tokens-changed')->assertSee('20 tokeni')->assertSee('Tokeni Admin')->assertSee('Cash 100,00');
@@ -325,7 +326,7 @@ it('listele din dreapta au inaltime limitata (aprox. 5 randuri) cu scroll intern
         TokenLedger::sell($party, $i, [['method' => 'cash', 'amount' => $i * 5]], $admin->id);
     }
 
-    Livewire::test(\App\Livewire\Admin\Reception\Form::class)
+    Livewire::test(Form::class)
         ->assertSeeHtml('max-h-[19rem] overflow-y-auto')
         ->assertSee('8 tokeni')->assertSee('1 tokeni'); // toate cele 8 sunt in lista (derulabila)
 });
@@ -389,8 +390,10 @@ it('pagina Tokeni: arata circulatia, ajusteaza, casează si listeaza mișcările
         ->assertSee('Ajustare');
     expect(TokenLedger::circulation())->toBe(94);
 
-    $c->call('writeOff')->assertSet('error', fn ($e) => str_contains($e, 'motiv'));
-    $c->set('writeOffReason', 'Închidem tokenii')->call('writeOff')
+    $c->call('askWriteOff')->assertSet('error', fn ($e) => str_contains($e, 'motiv'))->assertSet('confirmingWriteOff', false);
+    $c->set('writeOffReason', 'Închidem tokenii')->call('askWriteOff')->assertSet('confirmingWriteOff', true)
+        ->assertSee('Casezi tokenii rămași?')
+        ->call('writeOff')->assertSet('confirmingWriteOff', false)
         ->assertSet('message', 'Tokenii rămași în circulație au fost casați.')
         ->assertSee('Casare');
     expect(TokenLedger::circulation())->toBe(0);

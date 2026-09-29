@@ -45,6 +45,8 @@ class ReceptionReport extends Model
         'snapshot',
         'finalized_by',
         'finalized_at',
+        'submitted_at',
+        'submitted_by',
         'created_by',
     ];
 
@@ -63,6 +65,7 @@ class ReceptionReport extends Model
             'method_notes' => 'array',
             'snapshot' => 'array',
             'finalized_at' => 'datetime',
+            'submitted_at' => 'datetime',
         ];
     }
 
@@ -94,6 +97,77 @@ class ReceptionReport extends Model
     public function isFinalized(): bool
     {
         return $this->status === 'finalized';
+    }
+
+    public function submitter(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'submitted_by');
+    }
+
+    /** Draft trimis de recepționer din aplicație: așteaptă finalizarea (sau redeschiderea) de către admin. */
+    public function isSubmitted(): bool
+    {
+        return $this->isDraft() && $this->submitted_at !== null;
+    }
+
+    /** Text -> lei (virgulă sau punct); '' = necompletat (null). @throws DomainException */
+    public static function parseMoney(string $value, string $label): ?float
+    {
+        $raw = str_replace([' ', ','], ['', '.'], trim($value));
+        if ($raw === '') {
+            return null;
+        }
+        if (! is_numeric($raw) || (float) $raw < 0 || (float) $raw > 10000000) {
+            throw new DomainException($label.' trebuie să fie o sumă între 0 și 10.000.000 lei.');
+        }
+
+        return round((float) $raw, 2);
+    }
+
+    /**
+     * Recepționerul trimite raportarea din aplicație. Cere cash-ul numărat; nu închide sesiunea (asta o face adminul,
+     * la finalizare), dar cât e trimisă nu se mai înregistrează și nu se mai anulează nimic în sesiune.
+     */
+    public function submit(int $adminId): void
+    {
+        $this->refresh();
+
+        if (! $this->isDraft()) {
+            throw new DomainException('Raportarea e deja finalizată.');
+        }
+        if ($this->submitted_at !== null) {
+            throw new DomainException('Raportarea a fost deja trimisă.');
+        }
+        if ($this->counted_cash === null) {
+            throw new DomainException('Introdu cash-ul numărat ca să poți trimite raportarea (poate fi 0).');
+        }
+
+        $this->forceFill(['submitted_at' => now(), 'submitted_by' => $adminId])->save();
+
+        ActivityLogger::log('reception.report_submitted', sprintf(
+            'A trimis raportarea de recepție nr. %s la „%s” din aplicație (numărat %s lei).',
+            $this->number(),
+            $this->party?->name ?? '—',
+            number_format((float) $this->counted_cash, 2, ',', '.')
+        ));
+    }
+
+    /** Adminul redeschide o raportare trimisă (ex. o greșeală): recepția poate din nou să înregistreze / anuleze. */
+    public function reopen(int $adminId): void
+    {
+        $this->refresh();
+
+        if (! $this->isSubmitted()) {
+            throw new DomainException('Raportarea nu este în starea „trimisă”.');
+        }
+
+        $this->forceFill(['submitted_at' => null, 'submitted_by' => null])->save();
+
+        ActivityLogger::log('reception.report_reopened', sprintf(
+            'A redeschis raportarea de recepție nr. %s la „%s” (trimisă din aplicație).',
+            $this->number(),
+            $this->party?->name ?? '—'
+        ));
     }
 
     /** Numărul documentului, ca la StockReport: „22 / 23.09.2026” (id-ul din DB + data raportării). */

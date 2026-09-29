@@ -18,7 +18,7 @@
             <h2 class="mt-1 text-xl font-semibold text-ink">
                 {{ $report->title() }}
                 @if ($draft)
-                    <span class="align-middle inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-primary-soft text-primary">Draft</span>
+                    <span class="align-middle inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 {{ $report->isSubmitted() ? 'bg-info-soft text-info' : 'bg-primary-soft text-primary' }}">{{ $report->isSubmitted() ? 'Trimisă' : 'Draft' }}</span>
                 @else
                     <span class="align-middle inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5 bg-info-soft text-info">Finalizat</span>
                 @endif
@@ -38,6 +38,17 @@
             </x-btn>
         @endif
     </div>
+
+    @if ($report->isSubmitted())
+        <div class="mb-4 rounded-2xl border border-info/30 bg-info-soft p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="text-sm text-info">
+                <span class="font-semibold">Trimisă din aplicație</span>
+                de {{ $report->submitter?->name ?? '—' }}, {{ $report->submitted_at->format('d.m.Y H:i') }}.
+                Recepția nu mai poate înregistra sau anula nimic. Verifică cifrele și finalizează, sau redeschide dacă e o greșeală.
+            </div>
+            <x-btn variant="neutral" wire:click="askReopen" class="shrink-0">Redeschide</x-btn>
+        </div>
+    @endif
 
     @if (! $draft)
         <x-alert type="success" class="mb-4" :dismissible="false">Raportare finalizată: valorile sunt înghețate, iar sesiunea de recepție e închisă. Următoarea intrare sau vânzare de tokeni deschide o sesiune nouă.</x-alert>
@@ -67,7 +78,7 @@
     {{-- 1. Cash --}}
     <div class="{{ $card }} mb-4">
         <h3 class="text-sm font-semibold text-ink">1. Cash</h3>
-        <p class="mt-1 text-xs text-ink-soft">Doar cash-ul se numără. Cash așteptat = fond de casă + încasat din intrări + încasat din tokeni + încasat din credite − predat/scos.</p>
+        <p class="mt-1 text-xs text-ink-soft">Doar cash-ul se numără. Cash așteptat = fond de casă + încasat din intrări + încasat din tokeni + încasat din credite − bani scoși din casă în timpul serii.</p>
 
         <dl class="mt-4 divide-y divide-border text-sm">
             <div class="py-2.5 flex items-center justify-between gap-3">
@@ -94,7 +105,7 @@
             </div>
             <div class="py-2.5">
                 <div class="flex items-center justify-between gap-3">
-                    <dt class="text-ink">− Predat / scos din casă</dt>
+                    <dt class="text-ink">− Bani scoși din casă în timpul serii</dt>
                     <dd>
                         @if ($draft)
                             <input type="text" inputmode="decimal" wire:model.live.debounce.700ms="handed_over" placeholder="0" class="{{ $input }} w-32 text-right">
@@ -104,7 +115,7 @@
                     </dd>
                 </div>
                 @if ($draft)
-                    <input type="text" wire:model.blur="handed_note" maxlength="255" placeholder="Notă (opțional): cui s-a predat, de ce" class="{{ $input }} mt-2 w-full">
+                    <input type="text" wire:model.blur="handed_note" maxlength="255" placeholder="Notă (opțional): cui s-au dat banii, pentru ce" class="{{ $input }} mt-2 w-full">
                 @elseif ($report->handed_note)
                     <p class="mt-1 text-xs text-ink-soft">{{ $report->handed_note }}</p>
                 @endif
@@ -245,6 +256,21 @@
                 <div class="mt-5 flex items-center justify-end gap-3">
                     <button type="button" wire:click="cancelFinalize" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Mai verific</button>
                     <x-btn variant="primary" wire:click="finalize" wire:loading.attr="disabled" wire:target="finalize">Finalizează</x-btn>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Dialog de redeschidere --}}
+    @if ($confirmingReopen)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-ink/40" wire:click="cancelReopen"></div>
+            <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
+                <h3 class="text-base font-semibold text-ink">Redeschizi raportarea?</h3>
+                <p class="mt-2 text-sm text-ink-soft">Raportarea trimisă din aplicație redevine draft. Recepția va putea din nou să înregistreze intrări și vânzări și să le anuleze, iar recepționerul va trebui să trimită raportarea din nou.</p>
+                <div class="mt-5 flex items-center justify-end gap-3">
+                    <button type="button" wire:click="cancelReopen" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Renunț</button>
+                    <x-btn variant="primary" wire:click="reopen" wire:loading.attr="disabled" wire:target="reopen">Redeschide</x-btn>
                 </div>
             </div>
         </div>

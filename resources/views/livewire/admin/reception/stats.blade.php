@@ -69,6 +69,33 @@
         @endif
     </div>
 
+    {{-- Metode de plată la intrări (din ele vin butoanele „Tot cu…” din recepție) --}}
+    <div class="{{ $card }} mb-4">
+        <h3 class="text-sm font-semibold text-ink">Metode de plată la intrări</h3>
+        <p class="mt-1 text-xs text-ink-soft">All-time, fără intrările anulate. Primele două apar ca butoane „Tot cu…” în recepție.</p>
+        @if ($methodUsage->isEmpty())
+            <p class="mt-3 text-sm text-ink-soft">Nicio plată înregistrată încă.</p>
+        @else
+            @php
+                $labels = \App\Support\PaymentMethods::labels();
+                $maxUses = max(1, $methodUsage->max('count'));
+            @endphp
+            <div class="mt-3 space-y-2.5">
+                @foreach ($methodUsage as $row)
+                    <div wire:key="mu-{{ $row->method }}">
+                        <div class="flex items-baseline justify-between gap-3 text-sm">
+                            <span class="font-medium text-ink">{{ $labels[$row->method] ?? $row->method }}@if ($loop->index < 2) <span class="ml-1 text-[11px] font-normal text-primary">buton rapid</span>@endif</span>
+                            <span class="text-ink-soft">{{ $int($row->count) }} plăți · {{ $money($row->amount) }} lei</span>
+                        </div>
+                        <div class="mt-1 h-2 rounded-full bg-bg overflow-hidden">
+                            <div class="h-full rounded-full" style="width: {{ round($row->count / $maxUses * 100) }}%; background: var(--color-primary)"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
     {{-- Tokeni vânduți vs. încasați --}}
     <div class="{{ $card }} mb-4">
         <div class="flex items-start justify-between gap-3 flex-wrap">

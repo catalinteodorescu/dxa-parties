@@ -25,6 +25,8 @@ class Tokens extends Component
 
     public string $writeOffReason = '';
 
+    public bool $confirmingWriteOff = false;
+
     public ?string $message = null;
 
     public ?string $error = null;
@@ -59,8 +61,28 @@ class Tokens extends Component
         }, 'Ajustarea a fost înregistrată.');
     }
 
+    public function askWriteOff(): void
+    {
+        $this->message = $this->error = null;
+
+        if (trim($this->writeOffReason) === '') {
+            $this->error = 'Scrie motivul casării.';
+
+            return;
+        }
+
+        $this->confirmingWriteOff = true;
+    }
+
+    public function cancelWriteOff(): void
+    {
+        $this->confirmingWriteOff = false;
+    }
+
     public function writeOff(): void
     {
+        $this->confirmingWriteOff = false;
+
         $this->run(function () {
             TokenLedger::writeOff($this->writeOffReason, Auth::guard('admin')->id());
             $this->writeOffReason = '';

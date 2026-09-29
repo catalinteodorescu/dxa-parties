@@ -2,16 +2,13 @@
 
 namespace App\Livewire\Admin\Reception;
 
-use App\Livewire\Admin\Concerns\PicksParticipants;
+use App\Livewire\Concerns\HandlesEntryForm;
 use App\Models\CreditTransaction;
-use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyEntry;
-use App\Models\ReceptionSession;
 use App\Models\TokenTransaction;
 use App\Services\CreditLedger;
 use App\Services\EntryRecorder;
-use App\Services\LoyaltyLedger;
 use App\Services\PartyStats;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
@@ -35,27 +32,9 @@ use Livewire\Component;
 #[Layout('layouts.admin')]
 class Form extends Component
 {
-    use PicksParticipants;
+    use HandlesEntryForm;
 
     public ?int $partyId = null;
-
-    public string $ticket = '';
-
-    public int|string $count = 1;
-
-    public bool $override = false;
-
-    public string $overridePrice = '';
-
-    public string $overrideReason = '';
-
-    /** @var array<int, array{method: string, amount: string}> plata pe TOTALUL grupului */
-    public array $payments = [['method' => 'cash', 'amount' => '']];
-
-    /** Mesaje ale formularului „Intrare nouă” (afișate în acel card, lângă buton). */
-    public ?string $message = null;
-
-    public ?string $error = null;
 
     /** Mesaje ale anulărilor din „Ultimele intrări” / „Ultimele vânzări de tokeni” (afișate în cardul listei). */
     public ?string $entryCancelMessage = null;
@@ -82,29 +61,12 @@ class Form extends Component
     /** Petrecerile la care se pot înregistra intrări: publicate, active, neîncheiate; cea în desfășurare prima. */
     private function selectableParties()
     {
-        return $this->selectable ??= Party::query()
-            ->where('status', '!=', 'draft')
-            ->where('is_active', true)
-            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
-            ->orderBy('starts_at')
-            ->orderBy('id')
-            ->limit(30)
-            ->get();
+        return $this->selectable ??= Party::query()->forReception()->limit(30)->get();
     }
 
     private function currentParty(): ?Party
     {
         return $this->partyId ? $this->selectableParties()->firstWhere('id', $this->partyId) : null;
-    }
-
-    /** Păstrează un tip de bilet valid pentru petrecerea aleasă. */
-    private function syncTicket(): void
-    {
-        $names = array_column($this->currentParty()?->entryTicketTypes() ?? [], 'name');
-
-        if (! in_array($this->ticket, $names, true)) {
-            $this->ticket = $names[0] ?? '';
-        }
     }
 
     public function updatedPartyId(): void
@@ -114,129 +76,6 @@ class Form extends Component
         $this->creditCancelMessage = $this->creditCancelError = null;
         $this->resetEntryForm();
         $this->syncTicket();
-    }
-
-    public function updatedOverride(): void
-    {
-        $this->overrideReason = '';
-        $this->overridePrice = $this->override ? $this->fmt($this->quote()?->price ?? 0) : '';
-    }
-
-    public function updatedTicket(): void
-    {
-        if ($this->override) {
-            $this->overridePrice = $this->fmt($this->quote()?->price ?? 0);
-        }
-    }
-
-    public function selectTicket(string $name): void
-    {
-        $this->ticket = $name;
-        $this->updatedTicket();
-    }
-
-    public function stepCount(int $delta): void
-    {
-        // Nu coborî sub numărul de participanți deja aleși.
-        $min = max(1, count($this->participantIds));
-        $this->count = max($min, min(EntryRecorder::MAX_GROUP, (int) $this->count + $delta));
-    }
-
-    protected function participantLimit(): int
-    {
-        return EntryRecorder::MAX_GROUP;
-    }
-
-    /** Dacă sunt mai mulți participanți decât persoane, crește numărul de persoane. */
-    protected function participantsChanged(): void
-    {
-        if (count($this->participantIds) > (int) $this->count) {
-            $this->count = count($this->participantIds);
-        }
-    }
-
-    /** „Restul”: completează în rândul $i suma rămasă de încasat (ca la bar). */
-    public function fillRemaining(int $i): void
-    {
-        $others = 0;
-        foreach ($this->payments as $k => $p) {
-            if ($k === $i) {
-                continue;
-            }
-            $raw = str_replace(',', '.', trim((string) ($p['amount'] ?? '')));
-            $others += is_numeric($raw) && (float) $raw > 0 ? (int) round((float) $raw * 100) : 0;
-        }
-
-        $remaining = max(0, $this->totalCents() - $others);
-        $this->payments[$i]['amount'] = $remaining > 0 ? $this->fmt($remaining / 100) : '';
-    }
-
-    public function addPayment(): void
-    {
-        $this->payments[] = ['method' => array_key_first($this->entryMethods()) ?? 'cash', 'amount' => ''];
-    }
-
-    public function removePayment(int $i): void
-    {
-        unset($this->payments[$i]);
-        $this->payments = array_values($this->payments) ?: [['method' => 'cash', 'amount' => '']];
-    }
-
-    /** „Tot cu <metodă>”: o singură plată egală cu totalul. */
-    public function payAll(string $method): void
-    {
-        $this->payments = [['method' => $method, 'amount' => $this->fmt($this->totalCents() / 100)]];
-    }
-
-    public function save(): void
-    {
-        $this->message = $this->error = null;
-        $this->participantError = null;
-        $party = $this->currentParty();
-
-        try {
-            if (! $party) {
-                throw new DomainException('Alege o petrecere.');
-            }
-
-            $override = null;
-            if ($this->override && trim($this->overridePrice) !== '') {
-                $raw = str_replace(',', '.', trim($this->overridePrice));
-                if (! is_numeric($raw)) {
-                    throw new DomainException('Prețul trebuie să fie un număr.');
-                }
-                $override = (float) $raw;
-            }
-
-            $hadSession = ReceptionSession::currentFor($party->id) !== null;
-
-            $entries = EntryRecorder::record(
-                $party,
-                $this->ticket,
-                (int) $this->count,
-                $this->payments,
-                $override,
-                $this->overrideReason,
-                Auth::guard('admin')->id(),
-                participants: $this->participantIds,
-            );
-
-            $this->message = sprintf(
-                'Înregistrat: %d × %s — %s lei.',
-                $entries->count(),
-                $this->ticket,
-                number_format((float) $entries->sum('price_paid'), 2, ',', '.')
-            );
-            if (! $hadSession) {
-                $this->message .= ' '.ReceptionSession::openedNotice($party->id);
-            }
-            if ($this->participantIds !== []) {
-                $this->dispatch('entry-recorded', partyId: $party->id, participantIds: $this->participantIds);
-            }
-            $this->resetEntryForm();
-        } catch (DomainException $e) {
-            $this->error = $e->getMessage();
-        }
     }
 
     /** Vânzare de tokeni făcută în cardul TokenSale (sau anulată aici): reafișează listele din dreapta. */
@@ -291,84 +130,6 @@ class Form extends Component
         } catch (DomainException $e) {
             $this->entryCancelError = $e->getMessage();
         }
-    }
-
-    private function resetEntryForm(): void
-    {
-        $this->count = 1;
-        $this->override = false;
-        $this->overridePrice = '';
-        $this->overrideReason = '';
-        $this->payments = [['method' => 'cash', 'amount' => '']];
-        $this->resetParticipants();
-    }
-
-    /** @return array<string, string> */
-    private function entryMethods(): array
-    {
-        $party = $this->currentParty();
-
-        return $party ? EntryRecorder::entryMethods($party) : PaymentMethods::forEntry(null);
-    }
-
-    /**
-     * DXA: adaugat (Card de fidelitate). Pre-completează plata cu metoda „Beneficiu" pe tot grupul, pentru
-     * participantul al cărui card activ e gata de intrare gratis (buton rapid din picker).
-     */
-    public function applyLoyaltyFreeEntry(int $participantId): void
-    {
-        $this->message = $this->error = null;
-        $party = $this->currentParty();
-
-        if (! $party || ! LoyaltyLedger::partyEligible($party)) {
-            $this->error = 'Petrecerea nu acordă fidelitate.';
-
-            return;
-        }
-        if (! in_array($participantId, $this->participantIds, true)) {
-            $this->error = 'Alege mai întâi participantul.';
-
-            return;
-        }
-
-        $participant = Participant::find($participantId);
-        if (! $participant || ! LoyaltyLedger::readyForFreeEntry($participant)) {
-            $this->error = 'Participantul nu are dreptul la intrare gratis chiar acum.';
-
-            return;
-        }
-
-        $this->payAll(PaymentMethods::BENEFIT);
-    }
-
-    private function quote(): ?object
-    {
-        $party = $this->currentParty();
-
-        return $party && $this->ticket !== '' ? EntryRecorder::quote($party, $this->ticket) : null;
-    }
-
-    private function unitCents(): int
-    {
-        $quote = $this->quote();
-        $unit = $quote?->price ?? 0.0;
-
-        if ($this->override && trim($this->overridePrice) !== '') {
-            $raw = str_replace(',', '.', trim($this->overridePrice));
-            $unit = is_numeric($raw) && (float) $raw >= 0 ? (float) $raw : $unit;
-        }
-
-        return (int) round($unit * 100);
-    }
-
-    private function totalCents(): int
-    {
-        return $this->unitCents() * max(1, min(EntryRecorder::MAX_GROUP, (int) $this->count));
-    }
-
-    private function fmt(float $n): string
-    {
-        return $n == floor($n) ? (string) (int) $n : rtrim(rtrim(number_format($n, 2, '.', ''), '0'), '.');
     }
 
     public function render()
@@ -457,6 +218,7 @@ class Form extends Component
             'tickets' => $tickets,
             'quote' => $this->quote(),
             'methods' => $this->entryMethods(),
+            'topMethods' => EntryRecorder::topMethods($this->entryMethods()),
             'methodLabels' => PaymentMethods::labels(),
             'total' => $total / 100,
             'unit' => $this->unitCents() / 100,

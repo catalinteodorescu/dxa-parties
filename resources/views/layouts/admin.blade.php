@@ -310,6 +310,18 @@
                             </a>
                         @endif
 
+                        {{-- DXA: adaugat (Credite - pagina Credite): apare cât creditele sunt active sau există mișcări. --}}
+                        @if (\App\Services\CreditsOverview::visible())
+                            <a href="{{ route('admin.credits.index') }}" wire:navigate @click="sidebarOpen = false"
+                               class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                      {{ request()->routeIs('admin.credits.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01"/><path d="M18 12h.01"/>
+                                </svg>
+                                Credite
+                            </a>
+                        @endif
+
                         <a href="{{ route('admin.participants.stats') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.participants.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -323,14 +335,14 @@
 
                 {{-- Grupul următor (Credite utilizatori) se adaugă aici, pe măsură ce-l construim. --}}
 
-                {{-- Grup collapsabil: Administratori --}}
+                {{-- Grup collapsabil: Utilizatori --}}
                 <div x-data="{ adminsOpen: true }" class="pt-4">
                     <button type="button" @click="adminsOpen = ! adminsOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
                         <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/>
                         </svg>
-                        <span>Administratori</span>
+                        <span>Utilizatori</span>
                         <svg class="w-3.5 h-3.5 ml-auto shrink-0 transition-transform" :class="adminsOpen ? 'rotate-180' : ''"
                              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="m6 9 6 6 6-6"/>
@@ -399,12 +411,22 @@
 
                         <a href="{{ route('admin.settings.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
-                                  {{ request()->routeIs('admin.settings.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                                  {{ request()->routeIs('admin.settings.index') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
                             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
                                 <circle cx="12" cy="12" r="3"/>
                             </svg>
                             Setări generale
+                        </a>
+
+                        {{-- DXA: adaugat (PWA Recepție - setări aplicație): temă, nume, logo --}}
+                        <a href="{{ route('admin.settings.reception-app') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.settings.reception-app') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>
+                            </svg>
+                            Aplicație recepție
                         </a>
                     </div>
                 </div>

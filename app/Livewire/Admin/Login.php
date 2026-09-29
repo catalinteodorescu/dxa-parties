@@ -71,6 +71,22 @@ class Login extends Component
             return;
         }
 
+        // DXA: adaugat (Utilizatori - acces pe aplicație): parola e corectă, dar contul nu are bifa panoului web.
+        if (! $admin->canAccess(Admin::APP_ADMIN)) {
+            ActivityLogger::log(
+                'admin.login.blocked_no_access',
+                'A încercat să intre în panoul de administrare fără acces.',
+                $admin,
+                actor: null,
+            );
+
+            Auth::guard('admin')->logout();
+            $this->password = '';
+            $this->addError('phone', 'Contul tău nu are acces la această aplicație.');
+
+            return;
+        }
+
         request()->session()->regenerate();
 
         ActivityLogger::log('admin.login.success', 'S-a autentificat.', actor: $admin);

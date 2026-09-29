@@ -357,6 +357,20 @@ class Party extends Model
         return self::dayInterval($date, $this->start_time, $this->end_time);
     }
 
+    /**
+     * DXA: adaugat (Recepție). Petrecerile la care se pot înregistra operațiuni la recepție: publicate, active,
+     * neîncheiate, cea mai devreme începută prima (deci cea în desfășurare). Folosit de admin și de PWA Recepție.
+     */
+    public function scopeForReception(Builder $query): Builder
+    {
+        return $query
+            ->where('status', '!=', 'draft')
+            ->where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
+            ->orderBy('starts_at')
+            ->orderBy('id');
+    }
+
     public function scopeVisible(Builder $query, string $audience = 'all'): Builder
     {
         $now = now();

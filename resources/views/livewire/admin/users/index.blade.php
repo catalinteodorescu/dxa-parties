@@ -32,19 +32,19 @@
         $isSuper = $currentAdmin->isSuperAdmin();
         // Sablon de coloane pentru desktop; pe mobil totul devine card stivuit.
         $cols = $isSuper
-            ? 'md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_44px]'
+            ? 'md:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.9fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_44px]'
             : 'md:grid-cols-[minmax(0,1.8fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.8fr)]';
     @endphp
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-            <h2 class="text-lg font-semibold text-ink">Administratori</h2>
-            <p class="mt-1 text-sm text-ink-soft">Conturile care au acces la panoul de administrare.</p>
+            <h2 class="text-lg font-semibold text-ink">Utilizatori</h2>
+            <p class="mt-1 text-sm text-ink-soft">Conturile care se pot autentifica în panoul de administrare, în aplicația de bar și în cea de recepție.</p>
         </div>
         @if ($isSuper)
             <x-btn variant="primary" :href="route('admin.users.create')" wire:navigate class="self-start">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                Adaugă admin
+                Adaugă utilizator
             </x-btn>
         @endif
     </div>
@@ -58,7 +58,7 @@
                     text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
             <div>Nume</div>
             <div>Telefon</div>
-            @if ($isSuper)<div>Rol</div>@endif
+            @if ($isSuper)<div>Rol</div><div>Acces</div>@endif
             <div>Status</div>
             <div>Creat la</div>
             @if ($isSuper)<div class="text-right">Acțiuni</div>@endif
@@ -126,6 +126,36 @@
                                                  {{ $admin->role === 'superadmin' ? 'bg-primary text-white' : 'bg-surface border border-border text-ink-soft' }}">
                                         {{ $admin->role === 'superadmin' ? 'Superadmin' : 'Admin' }}
                                     </span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Acces pe aplicație (doar superadmin vede și editează) --}}
+                    @if ($isSuper)
+                        <div class="flex items-center justify-between gap-3 md:block">
+                            <span class="text-xs font-medium text-ink-soft md:hidden">Acces</span>
+                            <div class="flex flex-wrap items-center justify-end gap-1.5 md:justify-start">
+                                @if ($admin->isSuperAdmin())
+                                    <span class="inline-flex items-center rounded-full text-xs font-medium px-2.5 py-1 bg-primary-soft text-primary">Toate</span>
+                                @else
+                                    @foreach (['admin' => 'Panou', 'bar' => 'Bar', 'reception' => 'Recepție'] as $app => $appShort)
+                                        @php $has = $admin->canAccess($app); @endphp
+                                        <button type="button" wire:key="acc-{{ $admin->id }}-{{ $app }}"
+                                                @if ($has)
+                                                    @click="askConfirm('Scoate accesul', 'Scoți accesul lui {{ addslashes($admin->name ?: $admin->phone) }} la „{{ \App\Models\Admin::APP_LABELS[$app] }}”? Va fi delogat din aplicație la următoarea acțiune.', 'updateAccess', [{{ $admin->id }}, '{{ $app }}', false])"
+                                                @else
+                                                    wire:click="updateAccess({{ $admin->id }}, '{{ $app }}', true)"
+                                                @endif
+                                                title="{{ \App\Models\Admin::APP_LABELS[$app] }}"
+                                                class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 transition-colors
+                                                       {{ $has ? 'bg-primary-soft text-primary' : 'bg-surface border border-border text-ink-soft/70 hover:text-ink' }}">
+                                            @if ($has)
+                                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                            @endif
+                                            {{ $appShort }}
+                                        </button>
+                                    @endforeach
                                 @endif
                             </div>
                         </div>
@@ -209,7 +239,7 @@
                 </div>
             @empty
                 <div class="rounded-2xl border border-border bg-surface px-5 py-8 text-center text-ink-soft">
-                    Niciun admin momentan.
+                    Niciun utilizator momentan.
                 </div>
             @endforelse
         </div>

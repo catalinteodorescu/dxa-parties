@@ -31,6 +31,26 @@ class Participant extends Model
         });
     }
 
+    /** Prefixul din codul QR personal (aplicația pentru participanți va afișa același conținut). */
+    public const QR_PREFIX = 'DXA:P:';
+
+    /** Conținutul codului QR personal. */
+    public function qrPayload(): string
+    {
+        return self::QR_PREFIX.$this->uuid;
+    }
+
+    /** Găsește participantul după conținutul unui QR scanat (acceptă și uuid-ul simplu). */
+    public static function findByQrPayload(string $payload): ?self
+    {
+        $code = trim($payload);
+        if (str_starts_with($code, self::QR_PREFIX)) {
+            $code = substr($code, strlen(self::QR_PREFIX));
+        }
+
+        return Str::isUuid($code) ? self::where('uuid', strtolower($code))->first() : null;
+    }
+
     public function entries(): HasMany
     {
         return $this->hasMany(PartyEntry::class);

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\ActivityLogger;
+use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,6 +80,14 @@ class ReceptionSession extends Model
         return $query->where('status', 'open');
     }
 
+    public const SUBMITTED_MESSAGE = 'Raportarea de recepție a fost trimisă: nu se mai poate înregistra sau anula nimic până o finalizează sau o redeschide un admin.';
+
+    /** Raportarea sesiunii a fost trimisă din aplicație și așteaptă adminul. */
+    public function reportSubmitted(): bool
+    {
+        return $this->report?->isSubmitted() ?? false;
+    }
+
     public function isOpen(): bool
     {
         return $this->status === 'open';
@@ -136,6 +145,10 @@ class ReceptionSession extends Model
     {
         return DB::transaction(function () use ($partyId, $adminId) {
             if ($existing = static::currentFor($partyId)) {
+                if ($existing->reportSubmitted()) {
+                    throw new DomainException(static::SUBMITTED_MESSAGE);
+                }
+
                 return $existing;
             }
 
@@ -172,7 +185,11 @@ class ReceptionSession extends Model
 
         $closed = static::query()->whereIn('id', $ids)->where('status', 'closed')->with('report')->first();
         if (! $closed) {
-            return null;
+            // Raportare trimisă din aplicație (așteaptă adminul): nici anulările nu mai merg.
+            $submitted = ReceptionReport::query()->whereIn('reception_session_id', $ids)
+                ->where('status', 'draft')->whereNotNull('submitted_at')->exists();
+
+            return $submitted ? static::SUBMITTED_MESSAGE : null;
         }
 
         return 'Casa a fost închisă'.($closed->report ? ' (raportarea nr. '.$closed->report->number().')' : '').', deci '.$what.' nu se mai poate anula.';

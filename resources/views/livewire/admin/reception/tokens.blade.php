@@ -74,7 +74,7 @@
         <div class="mt-3 flex flex-col sm:flex-row gap-2">
             <input type="text" wire:model="writeOffReason" maxlength="255" placeholder="Motiv (obligatoriu)"
                    class="flex-1 min-w-0 rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-            <x-btn variant="danger" wire:click="writeOff" wire:confirm="Casezi toți tokenii rămași în circulație?" :disabled="$circulation <= 0">Casează tokenii</x-btn>
+            <x-btn variant="danger" wire:click="askWriteOff" :disabled="$circulation <= 0">Casează tokenii</x-btn>
         </div>
     </div>
 
@@ -121,4 +121,18 @@
             @endif
         @endif
     </div>
+    {{-- Dialog de casare --}}
+    @if ($confirmingWriteOff)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-ink/40" wire:click="cancelWriteOff"></div>
+            <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
+                <h3 class="text-base font-semibold text-ink">Casezi tokenii rămași?</h3>
+                <p class="mt-2 text-sm text-ink-soft">Se scot din circulație {{ $int(max($circulation, 0)) }} tokeni. Nu se mai pot folosi la bar decât dacă îi readaugi printr-o ajustare.</p>
+                <div class="mt-5 flex items-center justify-end gap-3">
+                    <button type="button" wire:click="cancelWriteOff" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Renunț</button>
+                    <x-btn variant="danger" wire:click="writeOff" wire:loading.attr="disabled" wire:target="writeOff">Casează</x-btn>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

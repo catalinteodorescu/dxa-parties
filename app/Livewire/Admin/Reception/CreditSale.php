@@ -6,6 +6,7 @@ use App\Livewire\Admin\Concerns\PicksParticipants;
 use App\Models\Party;
 use App\Models\ReceptionSession;
 use App\Services\CreditLedger;
+use App\Services\EntryRecorder;
 use App\Services\ParticipantRegistry;
 use App\Support\PaymentMethods;
 use DomainException;
@@ -165,6 +166,7 @@ class CreditSale extends Component
             'party' => $party,
             'purchasable' => PaymentMethods::creditsPurchasable(),
             'methods' => $this->methods(),
+            'topMethods' => EntryRecorder::topMethods($this->methods()),
             'methodLabels' => PaymentMethods::labels(),
             'total' => $total / 100,
             'rest' => ($total - $paid) / 100,

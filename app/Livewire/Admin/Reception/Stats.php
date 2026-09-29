@@ -26,6 +26,7 @@ class Stats extends Component
 
         return view('livewire.admin.reception.stats', [
             'entries' => ReceptionStats::entriesTimeline(),
+            'methodUsage' => ReceptionStats::entryMethodUsage(),
             'tokensOverview' => ReceptionStats::tokensOverview($since),
             'tokensTimeline' => ReceptionStats::tokensTimeline($since),
             'cashDiff' => ReceptionStats::cashDiffTimeline(),

@@ -75,7 +75,7 @@
         <tr><td>+ Încasat din credite (cash)</td><td class="num">{{ $money($fig->cash_credits) }} lei</td></tr>
         <tr>
             <td>
-                − Predat / scos din casă
+                − Bani scoși din casă în timpul serii
                 @if ($report->handed_note)<span class="sub">{{ $report->handed_note }}</span>@endif
             </td>
             <td class="num">{{ $money($fig->handed_over) }} lei</td>

@@ -290,7 +290,7 @@ it('recepția: inregistreaza intrarea cu participanti, ii arata in lista si gole
     // Acelasi participant din nou: chip cu avertisment si eroare la salvare.
     Livewire::test(ReceptionForm::class)
         ->call('addParticipant', $ion->id)
-        ->assertSee('a intrat deja în sesiunea curentă, la 23:00')
+        ->assertSee('A intrat deja în sesiunea curentă, la 23:00')
         ->call('payAll', 'cash')
         ->call('save')
         ->assertSet('error', fn ($e) => str_contains($e, 'a intrat deja'));

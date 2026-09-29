@@ -63,6 +63,36 @@ class Index extends Component
         session()->flash('status', 'Rolul a fost actualizat.');
     }
 
+    /**
+     * DXA: adaugat (Utilizatori - acces pe aplicație). Doar superadmin-ul dă/scoate accesul la panou, bar sau
+     * recepție. Superadmin-ul are implicit acces la toate, deci bifele lui nu se editează.
+     */
+    public function updateAccess(int $adminId, string $app, bool $on): void
+    {
+        $current = Auth::guard('admin')->user();
+
+        abort_unless($current->isSuperAdmin(), 403);
+        abort_unless(array_key_exists($app, Admin::ACCESS_COLUMNS), 422);
+
+        $target = Admin::findOrFail($adminId);
+
+        if ($target->isSuperAdmin()) {
+            session()->flash('error', 'Superadmin-ul are implicit acces la toate aplicațiile.');
+
+            return;
+        }
+
+        $target->update([Admin::ACCESS_COLUMNS[$app] => $on]);
+
+        ActivityLogger::log(
+            'admin.access.updated',
+            ($on ? 'A dat' : 'A scos').' accesul la „'.Admin::APP_LABELS[$app].'” '.($on ? 'lui ' : 'lui ').ActivityLogger::label($target).'.',
+            $target,
+        );
+
+        session()->flash('status', 'Accesul a fost actualizat.');
+    }
+
     public function deleteAdmin(int $adminId): void
     {
         $current = Auth::guard('admin')->user();

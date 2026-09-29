@@ -3,9 +3,10 @@
 namespace App\Livewire\Admin\Reception;
 
 use App\Livewire\Admin\Concerns\PicksParticipants;
+use App\Models\Participant;
 use App\Models\Party;
 use App\Models\ReceptionSession;
-use App\Services\PartyStats;
+use App\Services\EntryRecorder;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
 use DomainException;
@@ -179,7 +180,7 @@ class TokenSale extends Component
         return view('livewire.admin.reception.token-sale', [
             ...$this->participantPickerData(),
             'quickPicks' => $this->quickPickIds
-                ? \App\Models\Participant::query()->whereIn('id', $this->quickPickIds)
+                ? Participant::query()->whereIn('id', $this->quickPickIds)
                     ->whereNotIn('id', $this->participantIds)
                     ->get(['id', 'name'])
                 : collect(),
@@ -189,6 +190,7 @@ class TokenSale extends Component
             'sellable' => PaymentMethods::tokensSellable(),
             'rate' => PaymentMethods::tokenRate(),
             'methods' => $this->methods(),
+            'topMethods' => EntryRecorder::topMethods($this->methods()),
             'methodLabels' => PaymentMethods::labels(),
             'qty' => $this->qty(),
             'total' => $total / 100,

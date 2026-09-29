@@ -219,7 +219,7 @@ class CreditLedger
         $allowed = array_diff_key(PaymentMethods::forEntry($party), [PaymentMethods::CREDIT => true]);
         $rows = PaymentRows::normalize($allowed, $payments, $totalCents, 'la cumpărarea de credite', 'Nu se înregistrează nicio plată.');
 
-        $tx = DB::transaction(function () use ($party, $participant, $amount, $totalCents, $rows, $adminId, $at) {
+        $tx = DB::transaction(function () use ($party, $participant, $amount, $rows, $adminId, $at) {
             // Sesiunea de recepție deschisă a petrecerii (se deschide singură la prima înregistrare).
             $session = ReceptionSession::openFor($party->id, $adminId);
 
@@ -292,6 +292,56 @@ class CreditLedger
             $participant->label(),
             $reason
         ));
+    }
+
+    /**
+     * Returnează creditele plătite pentru o vânzare la bar / o intrare care se anulează: marchează rândurile
+     * `payment` legate de ele ca anulate (ledgerul rămâne imuabil, nu se șterge nimic) și recalculează soldul.
+     * Apelată din Sale::cancel() și EntryRecorder::cancelBatch(). Returnează suma totală redată participanților.
+     *
+     * @param  array<int, int>  $referenceIds
+     */
+    public static function reversePayments(string $referenceType, array $referenceIds, string $reason, ?int $adminId = null): float
+    {
+        if ($referenceIds === []) {
+            return 0.0;
+        }
+
+        $payments = CreditTransaction::query()->active()
+            ->where('type', CreditTransaction::PAYMENT)
+            ->where('reference_type', $referenceType)
+            ->whereIn('reference_id', $referenceIds)
+            ->get();
+
+        if ($payments->isEmpty()) {
+            return 0.0;
+        }
+
+        $returned = 0.0;
+
+        DB::transaction(function () use ($payments, $reason, $adminId, &$returned) {
+            foreach ($payments as $tx) {
+                $tx->update([
+                    'cancelled_at' => now(),
+                    'cancelled_by' => $adminId,
+                    'cancel_reason' => Str::limit('Anulare: '.trim($reason), 255, ''),
+                ]);
+                $returned += abs((float) $tx->amount);
+            }
+
+            foreach ($payments->pluck('participant_id')->unique() as $participantId) {
+                self::recalc(Participant::query()->findOrFail($participantId));
+            }
+        });
+
+        ActivityLogger::log('credits.payment_reversed', sprintf(
+            'Au fost returnați %s lei credite în %d portofel(e) prin anularea plății: %s.',
+            PaymentRows::money($returned),
+            $payments->pluck('participant_id')->unique()->count(),
+            $reason
+        ));
+
+        return round($returned, 2);
     }
 
     // ---- Intern ----------------------------------------------------------

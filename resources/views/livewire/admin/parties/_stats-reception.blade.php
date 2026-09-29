@@ -34,7 +34,7 @@
             {!! $vsRc($cmpRc?->cash_diff, fn ($n) => $signed($n, ' lei')) !!}
         </div>
         <div class="rounded-xl bg-bg px-3 py-2.5">
-            <div class="text-[11px] text-ink-soft">Predat / scos</div>
+            <div class="text-[11px] text-ink-soft">Bani scoși din casă</div>
             <div class="text-lg font-semibold text-ink">{{ $money($rc->handed_over) }}</div>
             {!! $vsRc($cmpRc?->handed_over, $money) !!}
         </div>

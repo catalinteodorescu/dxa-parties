@@ -8,6 +8,7 @@ use App\Services\Sms\LogSmsSender;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +22,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // În spatele unui proxy/tunel care oprește HTTPS (Cloudflare, load balancer) cererea ajunge la aplicație ca HTTP
+        // și linkurile (CSS/JS, Livewire) ies cu http:// → blocate ca „mixed content”. Dacă APP_URL e HTTPS, forțăm HTTPS.
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
+
         // Paginare custom (tema DXA) pentru toate listele.
         Paginator::defaultView('pagination.dxa');
         Paginator::defaultSimpleView('pagination.dxa');

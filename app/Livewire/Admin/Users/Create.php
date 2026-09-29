@@ -16,6 +16,13 @@ class Create extends Component
 {
     public string $phone = '';
 
+    // DXA: adaugat (Utilizatori - acces pe aplicație): aplicațiile în care noul utilizator se poate autentifica.
+    public bool $accessAdmin = true;
+
+    public bool $accessBar = false;
+
+    public bool $accessReception = false;
+
     public function mount(): void
     {
         abort_unless(Auth::guard('admin')->user()->isSuperAdmin(), 403);
@@ -35,10 +42,19 @@ class Create extends Component
             'phone.regex' => 'Numărul trebuie să fie de forma 07XXXXXXXX.',
         ]);
 
+        if (! $this->accessAdmin && ! $this->accessBar && ! $this->accessReception) {
+            $this->addError('accessAdmin', 'Alege cel puțin o aplicație.');
+
+            return;
+        }
+
         $admin = Admin::create([
             'name' => null,
             'phone' => $validated['phone'],
             'password' => Str::random(40),
+            'access_admin' => $this->accessAdmin,
+            'access_bar' => $this->accessBar,
+            'access_reception' => $this->accessReception,
         ]);
 
         $url = URL::temporarySignedRoute(
@@ -47,9 +63,9 @@ class Create extends Component
             ['admin' => $admin->id]
         );
 
-        $sms->send($admin->phone, "Ai fost adăugat ca admin. Completează-ți contul aici: {$url}");
+        $sms->send($admin->phone, "Ai fost adăugat în echipa DXA. Completează-ți contul aici: {$url}");
 
-        ActivityLogger::log('admin.created', 'A invitat un admin nou ('.$admin->phone.').', $admin);
+        ActivityLogger::log('admin.created', 'A invitat un utilizator nou ('.$admin->phone.').', $admin);
 
         session()->flash('status', 'Invitația a fost trimisă către '.$admin->phone.'.');
 

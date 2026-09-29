@@ -15,6 +15,8 @@ use App\Models\SalesGroup;                 // DXA: adaugat (Bar - vanzari)
 use App\Models\StockItem;                   // DXA: adaugat (Bar - stocuri)
 use App\Models\StockReport;                 // DXA: adaugat (Bar - raportari)
 use App\Models\StockRequisition;            // DXA: adaugat (Bar - necesare)
+use App\Services\CreditLedger;                // DXA: adaugat (Credite - dashboard)
+use App\Services\CreditsOverview;             // DXA: adaugat (Credite - dashboard)
 use App\Services\LoyaltyLedger;             // DXA: adaugat (Card de fidelitate)
 use App\Services\PartiesOverview;           // DXA: adaugat (Petreceri - dashboard, statistici agregate)
 use App\Services\TokenLedger;               // DXA: adaugat (Participanți - dashboard, tokeni)
@@ -207,6 +209,8 @@ class Dashboard extends Component
         $participantsTotal = Participant::whereNull('anonymized_at')->count();
         $participantsNewThisMonth = Participant::where('created_at', '>=', $now->copy()->startOfMonth())->count();
         $loyaltyOn = LoyaltyLedger::enabled();
+        $creditsVisible = CreditsOverview::visible();
+        $creditsOutstanding = $creditsVisible ? CreditLedger::totalOutstanding() : null;
         $loyaltyActiveCards = $loyaltyOn ? LoyaltyCard::where('status', LoyaltyCard::ACTIVE)->count() : null;
 
         return view('livewire.admin.dashboard', [
@@ -216,8 +220,8 @@ class Dashboard extends Component
             'draftCount' => Announcement::where('status', 'draft')->count(),
             'latestList' => $latestList,
             'latest' => $latestList->first(),
-            'adminsActive' => Admin::where('is_active', true)->count(),
-            'adminsTotal' => Admin::count(),
+            'adminsActive' => Admin::withAccess(Admin::APP_ADMIN)->where('is_active', true)->count(),
+            'adminsTotal' => Admin::withAccess(Admin::APP_ADMIN)->count(),
             'currentAdmin' => Auth::guard('admin')->user(),
 
             // DXA: adaugat (Petreceri)
@@ -268,6 +272,8 @@ class Dashboard extends Component
             'participantsTotal' => $participantsTotal,
             'participantsNewThisMonth' => $participantsNewThisMonth,
             'tokensCirculation' => TokenLedger::circulation(),
+            'creditsVisible' => $creditsVisible,
+            'creditsOutstanding' => $creditsOutstanding,
             'loyaltyOn' => $loyaltyOn,
             'loyaltyActiveCards' => $loyaltyActiveCards,
         ]);

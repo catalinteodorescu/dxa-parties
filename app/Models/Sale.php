@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Services\CreditLedger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * O vanzare la bar (un "bon"): linii de produse + una sau mai multe plati.
@@ -68,7 +70,7 @@ class Sale extends Model
     }
 
     /** Participantul căruia i s-a făcut vânzarea (null = client neidentificat). FK doar în cod, nu în DB. */
-    public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function customer(): BelongsTo
     {
         return $this->belongsTo(Participant::class, 'customer_id');
     }
@@ -113,11 +115,16 @@ class Sale extends Model
             throw new \DomainException('Vânzarea nu mai poate fi anulată (e deja anulată sau raportată).');
         }
 
-        $this->update([
-            'status' => 'cancelled',
-            'cancelled_at' => now(),
-            'cancelled_by' => $adminId,
-            'cancel_reason' => $reason,
-        ]);
+        // DXA: adaugat (Credite): creditele plătite pentru vânzare se returnează în portofel la anulare.
+        DB::transaction(function () use ($adminId, $reason) {
+            $this->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => $adminId,
+                'cancel_reason' => $reason,
+            ]);
+
+            CreditLedger::reversePayments(self::class, [$this->id], $reason, $adminId);
+        });
     }
 }

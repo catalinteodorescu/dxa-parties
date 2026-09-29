@@ -231,6 +231,9 @@ class EntryRecorder
 
         LoyaltyLedger::voidStampsForEntries($entries->pluck('id')->all(), 'Intrarea a fost anulată: '.$reason, $adminId);
 
+        // DXA: adaugat (Credite): creditele plătite pentru intrare se returnează în portofel la anulare.
+        CreditLedger::reversePayments(PartyEntry::class, $entries->pluck('id')->all(), $reason, $adminId);
+
         $first = $entries->first();
         ActivityLogger::log('entries.cancelled', sprintf(
             'A anulat %d × „%s” (%s lei) la „%s”: %s.',
@@ -303,6 +306,32 @@ class EntryRecorder
         }
 
         return $allowed;
+    }
+
+    /**
+     * Cele mai folosite metode de plată la intrări dintre cele disponibile (pentru butoanele „Tot cu…”).
+     * Ordinea vine din istoricul real (ReceptionStats::entryMethodUsage); metodele nefolosite încă completează după ordinea implicită.
+     * „Beneficiu” (intrarea gratis de fidelitate) nu intră aici: are butonul ei.
+     *
+     * @param  array<string, string>  $methods  cheie => etichetă
+     * @return array<string, string>
+     */
+    public static function topMethods(array $methods, int $limit = 2): array
+    {
+        $ranked = ReceptionStats::entryMethodUsage()->pluck('method')->all();
+        $candidates = array_diff_key($methods, [PaymentMethods::BENEFIT => true]);
+
+        $order = array_merge(
+            array_values(array_intersect($ranked, array_keys($candidates))),
+            array_values(array_diff(array_keys($candidates), $ranked)),
+        );
+
+        $out = [];
+        foreach (array_slice($order, 0, $limit) as $key) {
+            $out[$key] = $candidates[$key];
+        }
+
+        return $out;
     }
 
     private static function cents(float $amount): int

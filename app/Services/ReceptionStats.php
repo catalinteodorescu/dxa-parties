@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Party;
 use App\Models\PartyEntry;
+use App\Models\PartyEntryPayment;
 use App\Models\ReceptionReport;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -18,6 +19,24 @@ use Illuminate\Support\Collection;
  */
 class ReceptionStats
 {
+    /**
+     * Metodele de plată folosite la intrări (all-time, fără intrările anulate), cele mai folosite primele.
+     * Numărul = de câte ori a apărut metoda într-o plată; suma = încasat pe ea. Din ea vin și butoanele „Tot cu…” din recepție.
+     *
+     * @return Collection<int, object{method: string, count: int, amount: float}>
+     */
+    public static function entryMethodUsage(): Collection
+    {
+        return PartyEntryPayment::query()
+            ->whereHas('entry', fn ($q) => $q->whereNull('cancelled_at'))
+            ->selectRaw('method, COUNT(*) as uses, SUM(amount) as total')
+            ->groupBy('method')
+            ->orderByDesc('uses')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($r) => (object) ['method' => $r->method, 'count' => (int) $r->uses, 'amount' => round((float) $r->total, 2)]);
+    }
+
     /** @return Collection<int, object{party: Party, attendance: object}> cronologic, doar petrecerile cu intrari. */
     public static function entriesTimeline(): Collection
     {
