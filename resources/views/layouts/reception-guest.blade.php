@@ -1,3 +1,4 @@
+@php $pwa = $pwa ?? \App\Support\ReceptionApp::class; @endphp
 <!DOCTYPE html>
 <html lang="ro">
 <head>
@@ -8,8 +9,8 @@
     <div class="min-h-screen flex items-center justify-center p-5">
         <div class="w-full max-w-sm">
             <div class="mb-6 flex flex-col items-center gap-3 text-center">
-                <img src="{{ \App\Support\ReceptionApp::logoUrl() }}" alt="" class="h-14 w-auto">
-                <div class="text-lg font-semibold tracking-wide">{{ \App\Support\ReceptionApp::name() }}</div>
+                <img src="{{ $pwa::logoUrl() }}" alt="" class="h-14 w-auto">
+                <div class="text-lg font-semibold tracking-wide">{{ $pwa::name() }}</div>
                 <p class="text-sm text-white/80">Intră cu contul tău.</p>
             </div>
             {{ $slot }}

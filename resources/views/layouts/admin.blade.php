@@ -36,7 +36,9 @@
                 <img src="{{ \App\Support\Branding::logoUrl('on_color') }}" alt="{{ \App\Support\Branding::name() }}" class="h-10 w-auto">
             </a>
 
-            <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto"
+                 x-data
+                 x-init="$nextTick(() => { const a = $el.querySelector('a.bg-primary-soft'); if (a) { $el.scrollTop += a.getBoundingClientRect().top - $el.getBoundingClientRect().top - $el.clientHeight / 2 } })">
 
                 <a href="{{ route('admin.dashboard') }}" wire:navigate @click="sidebarOpen = false"
                    class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
@@ -93,6 +95,14 @@
                                 <path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
                             </svg>
                             Statistici
+                        </a>
+
+                        {{-- DXA: adaugat (Bilanțul serii) --}}
+                        <a href="{{ route('admin.reconciliation') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.reconciliation') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+                            Bilanțul serii
                         </a>
                     </div>
                 </div>
@@ -194,7 +204,16 @@
                             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/>
                             </svg>
-                            Raportări
+                            Raportări stoc
+                        </a>
+
+                        {{-- DXA: adaugat (Bar - raportări casă) --}}
+                        <a href="{{ route('admin.bar.reports.index') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.bar.reports.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m9 15 2 2 4-4"/></svg>
+                            Raportări casă
+                            @if (($n = \App\Models\BarReport::awaitingAdmin()->count()) > 0)<span class="ml-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $n }}</span>@endif
                         </a>
 
                         {{-- DXA: adaugat (Bar - statistici agregate) --}}
@@ -254,7 +273,8 @@
                             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/>
                             </svg>
-                            Raportări
+                            Raportări casă
+                            @if (($n = \App\Models\ReceptionReport::awaitingAdmin()->count()) > 0)<span class="ml-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $n }}</span>@endif
                         </a>
 
                         {{-- DXA: adaugat (Receptie - statistici agregate) --}}
@@ -427,6 +447,16 @@
                                 <rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>
                             </svg>
                             Aplicație recepție
+                        </a>
+
+                        {{-- DXA: adaugat (PWA Bar - setări aplicație): nume, logo, temă --}}
+                        <a href="{{ route('admin.settings.bar-app') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.settings.bar-app') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>
+                            </svg>
+                            Aplicație bar
                         </a>
                     </div>
                 </div>

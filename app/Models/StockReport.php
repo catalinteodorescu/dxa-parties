@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\SalesAggregator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Services\SalesAggregator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -45,6 +45,7 @@ class StockReport extends Model
         'sales_group_id',
         'include_loose_sales',
         'opening_float',
+        'handed_over',
         'counted_cash',
         'counted_tokens',
         'expected_cash',
@@ -61,6 +62,7 @@ class StockReport extends Model
             'finalized_at' => 'datetime',
             'include_loose_sales' => 'boolean',
             'opening_float' => 'decimal:2',
+            'handed_over' => 'decimal:2',
             'counted_cash' => 'decimal:2',
             'expected_cash' => 'decimal:2',
             'counted_tokens' => 'integer',
@@ -386,7 +388,7 @@ class StockReport extends Model
             );
 
             if ($this->counted_cash !== null) {
-                $this->expected_cash = round((float) $this->opening_float + (float) ($payments['cash']['amount'] ?? 0), 2);
+                $this->expected_cash = round((float) $this->opening_float + (float) ($payments['cash']['amount'] ?? 0) - (float) ($this->handed_over ?? 0), 2);
             }
 
             if ($this->counted_tokens !== null) {

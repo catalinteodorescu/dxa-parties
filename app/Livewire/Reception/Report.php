@@ -29,6 +29,10 @@ class Report extends Component
 
     public string $counted_cash = '';
 
+    public string $opening_tokens = '';
+
+    public string $counted_tokens = '';
+
     public string $note = '';
 
     /** @var array<string, string> notițe pe metodele necash (ex. total POS card) */
@@ -66,10 +70,14 @@ class Report extends Component
             $this->handed_over = $this->fmt($report->handed_over);
             $this->handed_note = (string) $report->handed_note;
             $this->counted_cash = $this->fmt($report->counted_cash);
+            $this->opening_tokens = $report->opening_tokens !== null ? (string) $report->opening_tokens : '';
+            $this->counted_tokens = $report->counted_tokens !== null ? (string) $report->counted_tokens : '';
             $this->note = (string) $report->note;
             $this->method_notes = array_map('strval', $report->method_notes ?? []);
         } else {
             $this->opening_float = $this->fmt(ReceptionReport::suggestedFloat($session->party_id));
+            $suggested = ReceptionReport::suggestedTokens($session->party_id);
+            $this->opening_tokens = $suggested !== null ? (string) $suggested : '';
         }
     }
 
@@ -93,6 +101,15 @@ class Report extends Component
         $report->opening_float = $try($this->opening_float);
         $report->handed_over = $try($this->handed_over);
         $report->counted_cash = $try($this->counted_cash);
+        $count = function (string $v) {
+            try {
+                return ReceptionReport::parseCount($v, 'Numărul');
+            } catch (DomainException) {
+                return null;
+            }
+        };
+        $report->opening_tokens = $count($this->opening_tokens);
+        $report->counted_tokens = $count($this->counted_tokens);
         $report->method_notes = array_filter(array_map(fn ($t) => trim((string) $t), $this->method_notes), fn ($t) => $t !== '') ?: null;
 
         return $report;
@@ -120,6 +137,8 @@ class Report extends Component
             'handed_over' => ReceptionReport::parseMoney($this->handed_over, 'Banii scoși din casă'),
             'handed_note' => trim($this->handed_note) !== '' ? mb_substr(trim($this->handed_note), 0, 255) : null,
             'counted_cash' => ReceptionReport::parseMoney($this->counted_cash, 'Cash-ul numărat'),
+            'opening_tokens' => ReceptionReport::parseCount($this->opening_tokens, 'Fondul de tokeni'),
+            'counted_tokens' => ReceptionReport::parseCount($this->counted_tokens, 'Tokenii numărați'),
             'method_notes' => $notes ?: null,
             'note' => trim($this->note) !== '' ? mb_substr(trim($this->note), 0, 2000) : null,
         ]);
@@ -171,6 +190,7 @@ class Report extends Component
             $report = $this->persist($session);
             $report->submit((int) Auth::guard('admin')->id());
             $this->message = 'Raportarea a fost trimisă. Un admin o verifică și închide casa.';
+            $this->js('window.scrollTo({ top: 0, behavior: "smooth" })');
         } catch (DomainException $e) {
             $this->error = $e->getMessage();
         }

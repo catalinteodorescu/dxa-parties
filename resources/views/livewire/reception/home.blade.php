@@ -52,7 +52,9 @@
                 </a>
             @endif
 
-            <a href="{{ route('receptie.recent') }}" wire:navigate class="{{ $tile }} hover:bg-bg mt-5">
+            <hr class="!my-5 border-border">
+
+            <a href="{{ route('receptie.recent') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
                 </span>
@@ -70,6 +72,7 @@
         </div>
 
         {{-- Rezumat sesiune --}}
+        <hr class="!my-5 border-border">
         <div class="rounded-2xl border border-border bg-surface p-4">
             <h2 class="text-sm font-semibold text-ink">Sesiunea de azi</h2>
             @if ($summary)

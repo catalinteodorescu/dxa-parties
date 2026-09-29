@@ -3,6 +3,12 @@
     folosesc trait-ul PicksParticipants. Variabile: $single (un singur client), $label, $hint (opțional), plus datele din
     participantPickerData() și proprietățile publice ale componentei ($participantIds, $participantSearch, $newParticipant, $participantError).
 --}}
+@php
+    // DXA: în aplicațiile PWA (scannable) se arată creditele participantului (dacă are), nu numărul de intrări; „+ Participant nou” se poate ascunde ($allowNew = false).
+    $inApp = $scannable ?? false;
+    $allowNew = $allowNew ?? true;
+    $creditsLabel = fn ($p) => (float) $p->credit_balance > 0 ? number_format((float) $p->credit_balance, 2, ',', '.').' lei credite' : null;
+@endphp
 <div>
     <label class="block text-sm font-medium text-ink mb-1.5">
         {{ $label ?? ($single ?? false ? 'Participant' : 'Participanți') }}
@@ -22,7 +28,7 @@
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
                             <div class="text-sm font-medium text-ink truncate">{{ $cp->name }}</div>
-                            <div class="text-xs text-ink-soft">{{ $cp->phone }} · {{ $participantVisits[$cp->id] ?? 0 }} intrări</div>
+                            <div class="text-xs text-ink-soft">{{ $cp->phone }}@if ($inApp) @if ($creditsLabel($cp)) · <span class="font-medium text-success">{{ $creditsLabel($cp) }}</span>@endif @else · {{ $participantVisits[$cp->id] ?? 0 }} intrări @endif</div>
                         </div>
                         <button type="button" wire:click="removeParticipant({{ $cp->id }})" aria-label="Scoate participantul"
                                 class="shrink-0 h-7 w-7 rounded-full text-ink-soft hover:bg-border">×</button>
@@ -51,9 +57,11 @@
         @if ($scannable ?? false)
             @include('livewire.reception._scanner')
         @endif
-        <x-btn variant="neutral" size="icon" outline tooltip="Participant nou" wire:click="toggleNewParticipant" class="shrink-0">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-        </x-btn>
+        @if ($allowNew)
+            <x-btn variant="neutral" size="icon" outline tooltip="Participant nou" wire:click="toggleNewParticipant" class="shrink-0">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </x-btn>
+        @endif
     </div>
 
     @if ($participantResults->isNotEmpty())
@@ -64,7 +72,11 @@
                     <span class="min-w-0 truncate"><span class="font-medium text-ink">{{ $pr->name }}</span> <span class="text-ink-soft">{{ $pr->phone }}</span></span>
                     <span class="shrink-0 text-xs {{ ($participantLoyaltyReady[$pr->id] ?? false) ? 'text-warning font-medium' : 'text-ink-soft' }}">
                         @if ($participantLoyaltyReady[$pr->id] ?? false) 🎁 intrare gratis @endif
-                        {{ $participantVisits[$pr->id] ?? 0 }} intrări
+                        @if ($inApp)
+                            @if ($creditsLabel($pr)) <span class="font-medium text-success">{{ $creditsLabel($pr) }}</span> @endif
+                        @else
+                            {{ $participantVisits[$pr->id] ?? 0 }} intrări
+                        @endif
                     </span>
                 </button>
             @endforeach
@@ -78,7 +90,7 @@
     @endif
 
     {{-- „+ Participant nou”, ca popup (nu inline) --}}
-    @if ($newParticipant)
+    @if ($newParticipant && $allowNew)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-ink/40" wire:click="toggleNewParticipant"></div>
             <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">

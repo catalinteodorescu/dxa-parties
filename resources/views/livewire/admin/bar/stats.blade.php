@@ -10,13 +10,22 @@
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
         <div>
             <h2 class="text-xl font-semibold text-ink">Bar · Statistici</h2>
-            <p class="mt-1 text-sm text-ink-soft">Peste toate petrecerile — privire generală, produse, clasament, staff.</p>
+            <p class="mt-1 text-sm text-ink-soft">{{ $tab === 'party' ? 'Cifrele unei petreceri, inclusiv a celei în desfășurare.' : 'Peste toate petrecerile — privire generală, produse, clasament, staff.' }}</p>
         </div>
-        <x-select wire:model="period" live class="w-44"
-                  :options="['all' => 'Tot istoricul', 'recent' => 'Ultimele 3 luni']" />
+        @if ($tab !== 'party')
+            <x-select wire:model="period" live class="w-44"
+                      :options="['all' => 'Tot istoricul', 'recent' => 'Ultimele 3 luni']" />
+        @endif
     </div>
 
-    @if ($overview->parties_count === 0)
+    <div class="mb-5 inline-flex rounded-lg border border-border bg-surface p-0.5 text-sm">
+        <button type="button" wire:click="$set('tab', 'general')" class="rounded-md px-3.5 py-1.5 font-medium {{ $tab !== 'party' ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:text-ink' }}">General</button>
+        <button type="button" wire:click="$set('tab', 'party')" class="rounded-md px-3.5 py-1.5 font-medium {{ $tab === 'party' ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:text-ink' }}">Pe petrecere</button>
+    </div>
+
+    @if ($tab === 'party')
+        <livewire:admin.bar.party-live />
+    @elseif ($overview->parties_count === 0)
         <div class="{{ $card }}">
             <p class="text-sm text-ink-soft">Nicio petrecere cu raportare finalizată {{ $period === 'recent' ? 'în ultimele 3 luni' : 'încă' }}.</p>
         </div>

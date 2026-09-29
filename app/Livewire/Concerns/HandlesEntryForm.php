@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
  */
 trait HandlesEntryForm
 {
+    use GuardsResubmit;
     use PicksParticipants;
 
     public string $ticket = '';
@@ -154,7 +155,7 @@ trait HandlesEntryForm
 
             $hadSession = ReceptionSession::currentFor($party->id) !== null;
 
-            $entries = EntryRecorder::record(
+            $entries = $this->once(fn () => EntryRecorder::record(
                 $party,
                 $this->ticket,
                 (int) $this->count,
@@ -163,7 +164,7 @@ trait HandlesEntryForm
                 $this->overrideReason,
                 Auth::guard('admin')->id(),
                 participants: $this->participantIds,
-            );
+            ));
 
             $this->message = sprintf(
                 'Înregistrat: %d × %s — %s lei.',

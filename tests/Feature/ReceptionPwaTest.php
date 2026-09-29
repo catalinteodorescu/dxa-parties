@@ -205,7 +205,7 @@ it('ecranul de petrecere se deschide, iar antetul nu are link către panoul admi
     $this->withSession(['receptie.party_id' => $p->id])->get(route('receptie.home'))
         ->assertOk()
         ->assertDontSee(route('admin.dashboard'), false)
-        ->assertSee('rc-bell', false);
+        ->assertSee('rc-glass', false);
 });
 
 it('Acasă arată rezumatul sesiunii deschise și mesaj gol când nu e nimic înregistrat', function () {
@@ -612,14 +612,14 @@ it('nu se poate anula din altă sesiune sau după închiderea casei', function (
     expect(PartyEntry::active()->count())->toBe(2);
 });
 
-it('Acasă și ecranele de vânzare trimit la Tranzacții', function () {
+it('doar Acasă trimite la Tranzacții; ecranele de vânzare au în antet doar Acasă și celelalte vânzări', function () {
     Carbon::setTestNow(Carbon::parse('2026-10-03 22:00:00'));
     $party = rpParty('Petrecere Linkuri');
     $this->actingAs(rpUser(), 'admin');
     rpReady($party);
 
     Livewire::test(Home::class)->assertSee(route('receptie.recent'), false);
-    Livewire::test(Entry::class)->assertSee(route('receptie.recent'), false);
+    Livewire::test(Entry::class)->assertSee(route('receptie.home'), false)->assertDontSee(route('receptie.recent'), false);
     Livewire::test(Recent::class)->assertSee(route('receptie.home'), false)->assertDontSee(route('receptie.entry'), false)
         ->assertDontSee(route('receptie.tokens'), false)->assertDontSee(route('receptie.report'), false);
     Livewire::test(Report::class)->assertSee(route('receptie.home'), false)->assertDontSee(route('receptie.entry'), false)
@@ -755,4 +755,24 @@ it('web-ul și PDF-ul spun „Bani scoși din casă în timpul serii”', functi
     $report = ReceptionReport::startFor(ReceptionSession::currentFor($party->id), $user->id);
 
     Livewire::test(ReportAdminForm::class, ['report' => $report])->assertSee('Bani scoși din casă în timpul serii')->assertDontSee('Predat / scos');
+});
+
+it('Raportarea din app numără tokenii: fond, vânduți, așteptați și diferență', function () {
+    Carbon::setTestNow(Carbon::parse('2026-10-03 23:00:00'));
+    $party = rpParty('Petrecere Tokeni');
+    $user = rpUser();
+    $this->actingAs($user, 'admin');
+    rpReady($party);
+    rpSell($party, $user);
+
+    $c = Livewire::test(Report::class)
+        ->assertSee('Fond de tokeni')
+        ->set('opening_tokens', '100')
+        ->set('counted_tokens', '98')->assertSee('Diferență tokeni')
+        ->set('counted_cash', '60')->call('save')->assertSet('error', null);
+
+    $report = ReceptionReport::first();
+    expect($report->opening_tokens)->toBe(100)->and($report->counted_tokens)->toBe(98);
+    $fig = $report->figures();
+    expect($fig->expected_tokens)->toBe(100 - $fig->tokens_sold)->and($fig->tokens_diff)->toBe(98 - $fig->expected_tokens);
 });

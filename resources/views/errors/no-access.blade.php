@@ -29,9 +29,13 @@
                     <a href="{{ route('receptie.home') }}" class="block w-full text-center rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-medium px-4 py-2.5 transition-colors">Mergi la aplicația de recepție</a>
                 @endif
 
+                @if ($app !== \App\Models\Admin::APP_BAR && $admin->canAccess(\App\Models\Admin::APP_BAR))
+                    <a href="{{ route('bar.home') }}" class="block w-full text-center rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-medium px-4 py-2.5 transition-colors">Mergi la aplicația de bar</a>
+                @endif
+
                 <form action="{{ route('session.logout') }}" method="POST">
                     @csrf
-                    <input type="hidden" name="to" value="{{ $app === \App\Models\Admin::APP_RECEPTION ? 'receptie' : 'admin' }}">
+                    <input type="hidden" name="to" value="{{ match ($app) { \App\Models\Admin::APP_RECEPTION => 'receptie', \App\Models\Admin::APP_BAR => 'bar', default => 'admin' } }}">
                     <button type="submit" class="w-full rounded-lg border border-border bg-surface hover:bg-bg text-ink text-sm font-medium px-4 py-2.5 transition-colors">Deconectează-te</button>
                 </form>
             </div>

@@ -62,6 +62,28 @@ class MenuItem extends Model
         return $rate > 0 ? round(((float) $this->price) / $rate, 1) : 0.0;
     }
 
+    /**
+     * DXA: adaugat (PWA Bar). Cele mai vândute produse active (după cantitatea din vânzările finalizate), pentru
+     * adăugarea rapidă din aplicația de bar. Produsele nevândute încă nu apar. Întoarce id-urile, cel mai vândut primul.
+     *
+     * @return array<int, int>
+     */
+    public static function topSellingIds(int $limit = 8): array
+    {
+        return SaleLine::query()
+            ->join('sales', 'sales.id', '=', 'sale_lines.sale_id')
+            ->join('menu_items', 'menu_items.id', '=', 'sale_lines.menu_item_id')
+            ->where('sales.status', 'completed')
+            ->where('menu_items.is_active', true)
+            ->groupBy('sale_lines.menu_item_id')
+            ->orderByRaw('SUM(sale_lines.qty) DESC')
+            ->orderBy('sale_lines.menu_item_id')
+            ->limit($limit)
+            ->pluck('sale_lines.menu_item_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

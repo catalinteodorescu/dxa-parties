@@ -45,7 +45,7 @@
                 <x-alert type="error">{{ $error }}</x-alert>
             @endif
 
-            <x-btn variant="primary" wire:click="sell" class="w-full">Vinde credite</x-btn>
+            <x-btn variant="primary" wire:click="sell" wire:loading.attr="disabled" wire:target="sell" class="w-full">Vinde credite</x-btn>
         </div>
     @endif
 

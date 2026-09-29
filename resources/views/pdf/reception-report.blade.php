@@ -84,6 +84,19 @@
         <tr class="strong"><td>Cash numărat</td><td class="num">{{ $fig->counted_cash === null ? '—' : $money($fig->counted_cash).' lei' }}</td></tr>
     </table>
 
+    @if ($fig->tokens_sold > 0 || $fig->counted_tokens !== null || (int) $fig->opening_tokens > 0)
+        <h2>Tokeni</h2>
+        <table class="lines">
+            <tr><td>Fond de tokeni</td><td class="num">{{ number_format($fig->opening_tokens, 0, ',', '.') }}</td></tr>
+            <tr><td>− Tokeni vânduți</td><td class="num">{{ number_format($fig->tokens_sold, 0, ',', '.') }}</td></tr>
+            <tr class="strong"><td>= Tokeni așteptați rămași</td><td class="num">{{ number_format($fig->expected_tokens, 0, ',', '.') }}</td></tr>
+            <tr class="strong"><td>Tokeni numărați</td><td class="num">{{ $fig->counted_tokens === null ? '—' : number_format($fig->counted_tokens, 0, ',', '.') }}</td></tr>
+            @if ($fig->tokens_diff !== null)
+                <tr><td>Diferență tokeni</td><td class="num">{{ $fig->tokens_diff === 0 ? 'în regulă' : ($fig->tokens_diff > 0 ? '+' : '−').number_format(abs($fig->tokens_diff), 0, ',', '.') }}</td></tr>
+            @endif
+        </table>
+    @endif
+
     <h2>Alte metode de plată (totaluri așteptate)</h2>
     @if (empty($fig->other_methods))
         <p class="empty">Nicio încasare cu altă metodă decât cash.</p>

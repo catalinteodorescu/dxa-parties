@@ -208,7 +208,6 @@
                         <label class="block text-sm font-medium text-ink mb-1.5">Data raportării</label>
                         <div class="w-full rounded-lg border border-border bg-bg px-3.5 py-2.5 text-sm text-ink-soft">
                             {{ \Illuminate\Support\Carbon::parse($date)->format('d.m.Y') }}
-                            <span class="block text-[11px] mt-0.5">fixată la începerea raportării</span>
                         </div>
                     </div>
                     <div>
@@ -567,8 +566,12 @@
                     <span class="text-xs text-ink-soft">opțional — compară ce ai numărat cu ce arată aplicația</span>
                 </div>
 
+                @if ($broughtFromBar)
+                    <p class="mb-3 rounded-lg bg-primary-soft text-primary text-xs px-3 py-2">Numărătoarea a fost adusă din raportarea de casă trimisă de barman din aplicație. O poți corecta aici.</p>
+                @endif
+
                 {{-- Cash + tokeni --}}
-                <div class="grid gap-3 {{ $showTokens ? 'sm:grid-cols-3' : 'sm:grid-cols-2' }}">
+                <div class="grid items-end gap-3 {{ $showTokens ? 'sm:grid-cols-4' : 'sm:grid-cols-3' }}">
                     <div>
                         <label for="opening_float" class="block text-sm font-medium text-ink mb-1.5">Fond de casă <span class="text-ink-soft/60 font-normal">(la început)</span></label>
                         <div class="relative">
@@ -576,6 +579,14 @@
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">lei</span>
                         </div>
                         @error('opening_float') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="handed_over" class="block text-sm font-medium text-ink mb-1.5">Bani scoși din casă</label>
+                        <div class="relative">
+                            <input type="number" step="0.01" min="0" inputmode="decimal" id="handed_over" wire:model.live.debounce.700ms="handed_over" class="{{ $inputCls }}">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-soft/60">lei</span>
+                        </div>
+                        @error('handed_over') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label for="counted_cash" class="block text-sm font-medium text-ink mb-1.5">Cash numărat</label>
@@ -603,7 +614,7 @@
                             <span class="text-sm font-medium text-ink">Cash</span>
                             <span class="text-sm text-ink-soft">așteptat <span class="text-ink font-medium">{{ $money($closing['expectedCash']) }} lei</span></span>
                         </div>
-                        <span class="block text-xs text-ink-soft/70">fond {{ $money($closing['float']) }} + încasat în vânzări {{ $money($closing['cashIn']) }}</span>
+                        <span class="block text-xs text-ink-soft/70">fond {{ $money($closing['float']) }} + încasat în vânzări {{ $money($closing['cashIn']) }}@if ($closing['handed'] > 0) − scos din casă {{ $money($closing['handed']) }}@endif</span>
                         @if ($closing['cashDiff'] !== null)
                             <div class="mt-1 text-sm text-ink-soft">
                                 numărat <span class="text-ink">{{ $money($closing['countedCash']) }} lei</span> ·

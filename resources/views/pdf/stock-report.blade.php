@@ -137,6 +137,9 @@
                             @if ($report->opening_float !== null && (float) $report->opening_float > 0)
                                 <span class="sub" style="color:#6B5D57">cu fond de casă {{ $money($report->opening_float) }} lei</span>
                             @endif
+                            @if ($report->handed_over !== null && (float) $report->handed_over > 0)
+                                <span class="sub" style="color:#6B5D57">− scos din casă {{ $money($report->handed_over) }} lei</span>
+                            @endif
                         </td>
                         <td class="num">{{ $money($report->expected_cash ?? 0) }} lei</td>
                         <td class="num">{{ $money($report->counted_cash) }} lei</td>

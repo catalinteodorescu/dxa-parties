@@ -58,6 +58,11 @@ class SaleRecorder
                 if (! $group->isOpen()) {
                     throw new \DomainException('Sesiunea de vânzări este închisă.');
                 }
+
+                // DXA: adaugat (PWA Bar - raportare): raportarea de bar trimisă blochează vânzările până o redeschide adminul.
+                if ($group->reportSubmitted()) {
+                    throw new \DomainException(SalesGroup::REPORT_SUBMITTED_MESSAGE);
+                }
             }
 
             $lines = array_values(array_filter($lines, fn ($l) => ! empty($l['menu_item_id']) && is_numeric($l['qty'] ?? null) && (float) $l['qty'] > 0));

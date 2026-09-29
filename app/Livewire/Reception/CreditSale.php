@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Reception;
 
+use App\Livewire\Concerns\GuardsResubmit;
 use App\Livewire\Concerns\HandlesSaleScreen;
 use App\Livewire\Reception\Concerns\UsesReceptionParty;
 use App\Models\ReceptionSession;
@@ -21,6 +22,7 @@ use Livewire\Component;
 #[Layout('layouts.reception')]
 class CreditSale extends Component
 {
+    use GuardsResubmit;
     use HandlesSaleScreen;
     use UsesReceptionParty;
 
@@ -65,7 +67,7 @@ class CreditSale extends Component
             $participant = ParticipantRegistry::usable($this->participantIds[0]);
             $hadSession = ReceptionSession::currentFor($party->id) !== null;
 
-            $tx = CreditLedger::sell($party, $participant, $this->amountValue(), $this->payments, Auth::guard('admin')->id());
+            $tx = $this->once(fn () => CreditLedger::sell($party, $participant, $this->amountValue(), $this->payments, Auth::guard('admin')->id()));
 
             RecentEntryParticipants::markSold($party->id, RecentEntryParticipants::CREDITS, $participant->id);
 

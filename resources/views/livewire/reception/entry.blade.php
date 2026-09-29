@@ -131,7 +131,7 @@
             <x-alert type="error">{{ $error }}</x-alert>
         @endif
 
-        <x-btn variant="primary" wire:click="save" class="w-full">Înregistrează intrarea</x-btn>
+        <x-btn variant="primary" wire:click="save" wire:loading.attr="disabled" wire:target="save" class="w-full">Înregistrează intrarea</x-btn>
     @endif
     </div>
     @endif

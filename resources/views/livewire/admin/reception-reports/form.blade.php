@@ -137,6 +137,51 @@
         </dl>
     </div>
 
+    {{-- Tokeni (fizici): fond la început, vânduți, rămași --}}
+    @if (\App\Support\PaymentMethods::isEnabled('token') || $fig->tokens_sold > 0 || $fig->counted_tokens !== null || (int) $fig->opening_tokens > 0)
+        @php $tdiff = $fig->tokens_diff; @endphp
+        <div class="{{ $card }} mb-4">
+            <h3 class="text-sm font-semibold text-ink">Tokeni</h3>
+            <p class="mt-1 text-xs text-ink-soft">Tokeni așteptați rămași = fond de tokeni − tokeni vânduți în sesiune (fără cei anulați).</p>
+            <dl class="mt-4 divide-y divide-border text-sm">
+                <div class="py-2.5 flex items-center justify-between gap-3">
+                    <dt class="text-ink">Fond de tokeni <span class="block text-[11px] text-ink-soft">tokenii din casă la început (propuși din raportarea anterioară)</span></dt>
+                    <dd>
+                        @if ($draft)
+                            <input type="text" inputmode="numeric" wire:model.live.debounce.700ms="opening_tokens" placeholder="0" class="{{ $input }} w-32 text-right">
+                        @else
+                            <span class="text-ink">{{ number_format($fig->opening_tokens, 0, ',', '.') }}</span>
+                        @endif
+                    </dd>
+                </div>
+                <div class="py-2.5 flex items-center justify-between gap-3">
+                    <dt class="text-ink-soft">− Tokeni vânduți</dt>
+                    <dd class="text-ink">{{ number_format($fig->tokens_sold, 0, ',', '.') }}</dd>
+                </div>
+                <div class="py-2.5 flex items-center justify-between gap-3">
+                    <dt class="font-semibold text-ink">= Tokeni așteptați rămași</dt>
+                    <dd class="font-semibold text-ink">{{ number_format($fig->expected_tokens, 0, ',', '.') }}</dd>
+                </div>
+                <div class="py-2.5 flex items-center justify-between gap-3">
+                    <dt class="font-semibold text-ink">Tokeni numărați</dt>
+                    <dd>
+                        @if ($draft)
+                            <input type="text" inputmode="numeric" wire:model.live.debounce.700ms="counted_tokens" placeholder="0" class="{{ $input }} w-32 text-right">
+                        @else
+                            <span class="font-semibold text-ink">{{ $fig->counted_tokens === null ? '—' : number_format($fig->counted_tokens, 0, ',', '.') }}</span>
+                        @endif
+                    </dd>
+                </div>
+                @if ($tdiff !== null)
+                    <div class="py-2.5 flex items-center justify-between gap-3">
+                        <dt class="text-ink-soft">Diferență tokeni</dt>
+                        <dd class="font-semibold {{ $tdiff === 0 ? 'text-success' : 'text-warning' }}">{{ $tdiff === 0 ? 'în regulă' : ($tdiff > 0 ? '+' : '−').number_format(abs($tdiff), 0, ',', '.') }}</dd>
+                    </div>
+                @endif
+            </dl>
+        </div>
+    @endif
+
     {{-- 2. Alte metode --}}
     <div class="{{ $card }} mb-4">
         <h3 class="text-sm font-semibold text-ink">2. Alte metode de plată</h3>

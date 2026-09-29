@@ -1,7 +1,7 @@
-// DXA Recepție — service worker. Face aplicația instalabilă și ține în cache doar fișierele statice construite
+// DXA {{ $label ?? 'Recepție' }} — service worker. Face aplicația instalabilă și ține în cache doar fișierele statice construite
 // (/build/*, hash în nume). Restul cererilor merg mereu la server: fără internet nu se înregistrează nimic (mod offline
 // exclus, ca la bar/recepție cash-ul și stocurile să nu se strice).
-const CACHE = 'dxa-receptie-static-v1';
+const CACHE = '{{ $cache ?? 'dxa-receptie-static-v1' }}';
 
 self.addEventListener('install', () => self.skipWaiting());
 

@@ -3,20 +3,23 @@
 namespace App\Livewire\Admin\StockReports;
 
 use App\Livewire\Admin\Stocks\Index as StocksIndex;
+use App\Models\BarReport;
 use App\Models\MenuItem;
 use App\Models\Party;
+use App\Models\Sale;
+use App\Models\SalesGroup;
 use App\Models\StockItem;
 use App\Models\StockReport;
 use App\Models\StockReportCount;
 use App\Models\StockReportLine;
-use App\Models\SalesGroup;
-use App\Services\SalesAggregator;
 use App\Models\StockRequisition;
 use App\Models\StockRequisitionItem;
 use App\Services\ActivityLogger;
+use App\Services\SalesAggregator;
 use App\Services\StockReportPdfExporter;
 use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -74,6 +77,12 @@ class Form extends Component
     // Fond de casa la inceput (lei), cash numarat (lei), tokeni numarati (buc).
     public string $opening_float = '';
 
+    // Bani scoși din casă în timpul serii (din raportarea de casă a barului); se scad din cash-ul așteptat.
+    public string $handed_over = '';
+
+    // Numărătoarea a fost adusă automat din raportarea de casă trimisă de barman din aplicație.
+    public bool $broughtFromBar = false;
+
     public string $counted_cash = '';
 
     public string $counted_tokens = '';
@@ -124,6 +133,7 @@ class Form extends Component
             $this->note = (string) ($report->note ?? '');
 
             $this->opening_float = $report->opening_float !== null ? $this->plain((float) $report->opening_float) : '';
+            $this->handed_over = $report->handed_over !== null ? $this->plain((float) $report->handed_over) : '';
             $this->counted_cash = $report->counted_cash !== null ? $this->plain((float) $report->counted_cash) : '';
             $this->counted_tokens = $report->counted_tokens !== null ? (string) $report->counted_tokens : '';
 
@@ -135,6 +145,7 @@ class Form extends Component
             // afiseaza read-only din miscarile reale (vezi render()).
             if ($report->isDraft()) {
                 $this->loadDraftLines();
+                $this->adoptBarReport();
             }
         } else {
             // Regula globala: un singur draft neterminat in tot sistemul. Daca exista deja
@@ -176,6 +187,7 @@ class Form extends Component
             }
         }
 
+        $this->adoptBarReport();
         $this->syncTrailingRows();
     }
 
@@ -309,7 +321,7 @@ class Form extends Component
         }
 
         // Numaratoarea de final de seara: cash / tokeni / fond de casa, respectiv foaia de inventar.
-        if (in_array($name, ['opening_float', 'counted_cash', 'counted_tokens'], true)) {
+        if (in_array($name, ['opening_float', 'handed_over', 'counted_cash', 'counted_tokens'], true)) {
             $this->syncClosingField($name);
 
             return;
@@ -335,6 +347,7 @@ class Form extends Component
                 if ($group) {
                     $this->sales_group_id = (string) $group->id;
                     $this->ensureReport();
+                    $this->adoptBarReport();
                     $this->persistHeader();
                 }
             }
@@ -478,9 +491,39 @@ class Form extends Component
             // Persistam imediat (creeaza draftul daca nu exista): alegerea grupului
             // trebuie sa supravietuiasca unui refresh, ca si liniile.
             $this->ensureReport();
+            $this->adoptBarReport();
         }
 
         $this->persistHeader();
+    }
+
+    /**
+     * DXA: adaugat (Bar - raportare de stoc). Aduce numărătoarea din raportarea de casă TRIMISĂ de barman din aplicație (fond de casă,
+     * bani scoși, cash și tokeni numărați), dar doar dacă câmpurile de aici sunt încă goale: ce a completat adminul nu se suprascrie.
+     */
+    private function adoptBarReport(): void
+    {
+        if ($this->readOnly || $this->sales_group_id === '') {
+            return;
+        }
+        if (trim($this->opening_float.$this->handed_over.$this->counted_cash.$this->counted_tokens) !== '') {
+            return;
+        }
+
+        $bar = BarReport::query()->where('sales_group_id', (int) $this->sales_group_id)->first();
+        if (! $bar || ! $bar->isSubmitted()) {
+            return;
+        }
+
+        $this->opening_float = $bar->opening_float !== null ? $this->plain((float) $bar->opening_float) : '';
+        $this->handed_over = $bar->handed_over !== null ? $this->plain((float) $bar->handed_over) : '';
+        $this->counted_cash = $bar->counted_cash !== null ? $this->plain((float) $bar->counted_cash) : '';
+        $this->counted_tokens = $bar->counted_tokens !== null ? (string) $bar->counted_tokens : '';
+        $this->broughtFromBar = true;
+
+        if ($this->report && $this->report->exists) {
+            $this->persistHeader();
+        }
     }
 
     /**
@@ -522,6 +565,7 @@ class Form extends Component
     {
         return [
             'opening_float' => $this->moneyOrNull($this->opening_float),
+            'handed_over' => $this->moneyOrNull($this->handed_over),
             'counted_cash' => $this->moneyOrNull($this->counted_cash),
             'counted_tokens' => $this->intOrNull($this->counted_tokens),
         ];
@@ -996,7 +1040,7 @@ class Form extends Component
      *
      * @param  array<int, float>  $deltas  vezi stockDeltas()
      */
-    private function closingData(array $deltas, \Illuminate\Support\Collection $menuItems): array
+    private function closingData(array $deltas, Collection $menuItems): array
     {
         $saleIds = $this->registeredSaleIds();
         $payments = SalesAggregator::payments($saleIds);
@@ -1004,7 +1048,8 @@ class Form extends Component
 
         $float = $this->moneyOrNull($this->opening_float) ?? 0.0;
         $cashIn = (float) ($payments['cash']['amount'] ?? 0);
-        $expectedCash = round($float + $cashIn, 2);
+        $handed = $this->moneyOrNull($this->handed_over) ?? 0.0;
+        $expectedCash = round($float + $cashIn - $handed, 2);
         $countedCash = $this->moneyOrNull($this->counted_cash);
 
         $expectedTokens = (int) ($payments['token']['tokens'] ?? 0);
@@ -1063,6 +1108,7 @@ class Form extends Component
             'usesTokens' => $usesTokens,
             'hasSource' => $saleIds !== [],
             'float' => $float,
+            'handed' => $handed,
             'cashIn' => $cashIn,
             'expectedCash' => $expectedCash,
             'countedCash' => $countedCash,
@@ -1093,7 +1139,7 @@ class Form extends Component
     {
         $completed = $saleIds === []
             ? null
-            : \App\Models\Sale::query()->whereIn('id', $saleIds)->where('status', 'completed')
+            : Sale::query()->whereIn('id', $saleIds)->where('status', 'completed')
                 ->selectRaw('COUNT(*) as n, SUM(total) as total')->first();
 
         return [

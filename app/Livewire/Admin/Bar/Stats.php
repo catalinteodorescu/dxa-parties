@@ -16,6 +16,10 @@ use Livewire\Component;
 #[Layout('layouts.admin')]
 class Stats extends Component
 {
+    /** general = peste toate petrecerile; party = o petrecere anume (și cea în desfășurare). */
+    #[Url]
+    public string $tab = 'general';
+
     /** all = tot istoricul; recent = ultimele 3 luni (dupa data petrecerii). Afecteaza privirea generala + staff. */
     #[Url]
     public string $period = 'all';

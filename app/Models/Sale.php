@@ -101,7 +101,8 @@ class Sale extends Model
      */
     public function canBeCancelled(): bool
     {
-        return ! $this->isCancelled() && $this->report_id === null;
+        // DXA: adaugat (PWA Bar - raportare): cât raportarea de bar a sesiunii e trimisă, nici anulările nu merg.
+        return ! $this->isCancelled() && $this->report_id === null && ! ($this->group?->reportSubmitted() ?? false);
     }
 
     public function isReported(): bool
@@ -111,6 +112,10 @@ class Sale extends Model
 
     public function cancel(?int $adminId, string $reason): void
     {
+        if (! $this->isCancelled() && $this->report_id === null && ($this->group?->reportSubmitted() ?? false)) {
+            throw new \DomainException(SalesGroup::REPORT_SUBMITTED_MESSAGE);
+        }
+
         if (! $this->canBeCancelled()) {
             throw new \DomainException('Vânzarea nu mai poate fi anulată (e deja anulată sau raportată).');
         }

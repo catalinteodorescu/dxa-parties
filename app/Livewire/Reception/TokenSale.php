@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Reception;
 
+use App\Livewire\Concerns\GuardsResubmit;
 use App\Livewire\Concerns\HandlesSaleScreen;
 use App\Livewire\Reception\Concerns\UsesReceptionParty;
 use App\Models\ReceptionSession;
@@ -20,6 +21,7 @@ use Livewire\Component;
 #[Layout('layouts.reception')]
 class TokenSale extends Component
 {
+    use GuardsResubmit;
     use HandlesSaleScreen;
     use UsesReceptionParty;
 
@@ -64,7 +66,7 @@ class TokenSale extends Component
             $hadSession = ReceptionSession::currentFor($party->id) !== null;
             $participantId = $this->participantIds[0] ?? null;
 
-            $tx = TokenLedger::sell($party, (int) $this->tokens, $this->payments, Auth::guard('admin')->id(), participantId: $participantId);
+            $tx = $this->once(fn () => TokenLedger::sell($party, (int) $this->tokens, $this->payments, Auth::guard('admin')->id(), participantId: $participantId));
 
             RecentEntryParticipants::markSold($party->id, RecentEntryParticipants::TOKENS, $participantId);
 

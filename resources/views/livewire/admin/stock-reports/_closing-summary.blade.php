@@ -28,6 +28,9 @@
                         @if ($report->opening_float !== null && (float) $report->opening_float > 0)
                             <span class="text-xs text-ink-soft/70">(cu fond de casă {{ $money($report->opening_float) }} lei)</span>
                         @endif
+                        @if ($report->handed_over !== null && (float) $report->handed_over > 0)
+                            <span class="text-xs text-ink-soft/70">(− scos din casă {{ $money($report->handed_over) }} lei)</span>
+                        @endif
                     </div>
                     <div class="text-sm text-ink-soft">Numărat: <span class="text-ink">{{ $money($report->counted_cash) }} lei</span></div>
                     @if ($closing->cash_diff !== null)

@@ -36,6 +36,8 @@ class ReceptionReport extends Model
         'handed_over',
         'handed_note',
         'counted_cash',
+        'opening_tokens',
+        'counted_tokens',
         'method_notes',
         'cash_entries',
         'cash_tokens',
@@ -57,6 +59,8 @@ class ReceptionReport extends Model
             'opening_float' => 'decimal:2',
             'handed_over' => 'decimal:2',
             'counted_cash' => 'decimal:2',
+            'opening_tokens' => 'integer',
+            'counted_tokens' => 'integer',
             'cash_entries' => 'decimal:2',
             'cash_tokens' => 'decimal:2',
             'cash_credits' => 'decimal:2',
@@ -110,6 +114,12 @@ class ReceptionReport extends Model
         return $this->isDraft() && $this->submitted_at !== null;
     }
 
+    /** Drafturi trimise de recepționer din aplicație: așteaptă adminul. */
+    public function scopeAwaitingAdmin($query)
+    {
+        return $query->where('status', 'draft')->whereNotNull('submitted_at');
+    }
+
     /** Text -> lei (virgulă sau punct); '' = necompletat (null). @throws DomainException */
     public static function parseMoney(string $value, string $label): ?float
     {
@@ -122,6 +132,20 @@ class ReceptionReport extends Model
         }
 
         return round((float) $raw, 2);
+    }
+
+    /** Text -> număr întreg de tokeni; '' = necompletat (null). @throws DomainException */
+    public static function parseCount(string $value, string $label): ?int
+    {
+        $raw = str_replace(' ', '', trim($value));
+        if ($raw === '') {
+            return null;
+        }
+        if (! ctype_digit($raw) || (int) $raw > 1000000) {
+            throw new DomainException($label.' trebuie să fie un număr întreg între 0 și 1.000.000.');
+        }
+
+        return (int) $raw;
     }
 
     /**
@@ -201,6 +225,7 @@ class ReceptionReport extends Model
             'date' => now()->toDateString(),
             'status' => 'draft',
             'opening_float' => static::suggestedFloat($session->party_id),
+            'opening_tokens' => static::suggestedTokens($session->party_id),
             'created_by' => $adminId,
         ]);
 
@@ -220,6 +245,15 @@ class ReceptionReport extends Model
             ->whereNotNull('counted_cash')->orderByDesc('finalized_at')->orderByDesc('id')->first();
 
         return $last ? max(0.0, round((float) $last->counted_cash - (float) ($last->handed_over ?? 0), 2)) : null;
+    }
+
+    /** Tokenii rămași în casă după ultima raportare finalizată a petrecerii (numărați), sau null. */
+    public static function suggestedTokens(int $partyId): ?int
+    {
+        $last = static::query()->where('party_id', $partyId)->where('status', 'finalized')
+            ->whereNotNull('counted_tokens')->orderByDesc('finalized_at')->orderByDesc('id')->first();
+
+        return $last ? (int) $last->counted_tokens : null;
     }
 
     /**
@@ -251,6 +285,10 @@ class ReceptionReport extends Model
                 'entries_cancelled' => (int) ($s['entries_cancelled'] ?? 0),
                 'tickets' => $s['tickets'] ?? [],
                 'tokens_sold' => (int) ($s['tokens_sold'] ?? 0),
+                'opening_tokens' => (int) ($this->opening_tokens ?? 0),
+                'expected_tokens' => (int) ($s['expected_tokens'] ?? 0),
+                'counted_tokens' => $this->counted_tokens !== null ? (int) $this->counted_tokens : null,
+                'tokens_diff' => $this->counted_tokens !== null ? (int) $this->counted_tokens - (int) ($s['expected_tokens'] ?? 0) : null,
                 'tokens_amount' => (float) ($s['tokens_amount'] ?? 0),
                 'token_sales' => (int) ($s['token_sales'] ?? 0),
                 'token_sales_cancelled' => (int) ($s['token_sales_cancelled'] ?? 0),
@@ -275,6 +313,9 @@ class ReceptionReport extends Model
         $handed = (float) ($this->handed_over ?? 0);
         $expected = round($float + $sum->cash_entries + $sum->cash_tokens + $sum->cash_credits - $handed, 2);
         $counted = $this->counted_cash !== null ? (float) $this->counted_cash : null;
+        $openingTokens = (int) ($this->opening_tokens ?? 0);
+        $expectedTokens = $openingTokens - $sum->tokens_sold;
+        $countedTokens = $this->counted_tokens !== null ? (int) $this->counted_tokens : null;
 
         return (object) [
             'finalized' => false,
@@ -294,6 +335,10 @@ class ReceptionReport extends Model
             'entries_cancelled' => $sum->entries_cancelled,
             'tickets' => $sum->tickets,
             'tokens_sold' => $sum->tokens_sold,
+            'opening_tokens' => $openingTokens,
+            'expected_tokens' => $expectedTokens,
+            'counted_tokens' => $countedTokens,
+            'tokens_diff' => $countedTokens !== null ? $countedTokens - $expectedTokens : null,
             'tokens_amount' => $sum->tokens_amount,
             'token_sales' => $sum->token_sales,
             'token_sales_cancelled' => $sum->token_sales_cancelled,
@@ -340,6 +385,7 @@ class ReceptionReport extends Model
                     'entries_cancelled' => $fig->entries_cancelled,
                     'tickets' => $fig->tickets,
                     'tokens_sold' => $fig->tokens_sold,
+                    'expected_tokens' => $fig->expected_tokens,
                     'tokens_amount' => $fig->tokens_amount,
                     'token_sales' => $fig->token_sales,
                     'token_sales_cancelled' => $fig->token_sales_cancelled,

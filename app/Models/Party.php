@@ -371,6 +371,22 @@ class Party extends Model
             ->orderBy('id');
     }
 
+    /**
+     * DXA: adaugat (PWA Bar). Petrecerile la care poate lucra barmanul: ca la recepție (publicate, active, neîncheiate),
+     * plus cele cu o sesiune de vânzări încă deschisă (chiar încheiate: seara trebuie predată prin raportare).
+     */
+    public function scopeForBar(Builder $query): Builder
+    {
+        return $query
+            ->where('status', '!=', 'draft')
+            ->where(fn ($q) => $q
+                ->where(fn ($q2) => $q2->where('is_active', true)
+                    ->where(fn ($q3) => $q3->whereNull('ends_at')->orWhere('ends_at', '>=', now())))
+                ->orWhereIn('id', SalesGroup::query()->open()->whereNotNull('party_id')->select('party_id')))
+            ->orderBy('starts_at')
+            ->orderBy('id');
+    }
+
     public function scopeVisible(Builder $query, string $audience = 'all'): Builder
     {
         $now = now();

@@ -1,3 +1,4 @@
+@php $pwa = $pwa ?? \App\Support\ReceptionApp::class; @endphp
 <!DOCTYPE html>
 <html lang="ro">
 <head>
@@ -9,16 +10,16 @@
 
         <header class="sticky top-0 z-30 bg-primary text-white" style="padding-top: env(safe-area-inset-top)">
             <div class="mx-auto max-w-xl h-14 px-4 flex items-center justify-between gap-3">
-                <a href="{{ route('receptie.home') }}" wire:navigate class="flex items-center gap-2 min-w-0">
-                    <img src="{{ \App\Support\ReceptionApp::logoUrl() }}" alt="" class="h-8 w-auto">
-                    <span class="text-sm font-semibold tracking-wide truncate">{{ \App\Support\ReceptionApp::name() }}</span>
+                <a href="{{ route($pwa::ROUTE_PREFIX.'.home') }}" wire:navigate class="flex items-center gap-2 min-w-0">
+                    <img src="{{ $pwa::logoUrl() }}" alt="" class="h-8 w-auto">
+                    <span class="text-sm font-semibold tracking-wide truncate">{{ $pwa::name() }}</span>
                 </a>
 
                 <div class="flex items-center gap-2 min-w-0">
                     <span class="hidden sm:block truncate text-sm text-white/80">{{ auth('admin')->user()->name }}</span>
                     <form action="{{ route('session.logout') }}" method="POST">
                         @csrf
-                        <input type="hidden" name="to" value="receptie">
+                        <input type="hidden" name="to" value="{{ $pwa::ROUTE_PREFIX }}">
                         <button type="submit" title="Deconectare" aria-label="Deconectare"
                                 class="rounded-lg p-2 bg-white/15 hover:bg-white/25 transition-colors">
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></svg>
@@ -39,7 +40,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('{{ route('receptie.sw', [], false) }}', { scope: '/receptie/' }).catch(() => {});
+                navigator.serviceWorker.register('{{ route($pwa::ROUTE_PREFIX.'.sw', [], false) }}', { scope: '{{ $pwa::URL_PREFIX }}' }).catch(() => {});
             });
         }
     </script>

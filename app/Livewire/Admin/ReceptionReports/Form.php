@@ -30,6 +30,10 @@ class Form extends Component
 
     public string $counted_cash = '';
 
+    public string $opening_tokens = '';
+
+    public string $counted_tokens = '';
+
     public string $note = '';
 
     /** @var array<string, string> cheie metodă => notă */
@@ -53,6 +57,8 @@ class Form extends Component
         $this->handed_over = $this->fmt($report->handed_over);
         $this->handed_note = (string) $report->handed_note;
         $this->counted_cash = $this->fmt($report->counted_cash);
+        $this->opening_tokens = $report->opening_tokens !== null ? (string) $report->opening_tokens : '';
+        $this->counted_tokens = $report->counted_tokens !== null ? (string) $report->counted_tokens : '';
         $this->note = (string) $report->note;
         $this->method_notes = array_map('strval', $report->method_notes ?? []);
     }
@@ -170,6 +176,8 @@ class Form extends Component
             'handed_over' => $this->money($this->handed_over, 'Banii scoși din casă'),
             'handed_note' => trim($this->handed_note) !== '' ? mb_substr(trim($this->handed_note), 0, 255) : null,
             'counted_cash' => $this->money($this->counted_cash, 'Cash-ul numărat'),
+            'opening_tokens' => ReceptionReport::parseCount($this->opening_tokens, 'Fondul de tokeni'),
+            'counted_tokens' => ReceptionReport::parseCount($this->counted_tokens, 'Tokenii numărați'),
             'method_notes' => $notes ?: null,
             'note' => trim($this->note) !== '' ? mb_substr(trim($this->note), 0, 2000) : null,
         ]);

@@ -110,6 +110,33 @@
             @endif
         </div>
 
+        {{-- Tokeni --}}
+        @if (\App\Support\PaymentMethods::tokenMode() !== \App\Support\PaymentMethods::TOKEN_OFF || $fig->tokens_sold > 0 || $fig->opening_tokens > 0 || $fig->counted_tokens !== null)
+            @php $tdiff = $fig->tokens_diff; @endphp
+            <div class="{{ $card }} space-y-4">
+                <h2 class="text-sm font-semibold text-ink">Tokeni</h2>
+                <div>
+                    <label class="block text-sm font-medium text-ink mb-1.5">Fond de tokeni (la început)</label>
+                    <input type="text" inputmode="numeric" wire:model.live.debounce.400ms="opening_tokens" @disabled($lock) placeholder="0" class="{{ $input }}">
+                </div>
+                <div class="rounded-xl bg-bg px-4 py-3 space-y-1 text-sm">
+                    <div class="flex justify-between"><span class="text-ink-soft">Fond</span><span class="text-ink">{{ $fig->opening_tokens }}</span></div>
+                    <div class="flex justify-between"><span class="text-ink-soft">− Tokeni vânduți</span><span class="text-ink">{{ $fig->tokens_sold }}</span></div>
+                    <div class="flex justify-between font-medium"><span class="text-ink-soft">= Așteptați rămași</span><span class="text-primary">{{ $fig->expected_tokens }}</span></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-ink mb-1.5">Tokeni numărați</label>
+                    <input type="text" inputmode="numeric" wire:model.live.debounce.400ms="counted_tokens" @disabled($lock) placeholder="Câți tokeni au rămas" class="{{ $input }}">
+                </div>
+                @if ($tdiff !== null)
+                    <div class="rounded-xl border px-4 py-3 {{ $tdiff === 0 ? 'border-success/30 bg-success-soft' : 'border-warning/40 bg-warning/10' }}">
+                        <div class="text-[11px] text-ink-soft">Diferență tokeni</div>
+                        <div class="text-xl font-semibold {{ $tdiff === 0 ? 'text-success' : 'text-warning' }}">{{ $tdiff === 0 ? 'Tokeni corecți' : ($tdiff > 0 ? '+' : '−').abs($tdiff) }}</div>
+                    </div>
+                @endif
+            </div>
+        @endif
+
         {{-- Note --}}
         <div class="{{ $card }} space-y-3">
             <h2 class="text-sm font-semibold text-ink">Note</h2>

@@ -1,47 +1,24 @@
 @php
     $card = 'rounded-2xl border border-border bg-surface p-5';
-    $shownName = trim($name) !== '' ? trim($name) : \App\Support\ReceptionApp::DEFAULT_NAME;
+    $shownName = trim($name) !== '' ? trim($name) : $pwa::DEFAULT_NAME;
 @endphp
 <div class="max-w-2xl">
     <div class="mb-5">
-        <h2 class="text-xl font-semibold text-ink">Recepție · Aplicație</h2>
-        <p class="mt-1 text-sm text-ink-soft">Cum arată aplicația de recepție de pe telefon: culoarea temei, numele și logo-ul. Tema colorează și iconița de pe ecranul telefonului.</p>
+        <h2 class="text-xl font-semibold text-ink">{{ $heading }}</h2>
+        <p class="mt-1 text-sm text-ink-soft">Cum arată {{ str_replace('aplicației', 'aplicația', $appPhrase) }} de pe telefon: numele, logo-ul și culoarea temei. Tema colorează și iconița de pe ecranul telefonului.</p>
     </div>
 
     <x-flash class="mb-4" />
 
     <form wire:submit="save" class="space-y-4">
 
-        {{-- Tema --}}
-        <div class="{{ $card }}">
-            <label class="block text-sm font-medium text-ink mb-2">Culoarea temei</label>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                @foreach ($presets as $key => $p)
-                    @php $selected = $theme === $key; @endphp
-                    <button type="button" wire:key="theme-{{ $key }}" wire:click="selectTheme('{{ $key }}')" aria-pressed="{{ $selected ? 'true' : 'false' }}"
-                            class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors {{ $selected ? 'border-ink bg-bg font-semibold text-ink' : 'border-border bg-white text-ink-soft hover:border-ink-soft/40' }}">
-                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full shrink-0" style="background: linear-gradient(135deg, {{ $p['bright'] }}, {{ $p['primary'] }}, {{ $p['dark'] }})">
-                            @if ($selected)
-                                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            @endif
-                        </span>
-                        <span class="truncate">{{ $p['label'] }}</span>
-                    </button>
-                @endforeach
-            </div>
-            @if (! \App\Support\ReceptionApp::hasCustomTheme())
-                <p class="mt-2 text-xs text-ink-soft">Până alegi și salvezi o temă, aplicația folosește tema panoului admin.</p>
-            @endif
-            @error('theme') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
-        </div>
-
         {{-- Nume + logo --}}
         <div class="{{ $card }} space-y-5">
             <div>
                 <label for="app-name" class="block text-sm font-medium text-ink">Numele aplicației</label>
-                <input type="text" id="app-name" wire:model.live.debounce.300ms="name" maxlength="40" placeholder="{{ \App\Support\ReceptionApp::DEFAULT_NAME }}"
+                <input type="text" id="app-name" wire:model.live.debounce.300ms="name" maxlength="40" placeholder="{{ $pwa::DEFAULT_NAME }}"
                        class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-                <p class="mt-1.5 text-xs text-ink-soft">Apare în antet, sub iconița de pe ecranul telefonului și în titlul aplicației. Lasă gol pentru „{{ \App\Support\ReceptionApp::DEFAULT_NAME }}”.</p>
+                <p class="mt-1.5 text-xs text-ink-soft">Apare în antet, sub iconița de pe ecranul telefonului și în titlul aplicației. Lasă gol pentru „{{ $pwa::DEFAULT_NAME }}”.</p>
                 @error('name') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
             </div>
 
@@ -63,6 +40,29 @@
                 <p class="mt-1.5 text-xs text-ink-soft">Varianta deschisă/albă, PNG cu fundal transparent: apare pe culoarea temei, în antet și în iconiță. Implicit se folosește logo-ul școlii pentru fundal colorat.</p>
                 @error('logoUpload') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
             </div>
+        </div>
+
+        {{-- Tema --}}
+        <div class="{{ $card }}">
+            <label class="block text-sm font-medium text-ink mb-2">Culoarea temei</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                @foreach ($presets as $key => $p)
+                    @php $selected = $theme === $key; @endphp
+                    <button type="button" wire:key="theme-{{ $key }}" wire:click="selectTheme('{{ $key }}')" aria-pressed="{{ $selected ? 'true' : 'false' }}"
+                            class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors {{ $selected ? 'border-ink bg-bg font-semibold text-ink' : 'border-border bg-white text-ink-soft hover:border-ink-soft/40' }}">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full shrink-0" style="background: linear-gradient(135deg, {{ $p['bright'] }}, {{ $p['primary'] }}, {{ $p['dark'] }})">
+                            @if ($selected)
+                                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            @endif
+                        </span>
+                        <span class="truncate">{{ $p['label'] }}</span>
+                    </button>
+                @endforeach
+            </div>
+            @if (! $pwa::hasCustomTheme())
+                <p class="mt-2 text-xs text-ink-soft">Până alegi și salvezi o temă, aplicația folosește tema panoului admin.</p>
+            @endif
+            @error('theme') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
         </div>
 
         {{-- Previzualizare --}}

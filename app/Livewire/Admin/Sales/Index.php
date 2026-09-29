@@ -52,6 +52,39 @@ class Index extends Component
         }
     }
 
+    /** DXA: adaugat (PWA Bar - raportare). Sesiunea a cărei raportare de bar trimisă se redeschide (dialog de confirmare). */
+    public ?int $confirmingReopenId = null;
+
+    public function askReopen(int $groupId): void
+    {
+        $this->confirmingReopenId = SalesGroup::open()->whereKey($groupId)->exists() ? $groupId : null;
+    }
+
+    public function cancelReopen(): void
+    {
+        $this->confirmingReopenId = null;
+    }
+
+    /** Adminul redeschide raportarea de bar trimisă: barmanul poate din nou să vândă / anuleze și s-o retrimită. */
+    public function reopenReport(): void
+    {
+        $group = $this->confirmingReopenId ? SalesGroup::open()->with('barReport')->find($this->confirmingReopenId) : null;
+        $this->confirmingReopenId = null;
+
+        try {
+            if (! $group?->barReport) {
+                throw new \DomainException('Raportarea nu mai există sau sesiunea e închisă.');
+            }
+            $group->barReport->reopen((int) Auth::guard('admin')->id());
+        } catch (\DomainException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        session()->flash('status', 'Raportarea de bar a fost redeschisă: barmanul poate din nou să vândă și să o retrimită.');
+    }
+
     public function clearFilters(): void
     {
         $this->reset('group', 'state', 'method', 'product', 'dateFrom', 'dateTo');
@@ -97,7 +130,7 @@ class Index extends Component
     public function render()
     {
         $openSessions = SalesGroup::query()->open()
-            ->with('party')
+            ->with(['party', 'barReport'])
             ->withCount(['sales as sales_count' => fn ($q) => $q->completed()])
             ->withSum(['sales as sales_revenue' => fn ($q) => $q->completed()], 'total')
             ->orderByDesc('id')

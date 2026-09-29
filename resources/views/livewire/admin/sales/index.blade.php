@@ -50,7 +50,14 @@
                         <span class="text-ink-soft/40">·</span> {{ $money($s->sales_revenue ?? 0) }} lei
                     </span>
                 </div>
-                <div class="mt-3 md:mt-0 shrink-0">
+                <div class="mt-3 md:mt-0 shrink-0 flex flex-wrap items-center gap-2">
+                    @if ($s->barReport?->isSubmitted())
+                        <span class="inline-flex items-center rounded-full bg-warning/10 text-warning text-[11px] font-medium px-2 py-0.5"
+                              title="Trimisă din aplicația de bar de {{ $s->barReport->submitter?->name ?? '—' }}, {{ $s->barReport->submitted_at->format('d.m H:i') }}">
+                            Raportare trimisă · numărat {{ $money($s->barReport->counted_cash) }} lei
+                        </span>
+                        <x-btn variant="neutral" size="sm" outline wire:click="askReopen({{ $s->id }})">Redeschide raportarea</x-btn>
+                    @endif
                     <x-btn variant="neutral" size="sm" outline :href="route('admin.sales.index', ['group' => $s->id])" wire:navigate>Vezi vânzările</x-btn>
                 </div>
             </div>
@@ -195,4 +202,18 @@
             </div>
         </div>
     </div>
+    {{-- Dialog: redeschidere raportare de bar trimisă din aplicație --}}
+    @if ($confirmingReopenId)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-ink/40" wire:click="cancelReopen"></div>
+            <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
+                <h3 class="text-base font-semibold text-ink">Redeschizi raportarea de bar?</h3>
+                <p class="mt-2 text-sm text-ink-soft">Raportarea trimisă din aplicație redevine draft. Barul va putea din nou să vândă și să anuleze vânzări în această sesiune, iar barmanul va trebui să trimită raportarea din nou.</p>
+                <div class="mt-5 flex items-center justify-end gap-3">
+                    <button type="button" wire:click="cancelReopen" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Renunț</button>
+                    <x-btn variant="primary" wire:click="reopenReport" wire:loading.attr="disabled" wire:target="reopenReport">Redeschide</x-btn>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

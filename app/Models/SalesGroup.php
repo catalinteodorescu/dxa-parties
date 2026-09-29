@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Services\SalesAggregator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Services\SalesAggregator;
 use Illuminate\Support\Collection;
 
 /**
@@ -58,6 +58,20 @@ class SalesGroup extends Model
     public function report(): HasOne
     {
         return $this->hasOne(StockReport::class, 'sales_group_id');
+    }
+
+    /** DXA: adaugat (PWA Bar - raportare). Raportarea de casă a barmanului pentru această sesiune (una per sesiune). */
+    public function barReport(): HasOne
+    {
+        return $this->hasOne(BarReport::class, 'sales_group_id');
+    }
+
+    public const REPORT_SUBMITTED_MESSAGE = 'Raportarea de bar a fost trimisă: nu se mai poate vinde sau anula nimic în această sesiune până o redeschide un admin.';
+
+    /** Barmanul a trimis raportarea din aplicație și așteaptă adminul: sesiunea nu mai primește vânzări / anulări. */
+    public function reportSubmitted(): bool
+    {
+        return $this->barReport?->isSubmitted() ?? false;
     }
 
     public function scopeOpen(Builder $query): Builder
