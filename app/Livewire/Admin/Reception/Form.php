@@ -138,7 +138,11 @@ class Form extends Component
         $party = $this->currentParty();
 
         $partyOptions = $parties->mapWithKeys(fn (Party $p) => [
-            $p->id => $p->name.' · '.$p->start_date->format('d.m.Y').' · '.($p->state() === 'live' ? 'în desfășurare' : 'urmează'),
+            $p->id => $p->name.' · '.$p->start_date->format('d.m.Y').' · '.match ($p->state()) {
+                'live' => 'în desfășurare',
+                'past' => 'încheiată · casa deschisă',
+                default => 'urmează',
+            },
         ])->all();
 
         $tickets = [];

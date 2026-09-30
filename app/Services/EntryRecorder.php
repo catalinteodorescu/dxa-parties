@@ -114,8 +114,8 @@ class EntryRecorder
         if ($count < 1 || $count > self::MAX_GROUP) {
             throw new DomainException('Numărul de persoane trebuie să fie între 1 și '.self::MAX_GROUP.'.');
         }
-        if ($enforceState && ! in_array($party->state(), ['upcoming', 'live'], true)) {
-            throw new DomainException('Petrecerea nu primește intrări (nu e publicată sau s-a încheiat).');
+        if ($enforceState && ! $party->acceptsReceptionRecords()) {
+            throw new DomainException('Petrecerea nu primește intrări (nu e publicată, sau s-a încheiat și casa e închisă).');
         }
 
         $at ??= now();
@@ -159,7 +159,9 @@ class EntryRecorder
             throw new DomainException('Plata cu credite la intrare necesită exact un participant identificat (creditele ies din portofelul lui).');
         }
 
-        $entries = DB::transaction(function () use ($party, $quote, $applied, $count, $unit, $unitCents, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents) {
+        $onlyExisting = $enforceState && $party->receptionOnlyExistingSession();
+
+        $entries = DB::transaction(function () use ($party, $quote, $applied, $count, $unit, $unitCents, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents, $onlyExisting) {
             // Codul de reducere: reverificat pe rândul blocat, ca două comenzi simultane să nu depășească limitele.
             if ($applied) {
                 $locked = PartyDiscountCode::query()->whereKey($applied->code->id)->lockForUpdate()->first()
@@ -169,7 +171,7 @@ class EntryRecorder
             }
 
             // Sesiunea de recepție deschisă a petrecerii (se deschide singură la prima înregistrare).
-            $session = ReceptionSession::openFor($party->id, $adminId);
+            $session = ReceptionSession::openFor($party->id, $adminId, onlyExisting: $onlyExisting);
             $batch = (string) Str::uuid();
             $qi = 0;
             $rows = collect();

@@ -1,6 +1,6 @@
 @php
     $lei = fn ($n) => number_format((float) $n, 2, ',', '.').' lei';
-    $stateLabel = ['live' => 'În desfășurare', 'upcoming' => 'Urmează'];
+    $stateLabel = ['live' => 'În desfășurare', 'upcoming' => 'Urmează', 'past' => 'Încheiată · casa deschisă'];
     $tile = 'flex items-center gap-4 rounded-2xl border border-border bg-surface px-4 py-4';
 @endphp
 <div class="space-y-4">
@@ -24,7 +24,7 @@
 
             @if ($party)
                 <div class="mt-2 flex items-center gap-2 flex-wrap text-xs text-ink-soft">
-                    <span class="inline-flex items-center rounded-full font-medium px-2 py-0.5 {{ $party->state() === 'live' ? 'bg-success-soft text-success' : 'bg-info-soft text-info' }}">
+                    <span class="inline-flex items-center rounded-full font-medium px-2 py-0.5 {{ match ($party->state()) { 'live' => 'bg-success-soft text-success', 'past' => 'bg-bg text-ink-soft', default => 'bg-info-soft text-info' } }}">
                         {{ $stateLabel[$party->state()] ?? $party->state() }}
                     </span>
                     <span>{{ $party->starts_at?->format('d.m.Y H:i') }}@if ($party->ends_at) – {{ $party->ends_at->format('H:i') }}@endif</span>

@@ -110,11 +110,25 @@ class Form extends Component
             $this->persist();
             $this->report->finalize((int) Auth::guard('admin')->id());
             $this->report = $this->report->fresh(['party', 'session', 'creator', 'finalizer']);
+            $this->confirming = false;
+            $this->reloadReportPage();
+
+            return;
         } catch (DomainException $e) {
             $this->error = $e->getMessage();
         }
 
         $this->confirming = false;
+    }
+
+    /**
+     * După finalizare / redeschidere reîncarcă pagina (navigare completă, nu wire:navigate): ajunge sus, unde e mesajul
+     * de succes (butonul e jos, mesajul rămânea în afara ecranului), iar insigna „de finalizat” din sidebar (randată în
+     * layout, în afara componentei) se recalculează.
+     */
+    private function reloadReportPage(): void
+    {
+        $this->redirectRoute('admin.reception.reports.show', ['report' => $this->report->id]);
     }
 
     /** Dialogul custom de confirmare a redeschiderii. */
@@ -140,6 +154,7 @@ class Form extends Component
         try {
             $this->report->reopen((int) Auth::guard('admin')->id());
             $this->report = $this->report->fresh(['party', 'session', 'creator', 'finalizer', 'submitter']);
+            $this->reloadReportPage();
         } catch (DomainException $e) {
             $this->error = $e->getMessage();
         }

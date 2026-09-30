@@ -6,6 +6,7 @@ use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\PartyEntry;
 use App\Models\Promoter;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -69,9 +70,11 @@ class DiscountCodeStats
      * @param  array<int, int>|null  $partyIds
      * @return object{promoters: Collection, codes: Collection, parties: int, totals: object}
      */
-    public static function overall(?array $partyIds = null): object
+    public static function overall(?array $partyIds = null, ?Carbon $since = null): object
     {
-        $entries = self::codedEntries(fn ($q) => $partyIds === null ? $q : $q->whereIn('party_id', $partyIds));
+        $entries = self::codedEntries(fn ($q) => $q
+            ->when($partyIds !== null, fn ($q2) => $q2->whereIn('party_id', $partyIds))
+            ->when($since !== null, fn ($q2) => $q2->where('entered_at', '>=', $since)));
         $new = self::newParticipants($entries);
         $codes = PartyDiscountCode::query()->with(['promoter', 'party'])->whereIn('id', $entries->pluck('discount_code_id')->unique())->get()->keyBy('id');
 
@@ -94,6 +97,41 @@ class DiscountCodeStats
             'codes' => $topCodes,
             'parties' => $entries->pluck('party_id')->unique()->count(),
             'totals' => self::row($entries, $new, []),
+        ];
+    }
+
+    /**
+     * DXA: adaugat (dashboard). Cifrele pentru cardurile „Coduri de reducere”: ultimele 30 de zile (reduceri, noi/reveniți),
+     * petrecerea curentă (în desfășurare, altfel următoarea) și primii promotori din total.
+     *
+     * @return object{days: int, period: object, period_entries: int, share_pct: ?float, party: ?Party, party_stats: ?object, top_code: ?object, promoters: Collection}
+     */
+    public static function dashboard(?Carbon $now = null, int $days = 30): object
+    {
+        $now ??= now();
+        $since = $now->copy()->subDays($days);
+
+        $period = self::overall(null, $since)->totals;
+        $periodEntries = (int) PartyEntry::query()->active()->where('entered_at', '>=', $since)->count();
+
+        // Petrecerea curentă: cea în desfășurare, altfel cea mai apropiată viitoare (publicată, activă, neîncheiată).
+        $party = Party::query()
+            ->where('status', '!=', 'draft')->where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now))
+            ->orderBy('starts_at')->orderBy('id')->first();
+        $partyStats = $party ? self::forParty($party) : null;
+
+        $promoters = self::overall()->promoters->filter(fn ($r) => $r->promoter_id !== null)->take(3)->values();
+
+        return (object) [
+            'days' => $days,
+            'period' => $period,
+            'period_entries' => $periodEntries,
+            'share_pct' => $periodEntries > 0 ? round($period->tickets / $periodEntries * 100, 1) : null,
+            'party' => $party,
+            'party_stats' => $partyStats,
+            'top_code' => $partyStats?->codes->first(fn ($c) => $c->tickets > 0),
+            'promoters' => $promoters,
         ];
     }
 

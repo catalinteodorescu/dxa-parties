@@ -1,5 +1,5 @@
 @php
-    $stateLabel = ['live' => 'În desfășurare', 'upcoming' => 'Urmează'];
+    $stateLabel = ['live' => 'În desfășurare', 'upcoming' => 'Urmează', 'past' => 'Încheiată · casa deschisă'];
 @endphp
 <div class="space-y-4">
     <div>
@@ -14,7 +14,7 @@
                 class="w-full text-left rounded-2xl border px-4 py-4 transition-colors {{ $currentId === $p->id ? 'border-primary bg-primary-soft' : 'border-border bg-surface hover:bg-bg' }}">
             <div class="flex items-start justify-between gap-3">
                 <span class="text-base font-semibold text-ink">{{ $p->name }}</span>
-                <span class="shrink-0 inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ $p->state() === 'live' ? 'bg-success-soft text-success' : 'bg-info-soft text-info' }}">
+                <span class="shrink-0 inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 {{ match ($p->state()) { 'live' => 'bg-success-soft text-success', 'past' => 'bg-bg text-ink-soft', default => 'bg-info-soft text-info' } }}">
                     {{ $stateLabel[$p->state()] ?? $p->state() }}
                 </span>
             </div>

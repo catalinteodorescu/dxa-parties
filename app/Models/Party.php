@@ -369,12 +369,38 @@ class Party extends Model
      */
     public function scopeForReception(Builder $query): Builder
     {
+        // Ca la bar (scopeForBar): după ora de sfârșit petrecerea rămâne selectabilă cât timp are o sesiune de recepție
+        // deschisă (casa nu a fost predată prin raportare). Ciornele și petrecerile dezactivate rămân excluse.
         return $query
             ->where('status', '!=', 'draft')
             ->where('is_active', true)
-            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
+            ->where(fn ($q) => $q
+                ->whereNull('ends_at')
+                ->orWhere('ends_at', '>=', now())
+                ->orWhereIn('id', ReceptionSession::query()->open()->select('party_id')))
             ->orderBy('starts_at')
             ->orderBy('id');
+    }
+
+    /**
+     * DXA: adaugat (ora de sfârșit la Recepție). Poate primi petrecerea înregistrări la recepție (intrări, tokeni, credite)?
+     * Viitoare / în desfășurare: da. Încheiată (după `ends_at`): doar cât există o sesiune de recepție deschisă, la fel ca
+     * la bar; după închiderea casei nu mai, iar prima înregistrare după sfârșit (fără sesiune deschisă) e refuzată.
+     * Ciornă / dezactivată: niciodată.
+     */
+    public function acceptsReceptionRecords(): bool
+    {
+        return match ($this->state()) {
+            'upcoming', 'live' => true,
+            'past' => ReceptionSession::currentFor($this->id) !== null,
+            default => false,
+        };
+    }
+
+    /** Petrecerea e încheiată și se lucrează doar pe sesiunea de recepție rămasă deschisă (nu se poate deschide una nouă). */
+    public function receptionOnlyExistingSession(): bool
+    {
+        return $this->state() === 'past';
     }
 
     /**

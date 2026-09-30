@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Parties\Form as PartyForm;
 use App\Livewire\Admin\Parties\Stats as PartyStatsPage;
 use App\Livewire\Admin\Promoters\Index as PromotersPage;
@@ -260,4 +261,48 @@ it('coloana „Cod" apare in Tranzactii (admin) pentru intrarile cu cod', functi
     ['b' => $b] = dsScenario();
 
     Livewire::test(ReceptionIndex::class)->set('party', (string) $b->id)->assertSee('ANA10')->assertSee('BOB5');
+});
+
+it('dashboard: reduceri pe 30 de zile, petrecerea curentă, top promotori, noi vs reveniți', function () {
+    ['b' => $b] = dsScenario();
+
+    $d = DiscountCodeStats::dashboard();
+
+    expect($d->period->tickets)->toBe(5)
+        ->and($d->period->discount)->toBe(25.0)
+        ->and($d->period->new)->toBe(2)->and($d->period->returning)->toBe(1)->and($d->period->anonymous)->toBe(2)
+        ->and($d->period_entries)->toBe(7)                       // 5 cu cod + 1 fără cod la B + 1 la A (în ultimele 30 de zile)
+        ->and($d->share_pct)->toBe(round(5 / 7 * 100, 1))
+        ->and($d->party->id)->toBe($b->id)                       // A s-a încheiat; B e următoarea
+        ->and($d->top_code->code)->toBe('ANA10')
+        ->and($d->promoters->pluck('promoter')->all())->toBe(['Ana', 'Bob']);
+
+    // Fereastra mai scurtă (doar ultima zi): nicio intrare cu cod, dar top promotorii rămân „în total”.
+    $short = DiscountCodeStats::dashboard(null, 1);
+    expect($short->period->tickets)->toBe(0)->and($short->share_pct)->toBeNull()->and($short->promoters)->toHaveCount(2);
+});
+
+it('dashboard fără date: nicio petrecere, niciun promotor, fără erori', function () {
+    Carbon::setTestNow(Carbon::parse('2026-10-01 12:00:00'));
+
+    $d = DiscountCodeStats::dashboard();
+    expect($d->party)->toBeNull()->and($d->party_stats)->toBeNull()->and($d->top_code)->toBeNull()
+        ->and($d->period->tickets)->toBe(0)->and($d->promoters)->toBeEmpty();
+
+    $this->actingAs(dsAdmin(), 'admin');
+    Livewire::test(Dashboard::class)->assertSee('Coduri de reducere')->assertSee('niciun bilet cu cod');
+});
+
+it('dashboard: cardurile „Coduri de reducere” arată cifrele din scenariu', function () {
+    dsScenario();
+    $this->actingAs(dsAdmin(), 'admin');
+
+    Livewire::test(Dashboard::class)
+        ->assertSee('Coduri de reducere')
+        ->assertSee('25,00 lei')            // reduceri acordate (30 zile)
+        ->assertSee('71,4% din intrări')
+        ->assertSee('Bilete cu cod · Petrecere B')
+        ->assertSee('top: ANA10 (4)')
+        ->assertSee('Top promotor')->assertSee('Ana')->assertSee('2. Bob')
+        ->assertSee('2 noi')->assertSee('1 reveniți · 2 anonime');
 });

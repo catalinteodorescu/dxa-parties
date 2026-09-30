@@ -114,8 +114,8 @@ class TokenLedger
         if (! PaymentMethods::tokensSellable()) {
             throw new DomainException('Tokenii nu se mai vând (starea lor din Setări nu permite vânzarea).');
         }
-        if ($enforceState && ! in_array($party->state(), ['upcoming', 'live'], true)) {
-            throw new DomainException('Petrecerea nu primește vânzări (nu e publicată sau s-a încheiat).');
+        if ($enforceState && ! $party->acceptsReceptionRecords()) {
+            throw new DomainException('Petrecerea nu primește vânzări (nu e publicată, sau s-a încheiat și casa e închisă).');
         }
 
         $participant = $participantId ? ParticipantRegistry::usable($participantId) : null;
@@ -129,9 +129,11 @@ class TokenLedger
         $allowed = array_diff_key(PaymentMethods::forEntry($party), [PaymentMethods::CREDIT => true]);
         $rows = PaymentRows::normalize($allowed, $payments, $totalCents, 'la cumpărarea de tokeni', 'Nu se înregistrează nicio plată.');
 
-        $tx = DB::transaction(function () use ($party, $tokens, $rate, $totalCents, $rows, $adminId, $at, $participant) {
+        $onlyExisting = $enforceState && $party->receptionOnlyExistingSession();
+
+        $tx = DB::transaction(function () use ($party, $tokens, $rate, $totalCents, $rows, $adminId, $at, $participant, $onlyExisting) {
             // Sesiunea de recepție deschisă a petrecerii (se deschide singură la prima înregistrare).
-            $session = ReceptionSession::openFor($party->id, $adminId);
+            $session = ReceptionSession::openFor($party->id, $adminId, onlyExisting: $onlyExisting);
 
             $tx = TokenTransaction::create([
                 'type' => TokenTransaction::SOLD,

@@ -6,9 +6,13 @@ use App\Livewire\Admin\Reception\Form as ReceptionForm;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
 use App\Models\Admin;
 use App\Models\AdminActivityLog;
+use App\Models\CreditTransaction;
 use App\Models\Party;
 use App\Models\PartyEntry;
+use App\Models\ReceptionSession;
+use App\Services\CreditLedger;
 use App\Services\EntryRecorder;
+use App\Services\ParticipantRegistry;
 use App\Services\PartyStats;
 use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
@@ -182,16 +186,18 @@ it('valideaza plata: total, metode acceptate la intrare, intrare gratuita, numar
     expect($withCredit([['method' => 'card', 'amount' => 10], ['method' => 'credit', 'amount' => 20]]))
         ->toThrow(DomainException::class, 'necesită exact un participant identificat');
 
-    $buyer = \App\Services\ParticipantRegistry::create('Cumpărător Credite', '0722'.random_int(100000, 999999));
-    \App\Services\CreditLedger::load($buyer, 50, \App\Models\CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');
+    $buyer = ParticipantRegistry::create('Cumpărător Credite', '0722'.random_int(100000, 999999));
+    CreditLedger::load($buyer, 50, CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');
     expect($withCredit([['method' => 'card', 'amount' => 10], ['method' => 'credit', 'amount' => 20]], [$buyer->id])()->count())->toBe(1);
-    expect((float) \App\Services\CreditLedger::balance($buyer->fresh()))->toBe(30.0);
+    expect((float) CreditLedger::balance($buyer->fresh()))->toBe(30.0);
 
     // Gratuit: nicio plata.
     entryNow('22:00'); // gratuit pana la 22:30
     expect($rec([['method' => 'card', 'amount' => 5]]))->toThrow(DomainException::class, 'gratuită');
 
-    // Petrecere incheiata sau nepublicata.
+    // Petrecere incheiata (casa inchisa: sesiunea deschisa de mai sus a fost predata) sau nepublicata.
+    // Cat timp sesiunea ramane deschisa, o petrecere incheiata inca primeste inregistrari (vezi ReceptionEndTimeTest).
+    ReceptionSession::query()->update(['status' => 'closed', 'closed_at' => now()]);
     Carbon::setTestNow(Carbon::parse('2026-10-05 12:00'));
     expect($rec([['method' => 'card', 'amount' => 30]]))->toThrow(DomainException::class, 'nu primește intrări');
     entryNow('23:00');

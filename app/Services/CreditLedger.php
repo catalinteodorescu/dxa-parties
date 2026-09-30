@@ -211,17 +211,19 @@ class CreditLedger
         if (! PaymentMethods::creditsPurchasable()) {
             throw new DomainException('Creditele nu se mai vând (starea lor din Setări nu permite cumpărarea).');
         }
-        if ($enforceState && ! in_array($party->state(), ['upcoming', 'live'], true)) {
-            throw new DomainException('Petrecerea nu primește vânzări (nu e publicată sau s-a încheiat).');
+        if ($enforceState && ! $party->acceptsReceptionRecords()) {
+            throw new DomainException('Petrecerea nu primește vânzări (nu e publicată, sau s-a încheiat și casa e închisă).');
         }
 
         $totalCents = PaymentRows::cents($amount);
         $allowed = array_diff_key(PaymentMethods::forEntry($party), [PaymentMethods::CREDIT => true]);
         $rows = PaymentRows::normalize($allowed, $payments, $totalCents, 'la cumpărarea de credite', 'Nu se înregistrează nicio plată.');
 
-        $tx = DB::transaction(function () use ($party, $participant, $amount, $rows, $adminId, $at) {
+        $onlyExisting = $enforceState && $party->receptionOnlyExistingSession();
+
+        $tx = DB::transaction(function () use ($party, $participant, $amount, $rows, $adminId, $at, $onlyExisting) {
             // Sesiunea de recepție deschisă a petrecerii (se deschide singură la prima înregistrare).
-            $session = ReceptionSession::openFor($party->id, $adminId);
+            $session = ReceptionSession::openFor($party->id, $adminId, onlyExisting: $onlyExisting);
 
             $tx = CreditTransaction::create([
                 'participant_id' => $participant->id,

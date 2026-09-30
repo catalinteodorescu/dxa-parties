@@ -10,14 +10,18 @@ use App\Models\Party;
 use App\Models\PartyEntry;
 use App\Models\ReceptionReport;
 use App\Models\ReceptionSession;
+use App\Models\StockReport;
 use App\Models\TokenTransaction;
 use App\Services\EntryRecorder;
 use App\Services\PartyStats;
+use App\Services\ReceptionReportPdfExporter;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Livewire\Livewire;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 
@@ -55,7 +59,7 @@ function rcpParty(array $overrides = []): Party
     ], $overrides));
 }
 
-function rcpEntry(Party $party, Admin $admin, int $count = 1, string $method = 'cash'): \Illuminate\Support\Collection
+function rcpEntry(Party $party, Admin $admin, int $count = 1, string $method = 'cash'): Collection
 {
     return EntryRecorder::record($party, 'Bilet', $count, [['method' => $method, 'amount' => 30 * $count]], adminId: $admin->id, enforceState: false);
 }
@@ -230,7 +234,10 @@ it('draftul se salvează automat, cu validare, iar finalizarea trece prin dialog
     $c->set('counted_cash', '')->call('askFinalize')->assertSet('confirming', false)->assertSet('error', fn ($e) => str_contains($e, 'cash-ul numărat'));
 
     $c->set('counted_cash', '148,5')->call('askFinalize')->assertSet('confirming', true)->assertSee('Finalizezi raportarea?')->assertSee('−1,00')->assertSee('Ireversibil');
-    $c->call('finalize')->assertSet('confirming', false)->assertSet('error', null)->assertSee('Raportare finalizată');
+    // Finalizarea reîncarcă pagina (sus apare mesajul de succes; sidebar-ul își recalculează insigna).
+    $c->call('finalize')->assertSet('confirming', false)->assertSet('error', null)
+        ->assertRedirect(route('admin.reception.reports.show', $report));
+    $this->get(route('admin.reception.reports.show', $report))->assertOk()->assertSee('Raportare finalizată');
 
     $report->refresh();
     expect($report->isFinalized())->toBeTrue()->and((float) $report->cash_diff)->toBe(-1.0)->and($session->fresh()->isOpen())->toBeFalse();
@@ -265,7 +272,7 @@ it('lista: sesiunile deschise, începerea raportării, ștergerea draftului și 
     // Draft: PDF-ul nu există (404).
     rcpEntry($party, $admin);
     $draft = ReceptionReport::startFor(ReceptionSession::currentFor($party->id), $admin->id);
-    expect(fn () => \App\Services\ReceptionReportPdfExporter::stream($draft))->toThrow(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+    expect(fn () => ReceptionReportPdfExporter::stream($draft))->toThrow(HttpException::class);
 });
 
 it('paginile de recepție se deschid, iar meniul are linkul Raportări', function () {
@@ -325,7 +332,7 @@ it('KPI-ul „Diferență casă recepție” se randează și în grila complet�
     // O raportare de bar finalizată e suficientă ca sa aducă $stats->has_data la true, ceea ce
     // randează grila principală de KPI (nu doar blocul „headline” din capul paginii).
     ReceptionReport::query();
-    \App\Models\StockReport::forceCreate([
+    StockReport::forceCreate([
         'party_id' => $party->id,
         'date' => now(),
         'status' => 'finalized',
@@ -374,4 +381,19 @@ it('petrecerea cu sesiuni nu se poate șterge (are intrări)', function () {
     rcpEntry($party, $admin);
 
     expect($party->entries()->exists())->toBeTrue()->and($party->receptionSessions()->count())->toBe(1);
+});
+
+it('finalizarea unei raportări trimise din aplicație scoate insigna din sidebar la reîncărcarea de după', function () {
+    $admin = rcpAdmin();
+    $this->actingAs($admin, 'admin');
+    $party = rcpParty();
+    $session = rcpBusySession($party, $admin);
+    $report = ReceptionReport::startFor($session, $admin->id);
+    $report->update(['counted_cash' => 60, 'submitted_at' => now(), 'submitted_by' => $admin->id]);
+    expect(ReceptionReport::awaitingAdmin()->count())->toBe(1);
+
+    Livewire::test(ReportForm::class, ['report' => $report->fresh()])
+        ->call('finalize')->assertRedirect(route('admin.reception.reports.show', $report));
+
+    expect(ReceptionReport::awaitingAdmin()->count())->toBe(0);
 });

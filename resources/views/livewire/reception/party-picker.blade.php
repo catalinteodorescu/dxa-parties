@@ -1,5 +1,5 @@
 @php
-    $stateLabel = ['live' => 'În desfășurare', 'upcoming' => 'Urmează', 'past' => 'Încheiată'];
+    $stateLabel = ['live' => 'În desfășurare', 'upcoming' => 'Urmează', 'past' => 'Încheiată · casa deschisă'];
     $stateClass = ['live' => 'bg-success-soft text-success', 'upcoming' => 'bg-info-soft text-info', 'past' => 'bg-bg text-ink-soft'];
 @endphp
 <div class="space-y-4">

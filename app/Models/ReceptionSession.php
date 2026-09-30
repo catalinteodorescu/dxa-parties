@@ -82,6 +82,8 @@ class ReceptionSession extends Model
 
     public const SUBMITTED_MESSAGE = 'Raportarea de recepție a fost trimisă: nu se mai poate înregistra sau anula nimic până o finalizează sau o redeschide un admin.';
 
+    public const ENDED_CLOSED_MESSAGE = 'Petrecerea s-a încheiat și casa e închisă (nu mai e nicio sesiune de recepție deschisă), deci nu se mai poate înregistra nimic.';
+
     /** Raportarea sesiunii a fost trimisă din aplicație și așteaptă adminul. */
     public function reportSubmitted(): bool
     {
@@ -141,15 +143,20 @@ class ReceptionSession extends Model
      * Sesiunea deschisă a petrecerii; dacă nu există, o creează (și loghează). Un singur rând deschis per petrecere.
      * Apelată DOAR de EntryRecorder / TokenLedger, în tranzacția înregistrării.
      */
-    public static function openFor(int $partyId, ?int $adminId = null): self
+    public static function openFor(int $partyId, ?int $adminId = null, bool $onlyExisting = false): self
     {
-        return DB::transaction(function () use ($partyId, $adminId) {
+        return DB::transaction(function () use ($partyId, $adminId, $onlyExisting) {
             if ($existing = static::currentFor($partyId)) {
                 if ($existing->reportSubmitted()) {
                     throw new DomainException(static::SUBMITTED_MESSAGE);
                 }
 
                 return $existing;
+            }
+
+            // Petrecere încheiată: nu se deschide sesiune nouă (verificat în tranzacție, deci și dacă casa s-a închis între timp).
+            if ($onlyExisting) {
+                throw new DomainException(static::ENDED_CLOSED_MESSAGE);
             }
 
             $lastNumber = static::query()->where('party_id', $partyId)->max('session_number');

@@ -740,7 +740,9 @@ it('adminul vede raportarea trimisă din app, o redeschide sau o finalizează', 
     Livewire::test(ReportAdminForm::class, ['report' => $report])->assertSee('Trimisă din aplicație')->assertSee($rec->name)
         ->call('askReopen')->assertSet('confirmingReopen', true)->assertSee('Redeschizi raportarea?')
         ->call('cancelReopen')->assertSet('confirmingReopen', false)
-        ->call('askReopen')->call('reopen')->assertSet('confirmingReopen', false)->assertDontSee('Trimisă din aplicație');
+        ->call('askReopen')->call('reopen')->assertSet('confirmingReopen', false)->assertRedirect(route('admin.reception.reports.show', $report));
+    // Redeschiderea reîncarcă pagina (insigna din sidebar se recalculează); noua pagină nu mai arată „Trimisă”.
+    $this->get(route('admin.reception.reports.show', $report))->assertOk()->assertDontSee('Trimisă din aplicație');
     expect($report->fresh()->isSubmitted())->toBeFalse();
 
     Livewire::test(Report::class); // recepția poate lucra din nou
