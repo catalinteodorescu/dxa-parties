@@ -3,6 +3,7 @@
 namespace App\Livewire\Participant;
 
 use App\Services\ParticipantAccounts;
+use App\Support\ParticipantApp;
 use DomainException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -40,7 +41,7 @@ class Login extends Component
 
         session()->regenerate();
 
-        $this->redirect(session()->pull('url.intended', route('app.home')), navigate: true);
+        $this->redirect(ParticipantApp::intendedOrHome(), navigate: true);
     }
 
     public function render()

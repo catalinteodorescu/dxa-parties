@@ -142,8 +142,10 @@ class ParticipantAccounts
 
             if ($participant) {
                 // Participant creat la Recepție: contul se leagă de el (id, credite, ștampile, istoric rămân).
-                $participant->forceFill(['password' => $verification->password_hash, 'phone_verified_at' => now()])->save();
-                $how = 'legat de participantul existent din Recepție';
+                // Numele scris de el în aplicație (telefonul e confirmat cu cod) înlocuiește numele pus la Recepție.
+                $oldName = $participant->name;
+                $participant->forceFill(['name' => $verification->name, 'password' => $verification->password_hash, 'phone_verified_at' => now()])->save();
+                $how = 'legat de participantul existent din Recepție'.($oldName !== $verification->name ? ', nume schimbat din „'.$oldName.'”' : '');
             } else {
                 $participant = Participant::create([
                     'name' => $verification->name,

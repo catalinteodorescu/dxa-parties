@@ -63,15 +63,25 @@ class PartyDiscountCode extends Model
         return $this->hasMany(PartyEntry::class, 'discount_code_id');
     }
 
-    /** Câte bilete (intrări valabile) au folosit codul = câte reduceri s-au dat. */
-    public function usesCount(): int
+    /** Biletele cumpărate din aplicație cu acest cod (DXA: runda 14); fiecare bilet cu reducere e o utilizare. */
+    public function tickets(): HasMany
     {
-        return (int) $this->entries()->active()->count();
+        return $this->hasMany(Ticket::class, 'discount_code_id');
     }
 
-    /** Câte bilete valabile ale participantului au folosit codul. */
+    /**
+     * Câte bilete au folosit codul = câte reduceri s-au dat: intrările valabile de la Recepție + biletele online neanulate.
+     * (Un bilet online devenit intrare NU e numărat de două ori: intrarea creată din bilet nu poartă codul, reducerea e pe bilet.)
+     */
+    public function usesCount(): int
+    {
+        return (int) $this->entries()->active()->count() + (int) $this->tickets()->counted()->count();
+    }
+
+    /** Câte bilete valabile ale participantului (titular cu nume) au folosit codul. */
     public function usesBy(int $participantId): int
     {
-        return (int) $this->entries()->active()->where('participant_id', $participantId)->count();
+        return (int) $this->entries()->active()->where('participant_id', $participantId)->count()
+            + (int) $this->tickets()->counted()->where('holder_participant_id', $participantId)->count();
     }
 }

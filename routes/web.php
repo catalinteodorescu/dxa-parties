@@ -54,14 +54,18 @@ use App\Livewire\Bar\Recent as BarRecent;
 use App\Livewire\Bar\Report as BarReportPage;
 use App\Livewire\Bar\Sale as BarSale;
 use App\Livewire\Participant\Account as ParticipantAccount;
+use App\Livewire\Participant\Announcements as ParticipantAnnouncements;
 use App\Livewire\Participant\ForgotPassword as ParticipantForgotPassword;
-use App\Livewire\Participant\Home as ParticipantHome; // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\History as ParticipantHistory;
+use App\Livewire\Participant\Home as ParticipantHome;
 use App\Livewire\Participant\Login as ParticipantLogin;
-use App\Livewire\Participant\Parties as ParticipantParties;
+use App\Livewire\Participant\Parties as ParticipantParties; // DXA: adaugat (PWA Recepție)
 use App\Livewire\Participant\PartyShow as ParticipantPartyShow;
 use App\Livewire\Participant\Register as ParticipantRegister;
-use App\Livewire\Participant\ResetPassword as ParticipantResetPassword; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
-use App\Livewire\Participant\Verify as ParticipantVerify;
+use App\Livewire\Participant\ResetPassword as ParticipantResetPassword;
+use App\Livewire\Participant\Tickets as ParticipantTickets;
+use App\Livewire\Participant\Verify as ParticipantVerify; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\Wallet as ParticipantWallet;
 use App\Livewire\Reception\CreditSale as ReceptieCreditSale;
 use App\Livewire\Reception\Entry as ReceptieEntry;
 use App\Livewire\Reception\Home as ReceptieHome;
@@ -263,6 +267,7 @@ Route::name('app.')->group(function () {
 
     Route::get('/', ParticipantHome::class)->name('home');
     Route::get('/petreceri', ParticipantParties::class)->name('parties');
+    Route::get('/anunturi', ParticipantAnnouncements::class)->name('announcements');
     Route::get('/petreceri/{party}', ParticipantPartyShow::class)->name('party');
 
     Route::middleware('guest:participant')->group(function () {
@@ -277,6 +282,12 @@ Route::name('app.')->group(function () {
 
     Route::middleware('auth:participant')->group(function () {
         Route::get('/cont', ParticipantAccount::class)->name('account');
+        Route::get('/bilete', ParticipantTickets::class)->name('tickets');
+        Route::get('/bilete/toate', ParticipantHistory::class)->defaults('kind', 'tickets')->name('tickets.all');
+        Route::get('/portofel', ParticipantWallet::class)->name('wallet');
+        Route::get('/portofel/incarcari', ParticipantHistory::class)->defaults('kind', 'credits')->name('wallet.all');
+        Route::get('/cont/intrari', ParticipantHistory::class)->defaults('kind', 'entries')->name('entries.all');
+        Route::get('/cont/consumatii', ParticipantHistory::class)->defaults('kind', 'bar')->name('bar.all');
         Route::get('/cont/poza', function () {
             $me = Auth::guard('participant')->user();
             abort_unless($me?->hasAvatar() && Storage::disk('local')->exists($me->avatar_path), 404);

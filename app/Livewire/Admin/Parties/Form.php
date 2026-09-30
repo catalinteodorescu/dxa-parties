@@ -83,6 +83,15 @@ class Form extends Component
     // fidelitate); vezi App\Services\LoyaltyLedger::partyEligible().
     public bool $loyalty_eligible = false;
 
+    // DXA: adaugat (runda 13). Vânzare bilete și capacitate (vezi migrarea 2024_07_25). Câmpurile numerice sunt șiruri (input-uri goale = nelimitat).
+    public bool $online_sales = false;
+
+    public string $max_tickets_per_order = '';
+
+    public string $tickets_for_sale = '';
+
+    public string $max_participants = '';
+
     // Contact (mai multe persoane)
     public array $contacts = [];       // [['admin_id','name','phone','note'], ...]
 
@@ -161,9 +170,9 @@ class Form extends Component
             // ca sa apara in campul data+ora (datetime-local), fara sa le schimbam sensul.
             foreach ($this->ticket_types as $ti => $type) {
                 foreach ($type['discounts'] ?? [] as $di => $d) {
-                    $until = (string) ($d['until'] ?? '');
-                    if ($until !== '' && mb_strlen($until) <= 10) {
-                        $this->ticket_types[$ti]['discounts'][$di]['until'] = $until.'T23:59';
+                    foreach (['until', 'enter_until'] as $key) {
+                        $v = (string) ($d[$key] ?? '');
+                        $this->ticket_types[$ti]['discounts'][$di][$key] = $v !== '' && mb_strlen($v) <= 10 ? $v.'T23:59' : $v;
                     }
                 }
             }
@@ -184,6 +193,10 @@ class Form extends Component
 
             $this->payment_methods = array_values(array_filter($party->payment_methods ?? [], 'is_string'));
             $this->loyalty_eligible = (bool) $party->loyalty_eligible;
+            $this->online_sales = (bool) $party->online_sales;
+            $this->max_tickets_per_order = $party->max_tickets_per_order !== null ? (string) $party->max_tickets_per_order : '';
+            $this->tickets_for_sale = $party->tickets_for_sale !== null ? (string) $party->tickets_for_sale : '';
+            $this->max_participants = $party->max_participants !== null ? (string) $party->max_participants : '';
 
             $this->discount_codes = $party->discountCodes->map(fn (PartyDiscountCode $c) => [
                 'id' => $c->id,
@@ -219,7 +232,7 @@ class Form extends Component
 
     private function emptyTicketType(): array
     {
-        return ['name' => '', 'price' => '', 'discounts' => []];
+        return ['name' => '', 'price' => '', 'limit' => '', 'discounts' => [], 'qty_tiers' => []];
     }
 
     private function emptyDiscountCode(): array
@@ -421,10 +434,20 @@ class Form extends Component
             'ticket_types.*.discounts.*.label' => ['nullable', 'string', 'max:60'],
             'ticket_types.*.discounts.*.price' => ['nullable', 'numeric', 'min:0'],
             'ticket_types.*.discounts.*.until' => ['nullable', 'date'],
+            'ticket_types.*.discounts.*.enter_until' => ['nullable', 'date'],
+            'ticket_types.*.limit' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'ticket_types.*.qty_tiers' => ['nullable', 'array'],
+            'ticket_types.*.qty_tiers.*.label' => ['nullable', 'string', 'max:60'],
+            'ticket_types.*.qty_tiers.*.price' => ['nullable', 'numeric', 'min:0'],
+            'ticket_types.*.qty_tiers.*.first' => ['nullable', 'integer', 'min:1', 'max:100000'],
 
             'payment_methods' => ['array'],
             'payment_methods.*' => ['string', 'max:60'],
             'loyalty_eligible' => ['boolean'],
+            'online_sales' => ['boolean'],
+            'max_tickets_per_order' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'tickets_for_sale' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'max_participants' => ['nullable', 'integer', 'min:1', 'max:100000'],
 
             'contacts' => ['array'],
             'contacts.*.admin_id' => ['nullable', 'exists:admins,id'],
@@ -461,6 +484,17 @@ class Form extends Component
             'days.*.date.required_if' => 'Fiecare zi are nevoie de o dată.',
             'location_url.url' => 'Linkul locației nu pare valid (începe cu https://).',
             'ticket_types.*.price.numeric' => 'Prețul biletului trebuie să fie un număr.',
+            'ticket_types.*.limit.integer' => 'Limita de bilete trebuie să fie un număr întreg.',
+            'ticket_types.*.limit.min' => 'Limita de bilete trebuie să fie cel puțin 1.',
+            'ticket_types.*.qty_tiers.*.first.integer' => 'Numărul de bilete al treptei trebuie să fie un număr întreg.',
+            'ticket_types.*.qty_tiers.*.first.min' => 'Numărul de bilete al treptei trebuie să fie cel puțin 1.',
+            'ticket_types.*.qty_tiers.*.price.numeric' => 'Prețul treptei trebuie să fie un număr.',
+            'max_tickets_per_order.integer' => 'Biletele per comandă trebuie să fie un număr întreg.',
+            'max_tickets_per_order.min' => 'Biletele per comandă: cel puțin 1 (sau lasă gol = oricâte).',
+            'tickets_for_sale.integer' => 'Numărul de bilete la vânzare trebuie să fie un număr întreg.',
+            'tickets_for_sale.min' => 'Numărul de bilete la vânzare trebuie să fie cel puțin 1 (sau lasă gol = nelimitat).',
+            'max_participants.integer' => 'Numărul maxim de participanți trebuie să fie un număr întreg.',
+            'max_participants.min' => 'Numărul maxim de participanți trebuie să fie cel puțin 1 (sau lasă gol).',
             'music_styles.*.frequency.integer' => 'Numărul de melodii trebuie să fie întreg.',
             'music_styles.*.frequency.min' => 'Numărul de melodii trebuie să fie cel puțin 1.',
             'ticket_types.*.discounts.*.price.numeric' => 'Prețul reducerii trebuie să fie un număr.',
@@ -510,7 +544,19 @@ class Form extends Component
 
     public function addTicketDiscount(int $ti): void
     {
-        $this->ticket_types[$ti]['discounts'][] = ['label' => '', 'price' => '', 'until' => ''];
+        $this->ticket_types[$ti]['discounts'][] = ['label' => '', 'price' => '', 'until' => '', 'enter_until' => ''];
+    }
+
+    /** DXA: adaugat (runda 13). Treaptă de preț după numărul de bilete vândute („primele N la prețul X”). */
+    public function addQtyTier(int $ti): void
+    {
+        $this->ticket_types[$ti]['qty_tiers'][] = ['label' => '', 'price' => '', 'first' => ''];
+    }
+
+    public function removeQtyTier(int $ti, int $qi): void
+    {
+        unset($this->ticket_types[$ti]['qty_tiers'][$qi]);
+        $this->ticket_types[$ti]['qty_tiers'] = array_values($this->ticket_types[$ti]['qty_tiers']);
     }
 
     public function removeTicketDiscount(int $ti, int $di): void
@@ -922,13 +968,32 @@ class Form extends Component
                     'label' => trim($d['label'] ?? '') ?: null,
                     'price' => (float) $d['price'],
                     'until' => ($d['until'] ?? '') ?: null,
+                    'enter_until' => ($d['enter_until'] ?? '') ?: null,
                 ];
             }
+
+            // Trepte după numărul de bilete vândute: „primele N la prețul X”; ordonate crescător după N.
+            $tiers = [];
+            foreach ($t['qty_tiers'] ?? [] as $q) {
+                if (! isset($q['price'], $q['first']) || $q['price'] === '' || $q['first'] === '' || ! is_numeric($q['price']) || ! is_numeric($q['first'])) {
+                    continue;
+                }
+                $tiers[] = [
+                    'label' => trim($q['label'] ?? '') ?: null,
+                    'price' => (float) $q['price'],
+                    'first' => (int) $q['first'],
+                ];
+            }
+            usort($tiers, fn ($a, $b) => $a['first'] <=> $b['first']);
+
+            $limit = isset($t['limit']) && $t['limit'] !== '' && is_numeric($t['limit']) ? (int) $t['limit'] : null;
 
             $types[] = [
                 'name' => $name ?: null,
                 'price' => $priceSet ? (float) $t['price'] : null,
+                'limit' => $limit,
                 'discounts' => $discounts,
+                'qty_tiers' => $tiers,
             ];
         }
 
@@ -1154,7 +1219,10 @@ class Form extends Component
                 foreach ($t['discounts'] as $d) {
                     $dt = ($d['label'] ?: 'ofertă').' '.$this->fmtPrice($d['price']);
                     if ($d['until']) {
-                        $dt .= ' până la '.Party::formatUntil($d['until']);
+                        $dt .= ' cumperi până la '.Party::formatUntil($d['until']);
+                    }
+                    if (! empty($d['enter_until'])) {
+                        $dt .= ' intri până la '.Party::formatUntil($d['enter_until']);
                     }
                     $disc[] = $dt;
                 }
@@ -1211,6 +1279,24 @@ class Form extends Component
             throw $e;
         }
 
+        // DXA: adaugat (runda 13). Treptele după număr de bilete: fiecare „primele N” distinct, altfel prețul nu e ambiguu.
+        if (! $this->is_free) {
+            foreach ($this->ticket_types as $ti => $type) {
+                $firsts = [];
+                foreach ($type['qty_tiers'] ?? [] as $q) {
+                    if (isset($q['price'], $q['first']) && $q['price'] !== '' && $q['first'] !== '' && is_numeric($q['first'])) {
+                        $firsts[] = (int) $q['first'];
+                    }
+                }
+                if (count($firsts) !== count(array_unique($firsts))) {
+                    $this->addError('ticket_types.'.$ti.'.qty_tiers', 'Două trepte au același număr de bilete. Fiecare „primele N” trebuie să fie diferit.');
+                    $this->dispatch('scroll-to-error');
+
+                    return;
+                }
+            }
+        }
+
         // DXA: adaugat (Coduri de reducere). La petrecere gratuită codurile nu se ating.
         $discountRows = null;
         if (! $this->is_free) {
@@ -1256,6 +1342,10 @@ class Form extends Component
 
             'payment_methods' => $this->paymentMethodsList(),
             'loyalty_eligible' => $this->loyalty_eligible,
+            'online_sales' => $this->online_sales,
+            'max_tickets_per_order' => $this->max_tickets_per_order !== '' ? (int) $this->max_tickets_per_order : null,
+            'tickets_for_sale' => $this->tickets_for_sale !== '' ? (int) $this->tickets_for_sale : null,
+            'max_participants' => $this->max_participants !== '' ? (int) $this->max_participants : null,
 
             'contacts' => $contacts,
             // Compat: primul contact in coloanele vechi.

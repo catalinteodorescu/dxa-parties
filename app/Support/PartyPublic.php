@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Party;
+use App\Services\TicketOrders;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -109,15 +110,25 @@ class PartyPublic
 
             $rows = [];
             foreach ($type['discounts'] ?? $type['tiers'] ?? [] as $t) {
-                if (! isset($t['price']) || ! is_numeric($t['price']) || ! Party::discountActive($t['until'] ?? null, $now)) {
+                if (! isset($t['price']) || ! is_numeric($t['price'])
+                    || ! Party::discountActive($t['until'] ?? null, $now) || ! Party::discountActive($t['enter_until'] ?? null, $now)) {
                     continue;
                 }
                 $until = trim((string) ($t['until'] ?? ''));
+                $enter = trim((string) ($t['enter_until'] ?? ''));
+                $notes = [];
+                if ($until !== '') {
+                    $notes[] = 'cumperi până '.self::untilLabel($until);
+                }
+                if ($enter !== '') {
+                    $notes[] = 'intri până '.self::untilLabel($enter);
+                }
+                $sortKey = $until !== '' && $enter !== '' ? min($until, $enter) : ($until !== '' ? $until : $enter);
                 $rows[] = [
                     'label' => trim((string) ($t['label'] ?? '')) ?: 'Ofertă',
                     'price' => (float) $t['price'],
-                    'note' => $until === '' ? 'până la epuizare' : 'până '.self::untilLabel($until),
-                    'sort' => $until === '' ? '9999' : $until,
+                    'note' => $notes ? implode(' · ', $notes) : 'până la epuizare',
+                    'sort' => $sortKey === '' ? '9999' : $sortKey,
                     'on' => abs((float) $t['price'] - $current) < 0.005,
                 ];
             }
@@ -133,6 +144,55 @@ class PartyPublic
                 ];
             }
 
+            // DXA: adaugat (runda 14). Trepte „primele N bilete” (doar cu vânzare online): rândurile încă deschise, cu câte mai sunt;
+            // treapta activă devine „ACUM” (dacă e la fel de ieftină ca prețul curent), iar prețul curent afișat o reflectă.
+            if ($party->online_sales && ! empty($type['qty_tiers'])) {
+                $sold = TicketOrders::soldCount($party, $entry['name']);
+                $activeTier = TicketOrders::tierPrice($type, $sold);
+                $tierActive = $activeTier !== null && $activeTier <= $current + 0.005;
+
+                $tiers = collect($type['qty_tiers'])->filter(fn ($q) => isset($q['price'], $q['first']) && is_numeric($q['price']) && is_numeric($q['first']))
+                    ->sortBy(fn ($q) => (int) $q['first'])->values();
+                $prevFirst = 0;
+                $tierRows = [];
+                foreach ($tiers as $q) {
+                    $first = (int) $q['first'];
+                    $left = $first - max($sold, 0);
+                    if ($left > 0) {
+                        $isActive = $tierActive && abs((float) $q['price'] - (float) $activeTier) < 0.005 && $sold >= $prevFirst;
+                        $tierRows[] = [
+                            'label' => trim((string) ($q['label'] ?? '')) ?: 'Primele '.$first.' bilete',
+                            'price' => (float) $q['price'],
+                            'note' => 'mai '.($left === 1 ? 'e 1 bilet' : 'sunt '.$left.' bilete').' la acest preț',
+                            'sort' => '0',
+                            'on' => $isActive,
+                        ];
+                    }
+                    $prevFirst = $first;
+                }
+                if ($tierActive) {
+                    foreach ($rows as &$r) {
+                        $r['on'] = false;
+                    }
+                    unset($r);
+                    $current = (float) $activeTier;
+                }
+                foreach ($rows as &$r) {
+                    if ($r['label'] === 'Preț bilet') {
+                        $r['label'] = 'Preț normal'; // după treptele „primele N”, prețul de bază e „normal”
+                    }
+                }
+                unset($r);
+                $rows = array_merge($tierRows, $rows);
+            }
+
+            // Prețul de bază tăiat: rândurile (oferte, trepte) mai ieftine decât prețul de bază îl arată ca „înainte”.
+            $base = isset($type['price']) && is_numeric($type['price']) ? (float) $type['price'] : null;
+            foreach ($rows as &$r) {
+                $r['was'] = $base !== null && $r['price'] < $base - 0.005 ? $base : null;
+            }
+            unset($r);
+
             // Doar rândul cel mai potrivit e „acum” (două trepte cu același preț nu se marchează amândouă).
             $marked = false;
             foreach ($rows as &$r) {
@@ -142,7 +202,7 @@ class PartyPublic
             }
             unset($r);
 
-            $out[] = ['name' => $entry['name'], 'current' => $current, 'rows' => $rows];
+            $out[] = ['name' => $entry['name'], 'current' => $current, 'base' => $base, 'rows' => $rows];
         }
 
         return $out;

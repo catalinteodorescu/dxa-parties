@@ -7,17 +7,23 @@ use App\Livewire\Participant\Login;
 use App\Livewire\Participant\Register;
 use App\Livewire\Participant\Verify;
 use App\Models\Admin;
+use App\Models\Announcement;
+use App\Models\CreditTransaction;
 use App\Models\LoyaltyCard;
 use App\Models\Participant;
 use App\Models\ParticipantVerification;
 use App\Models\Party;
 use App\Models\PartyEntry;
+use App\Models\Sale;
+use App\Models\SalesGroup;
 use App\Services\CreditLedger;
 use App\Services\EntryRecorder;
 use App\Services\LoyaltyLedger;
 use App\Services\ParticipantAccounts;
 use App\Services\ParticipantAvatar;
 use App\Services\ParticipantRegistry;
+use App\Services\TicketOrders;
+use App\Support\ParticipantApp;
 use App\Support\Settings\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -151,7 +157,30 @@ it('un participant creat la recepție se leagă de cont după verificare și î�
 
     expect($linked->id)->toBe($existing->id)
         ->and(Participant::count())->toBe(1)
-        ->and($linked->hasAccount())->toBeTrue();
+        ->and($linked->hasAccount())->toBeTrue()
+        ->and($linked->fresh()->name)->toBe('Ana Test');   // numele din aplicație înlocuiește cel de la Recepție
+});
+
+it('după verificare ajunge în aplicație, chiar dacă în sesiune era o adresă din admin', function () {
+    session(['url.intended' => url('/admin/participanti')]);
+
+    Livewire::test(Register::class)
+        ->set('name', 'Ana Test')->set('phone', '0722123456')
+        ->set('password', 'parola-sigura')->set('password_confirmation', 'parola-sigura')
+        ->call('register');
+
+    Livewire::test(Verify::class)->set('code', paLastCode())->call('verify')->assertRedirect(route('app.home'));
+});
+
+it('adresa păstrată dintr-o pagină a aplicației (petrecere) se respectă', function () {
+    $party = paParty();
+    session(['url.intended' => route('app.party', $party)]);
+
+    expect(ParticipantApp::intendedOrHome())->toBe(route('app.party', $party))
+        ->and(session()->has('url.intended'))->toBeFalse();
+
+    session(['url.intended' => 'https://alt-site.example/admin']);
+    expect(ParticipantApp::intendedOrHome())->toBe(route('app.home'));
 });
 
 it('un număr cu cont deja activ nu se mai poate înregistra', function () {
@@ -334,14 +363,60 @@ it('contul afișează codul QR personal cu același conținut ca în admin', fun
     expect(file_exists(public_path('vendor/qrcode-generator.js')))->toBeTrue();
 });
 
-it('contul afișează soldul de credite și mișcările, fără cele anulate și fără ale altora', function () {
+it('portofelul arată soldul evidențiat și toate mișcările proprii (încărcări și plăți; ultimele 5, cu „Vezi mai mult”)', function () {
     $p = paAccount();
     $other = paAccount('0733111222');
-    CreditLedger::adjust($p, 40, 'Bonus test', null);
-    CreditLedger::adjust($other, 99, 'Al altcuiva', null);
+    CreditLedger::load($p, 40, CreditTransaction::SOURCE_RECEPTION, null, 'Prima încărcare');
+    CreditLedger::adjust($p, 5, 'Bonus test', null);
+    CreditLedger::load($other, 99, CreditTransaction::SOURCE_RECEPTION, null, 'Al altcuiva');
+
+    $this->actingAs($p, 'participant')->get('/portofel')->assertOk()
+        ->assertSee('data-balance', false)->assertSee('45,00')->assertSee('Prima încărcare')->assertSee('Bonus test')
+        ->assertDontSee('Al altcuiva')->assertDontSee('Vezi mai mult')->assertSee('Încarcă');
+
+    // O plată apare în listă, cu minus.
+    CreditLedger::pay($p, 12, Sale::class, 1, null);
+    $this->get('/portofel')->assertOk()->assertSee('Plată')->assertSee('-12,00');
+
+    foreach (range(1, 6) as $i) {
+        CreditLedger::load($p, 10, CreditTransaction::SOURCE_RECEPTION, null, 'Încărcare '.$i);
+    }
+    $this->get('/portofel')->assertOk()->assertSee('Vezi mai mult');
+    $this->get('/portofel/incarcari')->assertOk()->assertSee('Toate mișcările din portofel')->assertSee('Prima încărcare')->assertSee('Plată')->assertSee('Încărcare 6')->assertDontSee('Al altcuiva');
+});
+
+it('paginile din meniu cer cont: vizitatorul e trimis la login', function () {
+    foreach (['/bilete', '/bilete/toate', '/portofel', '/portofel/incarcari', '/cont/intrari', '/cont/consumatii'] as $url) {
+        $this->get($url)->assertRedirect(route('app.login'));
+    }
+});
+
+it('meniul are Acasă, Petreceri, Cod QR (popup), Bilete și Portofel; QR-ul personal e în popup, nu în cont', function () {
+    $p = paAccount();
+
+    $this->get('/')->assertOk()->assertSee('Intră în cont ca să-ți vezi codul QR');
 
     $this->actingAs($p, 'participant')->get('/cont')->assertOk()
-        ->assertSee('40,00 lei')->assertSee('Bonus test')->assertDontSee('Al altcuiva')->assertDontSee('99,00');
+        ->assertSeeInOrder(['Acasă', 'Petreceri', 'Cod QR', 'Bilete', 'Portofel'])
+        ->assertSee('data-qr="'.$p->qrPayload().'"', false)->assertSee('qrcode-generator.js', false)
+        ->assertDontSee('Codul tău personal</div>', false)->assertDontSee('Portofel credite')->assertDontSee('Biletele mele');
+    expect(file_exists(public_path('vendor/qrcode-generator.js')))->toBeTrue();
+});
+
+it('contul: ultimele 5 intrări și consumații la bar cu „Vezi tot”, cardul de fidelitate primul', function () {
+    $p = paAccount();
+    Settings::set('loyalty_enabled', true);
+    Settings::set('loyalty_stamps_required', 5);
+    $group = SalesGroup::create(['status' => 'open']);
+    foreach (range(1, 7) as $i) {
+        Sale::create(['sales_group_id' => $group->id, 'source' => 'manual', 'customer_id' => $p->id, 'status' => 'completed', 'total' => 10 + $i, 'sold_at' => now()->subMinutes(10 - $i)]);
+    }
+
+    $c = $this->actingAs($p, 'participant')->get('/cont')->assertOk()->assertSeeInOrder(['Aplică pentru card', 'Consumații la bar'])->assertSee('Vezi tot');
+    $c->assertSee('17,00 lei')->assertDontSee('11,00 lei');    // doar ultimele 5 (13..17)
+
+    $this->get('/cont/consumatii')->assertOk()->assertSee('Toate consumațiile de la bar')->assertSee('11,00 lei')->assertSee('17,00 lei');
+    $this->get('/cont/intrari')->assertOk()->assertSee('Toate intrările');
 });
 
 it('contul afișează intrările proprii, nu și pe cele anulate sau ale altora', function () {
@@ -365,7 +440,7 @@ it('contul afișează cardul de fidelitate cu ștampile, sau invitația de însc
     $this->actingAs($p, 'participant')->get('/cont')->assertOk()->assertSee('Aplică pentru card');
 
     LoyaltyLedger::enroll($p, null, 2);
-    $this->actingAs($p, 'participant')->get('/cont')->assertOk()->assertSee('2 din 5 ștampile')->assertDontSee('Nu ești înscris');
+    $this->actingAs($p, 'participant')->get('/cont')->assertOk()->assertSee('Card de fidelitate: 2 din 5 ștampile', false)->assertDontSee('Nu ești înscris');
 });
 
 /** ---- Runda 12: popup-uri, poză de profil, editare cont, fidelitate din aplicație ---- */
@@ -519,4 +594,65 @@ it('textul de fidelitate din aplicație folosește numărul de ștampile setat',
     Settings::set('loyalty_stamps_required', 7);
 
     $this->actingAs($p, 'participant')->get('/cont')->assertSee('după ce strângi 7 ștampile');
+});
+
+it('pagina petrecerii: frecvența stilurilor, contactele grupate sub un singur label, link cu iconiță, „Vezi pe hartă” cu pin', function () {
+    $party = paParty([
+        'music_styles' => [['style' => 'Bachata', 'frequency' => 3], ['style' => 'Salsa', 'frequency' => 2], ['style' => 'Kizomba', 'frequency' => '']],
+        'contacts' => [['name' => 'Diana', 'phone' => '0748995202', 'note' => 'WhatsApp'], ['name' => 'Catalin', 'phone' => '0748960817']],
+        'links' => [['label' => 'insta', 'url' => 'https://instagram.com/dxa']],
+        'location_name' => 'Club X', 'location_url' => 'https://maps.example/x',
+    ]);
+
+    $html = $this->get('/petreceri/'.$party->id)->assertOk()
+        ->assertSee('3× Bachata')->assertSee('2× Salsa')->assertSee('Kizomba')->assertDontSee('×Kizomba')
+        ->assertSee('Diana')->assertSee('Catalin')->assertSee('· WhatsApp')
+        ->assertSee('Vezi pe hartă')->getContent();
+
+    expect(substr_count($html, '>Contact</div>'))->toBe(1)                       // label o singură dată
+        ->and($html)->toMatch('~<svg[^>]*>\s*<path d="M10 13a5 5 0 0 0 7\.07 0l3-3[^>]*>.*?</svg>\s*insta~s')   // iconița de link înaintea textului
+        ->and($html)->toMatch('~Vezi pe hartă\s*<svg[^>]*>\s*<path d="M20 10c0 6-8 12-8 12~');                // pinul după text
+});
+
+it('bilete: mai multe bilete valabile într-un carusel cu puncte; ultimele 5 folosite + „Vezi mai mult” spre lista completă', function () {
+    $p = paAccount();
+    $party = paParty(['online_sales' => true, 'start_date' => now()->toDateString(), 'start_time' => '00:01', 'end_time' => '23:59']);
+    $order = TicketOrders::place($p, $party, 'Bilet', 3);
+    expect($order->tickets)->toHaveCount(3);
+
+    $this->actingAs($p, 'participant')->get('/bilete')->assertOk()
+        ->assertSee('data-tickets-carousel', false)->assertSee('3 bilete valabile')
+        ->assertDontSee('Ultimele bilete')->assertDontSee('Vezi mai mult');
+
+    // Șase bilete folosite: apar ultimele 5 și linkul spre toate.
+    foreach (range(1, 6) as $i) {
+        $t = TicketOrders::place($p, $party, 'Bilet', 1)->tickets->first();
+        $t->update(['status' => 'used']);
+    }
+    $this->get('/bilete')->assertOk()->assertSee('Ultimele bilete')->assertSee('Vezi mai mult');
+    $this->get('/bilete/toate')->assertOk()->assertSee('Toate biletele');
+});
+
+it('Acasă: petreceri următoare înaintea anunțurilor; anunț cu imagine în stânga, fără imagine fără placeholder; texte noi', function () {
+    paParty(['name' => 'Seara viitoare']);
+    Announcement::create(['title' => 'Cu poză', 'body' => 'Detalii', 'image_path' => 'announcements/x.jpg', 'audience' => 'all', 'in_list' => true, 'is_active' => true, 'status' => 'published']);
+    Announcement::create(['title' => 'Fără poză', 'audience' => 'all', 'in_list' => true, 'is_active' => true, 'status' => 'published']);
+
+    $html = $this->get('/')->assertOk()
+        ->assertSee('Hai în comunitate')->assertSee('Dansează și distrează-te alături de noi')
+        ->assertDontSee('Seara următoare')->assertDontSee('Hai la dans')
+        ->assertSeeInOrder(['Petreceri următoare', 'Anunțuri'])->assertSee('Vezi toate')->getContent();
+
+    expect(substr_count($html, 'storage/announcements/x.jpg'))->toBe(1)          // doar anunțul cu imagine are <img>
+        ->and($html)->toContain('Fără poză');
+    $this->get('/anunturi')->assertOk()->assertSee('Cu poză')->assertSee('Fără poză');
+});
+
+it('lista de petreceri arată și petrecerile trecute, după cele următoare', function () {
+    paParty(['name' => 'Urmează', 'start_date' => now()->addDays(3)->toDateString()]);
+    $past = paParty(['name' => 'A trecut', 'start_date' => now()->subDays(5)->toDateString()]);
+    $past->update(['ends_at' => now()->subDays(4)]);
+
+    $this->get('/petreceri')->assertOk()->assertSeeInOrder(['Următoare', 'Urmează', 'Trecute', 'A trecut']);
+    $this->get('/')->assertOk()->assertSee('Urmează')->assertDontSee('A trecut');
 });

@@ -24,7 +24,7 @@ class Home extends Component
 
         return view('livewire.participant.home', [
             'carousel' => $carousel->values(),
-            'announcements' => Announcement::query()->visible($audience)->where('in_list', true)->limit(10)->get(),
+            'announcements' => Announcement::query()->visible($audience)->where('in_list', true)->limit(5)->get(),
             'parties' => Party::query()->visible($audience)->limit(6)->get(),
         ]);
     }

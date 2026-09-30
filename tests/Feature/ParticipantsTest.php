@@ -345,7 +345,7 @@ it('fisa participantului: date, istoric, editare, anonimizare si stergere', func
         ->call('delete')->assertRedirect(route('admin.participants.index'));
     expect(Participant::find($lonely->id))->toBeNull();
 
-    $this->get(route('admin.participants.show', $ion))->assertOk();
+    $this->get(route('admin.participants.show', $ion))->assertOk()->assertDontSee('Cod QR personal');
 });
 
 it('statisticile arata identificati si participanti unici, cu KPI', function () {

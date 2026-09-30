@@ -442,7 +442,7 @@
 
         <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
             <x-stat-card :value="$dp->tickets > 0 ? $lei($dp->discount) : '—'" label="Reduceri acordate ({{ $dd->days }} zile)"
-                :hint="$dp->tickets > 0 ? $dp->tickets.' '.($dp->tickets === 1 ? 'bilet' : 'bilete').' cu cod'.($dd->share_pct !== null ? ' · '.str_replace('.', ',', (string) $dd->share_pct).'% din intrări' : '') : 'niciun bilet cu cod'"
+                :hint="$dp->tickets > 0 ? $dp->tickets.' '.($dp->tickets === 1 ? 'bilet' : 'bilete').' cu cod'.($dd->share_pct !== null ? ' · '.str_replace('.', ',', (string) $dd->share_pct).'% din biletele online' : '') : 'niciun bilet cu cod'"
                 accent="warning" :href="route('admin.parties.overview')">
                 <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l8.59-8.59a1 1 0 0 0 0-1.41z"/><path d="M7 7h.01"/></svg></x-slot:icon>
             </x-stat-card>

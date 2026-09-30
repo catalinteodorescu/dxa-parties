@@ -42,6 +42,8 @@
                     <x-select wire:model="partyId" live :options="$partyOptions" />
                 </div>
 
+                @include('livewire.partials.capacity-warning', ['party' => $party])
+
                 {{-- Contoare --}}
                 @if ($stats)
                     <div>
@@ -135,10 +137,12 @@
                             @endif
                         </div>
 
+                        @include('livewire.partials.entry-tickets')
+
                         {{-- Total + plată pe total --}}
                         <div class="rounded-xl bg-bg px-4 py-3">
                             <div class="flex items-baseline justify-between gap-3">
-                                <span class="text-sm text-ink-soft">Total ({{ (int) $count > 0 ? (int) $count : 1 }} × {{ $money($unit) }} lei)</span>
+                                <span class="text-sm text-ink-soft">{{ $this->totalLabel() }}</span>
                                 <span class="text-2xl font-semibold text-ink">{{ $money($total) }} <span class="text-sm font-normal text-ink-soft">lei</span></span>
                             </div>
                         </div>

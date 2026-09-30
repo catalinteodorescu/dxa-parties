@@ -290,12 +290,12 @@ it('formularul petrecerii salveaza mai multe coduri (cate unul pe promotor) si l
         ->and($codes['BOB5']->max_uses_per_participant)->toBeNull()
         ->and($codes['EARLY']->tier_label)->toBe('early bird');
 
-    // Se reincarca la editare; sectiunea apare dupa Contact.
+    // Se reincarca la editare; sectiunea apare dupa Pret (si inaintea Vanzarii de bilete).
     Livewire::test(PartyForm::class, ['party' => $party])
         ->assertSet('discount_codes.0.code', 'ANA10')
         ->assertSet('discount_codes.1.value', '5.5')
         ->assertSet('discount_codes.0.valid_until', '2026-10-03T20:00')
-        ->assertSeeInOrder(['Contact', 'Coduri de reducere']);
+        ->assertSeeInOrder(['Adaugă tip de bilet', 'Coduri de reducere', 'Vânzare bilete și capacitate', 'Modalități de plată']);
 });
 
 it('formularul respinge coduri invalide (validari pe rand)', function () {

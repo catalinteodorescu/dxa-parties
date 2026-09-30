@@ -1,7 +1,7 @@
 {{--
-    DXA: adaugat (Coduri de reducere - statistici). Cât au adus codurile și promotorii la această petrecere, din intrările valabile
+    DXA: adaugat (Coduri de reducere - statistici). Cât au adus codurile și promotorii la această petrecere, din biletele online cu cod
     cu cod (nu depinde de raportări). Se include din stats.blade.php; folosește $codeStats (App\Services\DiscountCodeStats::forParty),
-    $card, $money. „Noi" = participanți fără nicio intrare la o petrecere anterioară.
+    $card, $money. „Noi" = participanți fără nicio intrare sau bilet la o petrecere anterioară.
 --}}
 @php
     $cs = $codeStats;
@@ -25,7 +25,7 @@
             <div class="{{ $tile }}">
                 <div class="text-[11px] text-ink-soft">Bilete cu reducere</div>
                 <div class="text-lg font-semibold text-ink">{{ $fmtInt($t->tickets) }}</div>
-                @if ($t->share_pct !== null)<div class="text-[11px] text-ink-soft">{{ number_format($t->share_pct, 1, ',', '.') }}% din {{ $fmtInt($t->party_entries) }} intrări</div>@endif
+                @if ($t->share_pct !== null)<div class="text-[11px] text-ink-soft">{{ number_format($t->share_pct, 1, ',', '.') }}% din {{ $fmtInt($t->party_entries) }} bilete online</div>@endif
             </div>
             <div class="{{ $tile }}">
                 <div class="text-[11px] text-ink-soft">Reducere acordată</div>

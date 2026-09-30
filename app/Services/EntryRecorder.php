@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Order;
 use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\PartyEntry;
 use App\Models\ReceptionSession;
+use App\Models\Ticket;
 use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
 use DomainException;
@@ -91,11 +93,44 @@ class EntryRecorder
     }
 
     /**
+     * DXA: adaugat (runda 15). Cât se încasează la intrare pentru un bilet online, în bani întregi (bani/cenți):
+     *  - bilet valabil: prețul lui dacă încă nu s-a plătit (acum toate comenzile sunt „de plătit la intrare"), altfel 0;
+     *  - bilet cu termenul „intri până la" depășit (cu toleranța din Setări): prețul curent de la intrare minus ce s-a plătit
+     *    (nepltit încă = cel mai mare dintre prețul lui și cel curent); niciodată sub 0.
+     *
+     * @return array{due: int, expired: bool, current: ?float}
+     */
+    public static function ticketDue(Ticket $ticket, ?Carbon $at = null): array
+    {
+        $at ??= now();
+        $unpaid = ($ticket->order?->payment_status ?? Order::PAY_AT_ENTRY) === Order::PAY_AT_ENTRY;
+        $paid = (float) $ticket->price;
+        $base = $unpaid ? $paid : 0.0;
+
+        $expired = $ticket->isExpired($at->copy()->subMinutes(self::graceMinutes()));
+        if (! $expired) {
+            return ['due' => self::cents($base), 'expired' => false, 'current' => null];
+        }
+
+        $party = $ticket->party;
+        $current = $party ? self::quote($party, $ticket->ticket_type, $at)?->price : null;
+        if ($current === null) {
+            return ['due' => self::cents($base), 'expired' => true, 'current' => null];
+        }
+
+        $due = $unpaid ? max($paid, $current) : max(0.0, $current - $paid);
+
+        return ['due' => self::cents($due), 'expired' => true, 'current' => $current];
+    }
+
+    /**
      * @param  array<int, array{method?: string, amount?: mixed}>  $payments  pe TOTALUL grupului
      * @param  bool  $enforceState  false doar pentru seedere/importuri (altfel: doar petreceri viitoare sau în desfășurare)
      * @param  array<int, int>  $participants  id-uri de participanți identificați (opțional; restul persoanelor rămân anonime).
      *                                         Nu pot fi mai mulți decât persoane, fără dubluri, iar un participant nu poate avea
      *                                         două intrări valabile în aceeași sesiune de recepție (ParticipantRegistry::enteredInSession).
+     * @param  array<int, int>  $ticketIds  DXA (runda 15): bilete online prezentate la intrare (fiecare acoperă o persoană din $count; restul
+     *                                      persoanelor plătesc prețul curent). Se încasează `ticketDue()` pe bilet; biletele devin „folosite".
      * @return Collection<int, PartyEntry>
      */
     public static function record(
@@ -110,6 +145,7 @@ class EntryRecorder
         bool $enforceState = true,
         array $participants = [],
         ?string $discountCode = null,
+        array $ticketIds = [],
     ): Collection {
         if ($count < 1 || $count > self::MAX_GROUP) {
             throw new DomainException('Numărul de persoane trebuie să fie între 1 și '.self::MAX_GROUP.'.');
@@ -119,22 +155,34 @@ class EntryRecorder
         }
 
         $at ??= now();
-        $quote = self::quote($party, $ticketName, $at)
-            ?? throw new DomainException('Tipul de bilet „'.$ticketName.'” nu există sau nu are preț.');
 
-        $participantIds = self::validatedParticipants($party, $participants, $count);
-
-        // Codul de reducere (opțional) se aplică peste prețul curent; de aici „prețul sistemului" e cel cu cod.
-        $applied = null;
-        if ($discountCode !== null && trim($discountCode) !== '') {
-            $applied = DiscountCodes::apply($party, $quote->name, $quote->price, $discountCode, $participantIds, $at, $count);
+        // Biletele online prezentate (fiecare acoperă o persoană); restul persoanelor plătesc la prețul curent.
+        $tickets = self::loadTickets($party, $ticketIds);
+        $extras = $count - $tickets->count();
+        if ($extras < 0) {
+            throw new DomainException('Ai '.$tickets->count().' bilete online pentru '.$count.' '.($count === 1 ? 'persoană' : 'persoane').'. Mărește numărul de persoane.');
         }
-        $systemPrice = $applied?->price ?? $quote->price;
 
-        // Pret per persoana: implicit cel cu toleranta (si cod); suprascrierea cere motiv.
+        $quote = $extras > 0 || $tickets->isEmpty()
+            ? (self::quote($party, $ticketName, $at) ?? throw new DomainException('Tipul de bilet „'.$ticketName.'” nu există sau nu are preț.'))
+            : null;
+
+        // Participanții biletelor primesc intrarea; ceilalți (aleși în plus) merg la persoanele fără bilet.
+        $holderIds = $tickets->pluck('holder_participant_id')->filter()->map(fn ($v) => (int) $v)->values()->all();
+        $extraIds = array_values(array_diff(array_values(array_filter(array_map('intval', $participants))), $holderIds));
+        $participantIds = self::validatedParticipants($party, array_merge($holderIds, $extraIds), $count);
+
+        // Codul de reducere (opțional) se aplică peste prețul curent al persoanelor FĂRĂ bilet; de aici „prețul sistemului" e cel cu cod.
+        $applied = null;
+        if ($extras > 0 && $discountCode !== null && trim($discountCode) !== '') {
+            $applied = DiscountCodes::apply($party, $quote->name, $quote->price, $discountCode, $participantIds, $at, $extras);
+        }
+        $systemPrice = $applied?->price ?? $quote?->price ?? 0.0;
+
+        // Pret per persoana fara bilet: implicit cel cu toleranta (si cod); suprascrierea cere motiv.
         $unit = $systemPrice;
         $reason = null;
-        if ($overridePrice !== null) {
+        if ($overridePrice !== null && $extras > 0) {
             if ($overridePrice < 0 || $overridePrice > 10000) {
                 throw new DomainException('Prețul trebuie să fie între 0 și 10.000 lei.');
             }
@@ -148,8 +196,11 @@ class EntryRecorder
         }
         $overridden = $reason !== null;
 
+        // Suma de încasat pe fiecare rând: întâi biletele online (în ordine), apoi persoanele fără bilet.
         $unitCents = self::cents($unit);
-        $totalCents = $unitCents * $count;
+        $ticketDues = $tickets->map(fn (Ticket $t) => self::ticketDue($t, $at));
+        $rowCents = array_merge($ticketDues->pluck('due')->all(), array_fill(0, $extras, $unitCents));
+        $totalCents = array_sum($rowCents);
         $queue = self::normalizePayments($party, $payments, $totalCents);
 
         // Plata cu credite: necesita exact un participant identificat (creditele ies din portofelul lui —
@@ -161,13 +212,21 @@ class EntryRecorder
 
         $onlyExisting = $enforceState && $party->receptionOnlyExistingSession();
 
-        $entries = DB::transaction(function () use ($party, $quote, $applied, $count, $unit, $unitCents, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents, $onlyExisting) {
+        $entries = DB::transaction(function () use ($party, $quote, $applied, $count, $extras, $rowCents, $tickets, $extraIds, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents, $onlyExisting) {
             // Codul de reducere: reverificat pe rândul blocat, ca două comenzi simultane să nu depășească limitele.
             if ($applied) {
                 $locked = PartyDiscountCode::query()->whereKey($applied->code->id)->lockForUpdate()->first()
                     ?? throw new DomainException('Codul de reducere nu mai există.');
                 DiscountCodes::assertUsable($locked, $quote->name, $at);
-                DiscountCodes::assertLimits($locked, $participantIds, $count);
+                DiscountCodes::assertLimits($locked, $participantIds, $extras);
+            }
+
+            // Biletele online: reverificate pe rândurile blocate (altă recepție nu le-a folosit între timp).
+            if ($tickets->isNotEmpty()) {
+                $locked = Ticket::query()->whereIn('id', $tickets->pluck('id'))->lockForUpdate()->get();
+                if ($locked->contains(fn (Ticket $t) => $t->status !== Ticket::VALID)) {
+                    throw new DomainException('Un bilet online a fost deja folosit sau anulat. Reîncarcă și scanează din nou.');
+                }
             }
 
             // Sesiunea de recepție deschisă a petrecerii (se deschide singură la prima înregistrare).
@@ -176,25 +235,39 @@ class EntryRecorder
             $qi = 0;
             $rows = collect();
 
+            $extraSlot = 0;
+            $stampEntries = collect();
             for ($i = 0; $i < $count; $i++) {
+                $ticket = $tickets->get($i);   // primele rânduri = bilete online
+                $participantId = $ticket ? ($ticket->holder_participant_id ? (int) $ticket->holder_participant_id : null) : ($extraIds[$extraSlot++] ?? null);
+                $rowUnit = $rowCents[$i] / 100;
+
                 $entry = PartyEntry::create([
                     'party_id' => $party->id,
                     'reception_session_id' => $session->id,
                     'batch' => $batch,
-                    'ticket_type' => $quote->name,
-                    'list_price' => $quote->list_price,
-                    'price_paid' => $unit,
-                    'grace_applied' => $quote->grace && ! $overridden,
-                    'override_reason' => $reason !== null ? Str::limit($reason, 255, '') : null,
-                    'discount_code_id' => $applied?->code->id,
-                    'discount_amount' => $applied?->discount ?? 0,
+                    'ticket_type' => $ticket ? $ticket->ticket_type : $quote->name,
+                    'list_price' => $ticket ? $ticket->list_price : $quote->list_price,
+                    'price_paid' => $rowUnit,
+                    'grace_applied' => ! $ticket && $quote->grace && ! $overridden,
+                    'override_reason' => ! $ticket && $reason !== null ? Str::limit($reason, 255, '') : null,
+                    'discount_code_id' => $ticket ? null : $applied?->code->id,
+                    'discount_amount' => $ticket ? 0 : ($applied?->discount ?? 0),
                     'entered_at' => $at,
-                    'participant_id' => $participantIds[$i] ?? null,
+                    'participant_id' => $participantId,
                     'created_by' => $adminId,
                 ]);
 
+                if ($ticket) {
+                    $ticket->forceFill(['status' => Ticket::USED, 'party_entry_id' => $entry->id, 'used_at' => $at])->save();
+                }
+                // Ștampila: doar dacă prezența a fost „plătită” (bilet online cu preț sau încasare la intrare); intrarea 0 lei nu dă ștampilă.
+                if ($participantId && ($rowUnit > 0.0 || ($ticket && (float) $ticket->price > 0.0))) {
+                    $stampEntries->put($participantId, $entry);
+                }
+
                 // Distribuie plata pe acest rand, in ordinea metodelor introduse.
-                $need = $unitCents;
+                $need = $rowCents[$i];
                 while ($need > 0 && isset($queue[$qi])) {
                     $take = min($need, $queue[$qi][1]);
                     $entry->payments()->create(['method' => $queue[$qi][0], 'amount' => $take / 100]);
@@ -213,17 +286,12 @@ class EntryRecorder
                 CreditLedger::pay($participant, $creditCents / 100, PartyEntry::class, $rows->first()->id, $adminId, $at);
             }
 
-            // Ștampilare automată de fidelitate: doar pentru persoanele identificate, pe o petrecere eligibilă,
-            // și doar dacă intrarea chiar s-a plătit — o intrare gratuită din reducerea cu oră a petrecerii
-            // (preț 0, nu plata „Beneficiu” de fidelitate) nu acordă ștampilă.
-            if (LoyaltyLedger::partyEligible($party) && $participantIds !== [] && $unit > 0.0) {
-                $byParticipant = $rows->keyBy('participant_id');
+            // Ștampilare automată de fidelitate: doar pentru persoanele identificate, pe o petrecere eligibilă, și doar la prezență
+            // plătită (o intrare gratuită din reducerea cu oră, preț 0, nu acordă ștampilă; biletul online plătit da).
+            if (LoyaltyLedger::partyEligible($party) && $participantIds !== []) {
                 foreach ($participantIds as $pid) {
-                    $entry = $byParticipant->get($pid);
-                    if (! $entry) {
-                        continue;
-                    }
-                    $participant = Participant::query()->find($pid);
+                    $entry = $stampEntries->get($pid);
+                    $participant = $entry ? Participant::query()->find($pid) : null;
                     if ($participant) {
                         LoyaltyLedger::recordEntryStamp($participant, $entry, $adminId, $at);
                     }
@@ -236,14 +304,43 @@ class EntryRecorder
         ActivityLogger::log('entries.recorded', sprintf(
             'A înregistrat %d × „%s” (%s lei) la „%s”%s%s.',
             $count,
-            $quote->name,
-            self::money($unitCents * $count / 100),
+            $quote->name ?? $tickets->first()->ticket_type,
+            self::money($totalCents / 100),
             $party->name,
             $participantIds ? ' — '.count($participantIds).' identificați' : '',
-            $overridden ? ' — preț suprascris: '.$reason : ''
+            ($tickets->isNotEmpty() ? ' — '.$tickets->count().' bilete online' : '').($overridden ? ' — preț suprascris: '.$reason : '')
         ).($applied ? sprintf(' Cod de reducere „%s” (−%s lei/persoană).', $applied->code->code, self::money($applied->discount)) : ''));
 
         return $entries;
+    }
+
+    /**
+     * Biletele online prezentate: existente, ale acestei petreceri, valabile, fără dubluri. Ordinea = cea primită.
+     *
+     * @param  array<int, mixed>  $ids
+     * @return Collection<int, Ticket>
+     */
+    private static function loadTickets(Party $party, array $ids): Collection
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if ($ids === []) {
+            return collect();
+        }
+
+        $found = Ticket::query()->with(['order', 'party'])->whereIn('id', $ids)->get()->keyBy('id');
+        $out = collect();
+        foreach ($ids as $id) {
+            $t = $found->get($id) ?? throw new DomainException('Un bilet online nu mai există.');
+            if ((int) $t->party_id !== (int) $party->id) {
+                throw new DomainException('Un bilet este pentru altă petrecere.');
+            }
+            if ($t->status !== Ticket::VALID) {
+                throw new DomainException('Biletul '.$t->ticket_type.' a fost deja '.($t->status === Ticket::USED ? 'folosit' : 'anulat').'.');
+            }
+            $out->push($t);
+        }
+
+        return $out->values();
     }
 
     /** Anulează un grup întreg (cu motiv). Întoarce câte intrări s-au anulat. */
@@ -268,6 +365,10 @@ class EntryRecorder
             'cancelled_by' => $adminId,
             'cancel_reason' => Str::limit($reason, 255, ''),
         ]);
+
+        // DXA (runda 15): biletele online folosite la aceste intrări redevin valabile.
+        Ticket::query()->whereIn('party_entry_id', $entries->pluck('id'))->where('status', Ticket::USED)
+            ->update(['status' => Ticket::VALID, 'party_entry_id' => null, 'used_at' => null]);
 
         LoyaltyLedger::voidStampsForEntries($entries->pluck('id')->all(), 'Intrarea a fost anulată: '.$reason, $adminId);
 

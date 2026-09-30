@@ -38,4 +38,31 @@ class ParticipantApp extends PwaApp
     {
         return '#120810';
     }
+
+    /**
+     * DXA: adaugat. Unde mergem după login / verificarea contului: adresa păstrată în sesiune (`url.intended`) DOAR dacă e o pagină din
+     * aplicația participanților. Sesiunea e comună cu admin / Recepție / Bar, care își pun și ele o adresă acolo când te trimit la login.
+     */
+    public static function intendedOrHome(): string
+    {
+        $home = route('app.home');
+        $intended = session()->pull('url.intended');
+        if (! is_string($intended) || $intended === '') {
+            return $home;
+        }
+
+        $parts = parse_url($intended);
+        $host = $parts['host'] ?? null;
+        $path = '/'.ltrim($parts['path'] ?? '/', '/');
+        if ($host !== null && $host !== request()->getHost()) {
+            return $home;
+        }
+        foreach (['admin', 'receptie', 'bar', 'livewire', 'sesiune'] as $blocked) {
+            if ($path === '/'.$blocked || str_starts_with($path, '/'.$blocked.'/')) {
+                return $home;
+            }
+        }
+
+        return $intended;
+    }
 }

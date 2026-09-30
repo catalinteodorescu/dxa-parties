@@ -7,7 +7,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * DXA: adaugat (Aplicația participanților). Lista petrecerilor publicate, active și neîncheiate (cele „doar logați” apar
+ * DXA: adaugat (Aplicația participanților). Toate petrecerile publicate și active: cele următoare, apoi cele trecute (cele „doar logați” apar
  * doar cu cont).
  */
 #[Layout('layouts.participant', ['title' => 'Petreceri'])]
@@ -19,6 +19,7 @@ class Parties extends Component
 
         return view('livewire.participant.parties', [
             'parties' => Party::query()->visible($audience)->limit(50)->get(),
+            'past' => Party::query()->visiblePast($audience)->limit(30)->get(),
         ]);
     }
 }

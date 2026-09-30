@@ -49,22 +49,6 @@
         </p>
     </div>
 
-    {{-- Cod QR personal (temporar, pentru teste: participantul îl va avea în aplicația lui) --}}
-    @unless ($anonymized)
-        <div class="mb-5 rounded-2xl border border-border bg-surface p-5 flex items-center gap-4"
-             x-data x-init="(async () => {
-                 if (! window.QRCode) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
-                 $refs.qr.innerHTML = ''; new QRCode($refs.qr, { text: @js($participant->qrPayload()), width: 128, height: 128, correctLevel: QRCode.CorrectLevel.M });
-             })().catch(() => {})">
-            <div wire:ignore class="shrink-0 rounded-lg bg-white p-2"><div x-ref="qr" class="h-32 w-32"></div></div>
-            <div class="min-w-0">
-                <h3 class="text-sm font-semibold text-ink">Cod QR personal</h3>
-                <p class="mt-1 text-xs text-ink-soft">Se scanează în aplicația Recepție, la Intrare / Tokeni / Credite.</p>
-                <p class="mt-2 break-all text-[11px] text-ink-soft/70">{{ $participant->qrPayload() }}</p>
-            </div>
-        </div>
-    @endunless
-
     @if ($message)
         <x-alert type="success" class="mb-4">{{ $message }}</x-alert>
     @endif

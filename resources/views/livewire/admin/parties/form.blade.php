@@ -50,7 +50,7 @@
                             <img src="{{ asset('storage/'.$existingImage) }}" alt="" class="w-28 h-28 object-cover rounded-xl border border-border">
                         @else
                             <div class="w-28 h-28 rounded-xl border border-dashed border-border bg-bg flex items-center justify-center text-ink-soft/40">
-                                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>
                             </div>
                         @endif
                     </div>
@@ -206,93 +206,6 @@
             </div>
         </div>
 
-        {{-- ============ Invitați (FESTIVAL) ============ --}}
-        <div class="{{ $card }}" x-show="$wire.kind === 'festival'" x-cloak>
-            <h3 class="text-sm font-semibold text-ink">Invitați</h3>
-
-            <div class="space-y-3">
-                @foreach ($guests as $i => $g)
-                    <div wire:key="guest-{{ $i }}" class="rounded-xl border border-border p-3">
-                        <div class="flex items-start gap-3">
-                            <div class="shrink-0">
-                                @if (isset($guestPhotos[$i]) && $guestPhotos[$i])
-                                    <img src="{{ $guestPhotos[$i]->temporaryUrl() }}" class="w-16 h-16 object-cover rounded-lg border border-border">
-                                @elseif (! empty($g['photo_path']))
-                                    <img src="{{ asset('storage/'.$g['photo_path']) }}" class="w-16 h-16 object-cover rounded-lg border border-border">
-                                @else
-                                    <div class="w-16 h-16 rounded-lg border border-dashed border-border bg-bg flex items-center justify-center text-ink-soft/40">
-                                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                    </div>
-                                @endif
-                            </div>
-
-                            <div class="min-w-0 flex-1 space-y-2">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <input type="text" wire:model="guests.{{ $i }}.name" placeholder="Nume" class="{{ $in }}">
-                                    <input type="text" wire:model="guests.{{ $i }}.country" placeholder="Țară (ex. RO, ES, CU)" class="{{ $in }}">
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <x-dropdown-select path="guests.{{ $i }}.style" :options="$guestStyles" :selected="$g['style'] ?? ''" placeholder="Stil" />
-                                    @if (($g['style'] ?? '') === 'other')
-                                        <input type="text" wire:model="guests.{{ $i }}.style_other" placeholder="Care stil?" class="{{ $in }}">
-                                    @endif
-                                </div>
-                                <input type="url" wire:model="guests.{{ $i }}.url" placeholder="Link (opțional): Instagram, site…" class="{{ $in }}">
-                                @error('guests.'.$i.'.url') <p class="{{ $err }}">{{ $message }}</p> @enderror
-
-                                <div class="flex items-center gap-3 pt-0.5">
-                                    <label class="text-xs font-medium text-primary hover:underline cursor-pointer">
-                                        <input type="file" wire:model="guestPhotos.{{ $i }}" accept="image/*" class="hidden">
-                                        {{ (! empty($g['photo_path']) || isset($guestPhotos[$i])) ? 'Schimbă poza' : 'Adaugă poză' }}
-                                    </label>
-                                    @if (! empty($g['photo_path']) || isset($guestPhotos[$i]))
-                                        <button type="button" wire:click="clearGuestPhoto({{ $i }})" class="text-xs font-medium text-danger hover:underline">Elimină poza</button>
-                                    @endif
-                                    <div wire:loading wire:target="guestPhotos.{{ $i }}" class="text-xs text-ink-soft">Se încarcă…</div>
-                                    <button type="button" wire:click="removeGuest({{ $i }})" class="ml-auto text-xs font-medium text-ink-soft hover:text-danger">Șterge invitatul</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <button type="button" wire:click="addGuest" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                Adaugă invitat
-            </button>
-        </div>
-
-        {{-- ============ Stiluri muzică ============ --}}
-        <div class="{{ $card }}">
-            <h3 class="text-sm font-semibold text-ink">Stiluri muzică</h3>
-            <p class="text-xs text-ink-soft/80">Ciclul de redare al DJ-ului, în ordine: câte melodii din fiecare stil, apoi se reia de la primul.</p>
-
-            <div class="space-y-2">
-                @foreach ($music_styles as $i => $ms)
-                    <div wire:key="ms-{{ $i }}" class="grid grid-cols-[1fr_7rem_auto] gap-2 items-start">
-                        <input type="text" wire:model="music_styles.{{ $i }}.style" placeholder="Stil (ex. Bachata)" class="{{ $in }}">
-                        <input type="number" step="1" min="1" wire:model="music_styles.{{ $i }}.frequency" placeholder="Nr. melodii" class="{{ $in }}">
-                        <button type="button" wire:click="removeMusicStyle({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
-                        </button>
-                    </div>
-                    @error('music_styles.'.$i.'.frequency') <p class="{{ $err }}">{{ $message }}</p> @enderror
-                @endforeach
-            </div>
-
-            <button type="button" wire:click="addMusicStyle" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                Adaugă stil
-            </button>
-
-            @if (count(array_filter($music_styles, fn ($ms) => trim($ms['style'] ?? '') !== '')) > 1)
-                <p class="text-xs text-ink-soft/70">
-                    Ciclu: {{ implode(' → ', array_map(fn ($ms) => trim(($ms['style'] ?? '') !== '' ? ($ms['frequency'] ?: '?').'× '.$ms['style'] : ''), array_filter($music_styles, fn ($ms) => trim($ms['style'] ?? '') !== ''))) }} → se reia
-                </p>
-            @endif
-        </div>
-
         {{-- ============ Preț (tipuri de bilet) ============ --}}
         <div class="{{ $card }}">
             <h3 class="text-sm font-semibold text-ink">Preț</h3>
@@ -317,22 +230,64 @@
 
                         {{-- Reduceri pentru acest bilet --}}
                         <div class="pl-1">
-                            <span class="text-xs font-medium text-ink-soft">Reduceri (early-bird sau intrare gratuită până la o oră)</span>
+                            <span class="text-xs font-medium text-ink-soft">Reduceri (early-bird la cumpărare și/sau preț redus până la o oră la intrare)</span>
                             <div class="mt-2 space-y-2">
                                 @foreach ($type['discounts'] ?? [] as $dii => $disc)
-                                    <div wire:key="tt-{{ $ti }}-d-{{ $dii }}" class="grid grid-cols-1 sm:grid-cols-[1fr_7rem_12.5rem_auto] gap-2 items-start">
-                                        <input type="text" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.label" placeholder="Etichetă (ex. Early bird, Gratuit până la 22:30)" class="{{ $in }}">
-                                        <input type="number" step="0.01" min="0" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.price" placeholder="Preț" class="{{ $in }}">
-                                        <input type="datetime-local" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.until" class="accent-primary [color-scheme:light] {{ $in }}" title="Valabil până la (data și ora)">
-                                        <button type="button" wire:click="removeTicketDiscount({{ $ti }}, {{ $dii }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
-                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
-                                        </button>
+                                    <div wire:key="tt-{{ $ti }}-d-{{ $dii }}" class="rounded-xl border border-border bg-bg/40 p-3 space-y-3">
+                                        <div class="flex items-end gap-2">
+                                            <label class="block flex-1 min-w-0">
+                                                <span class="block text-xs font-medium text-ink-soft mb-1">Etichetă</span>
+                                                <input type="text" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.label" placeholder="ex. Early bird, Gratuit până la 22:30" class="{{ $in }}">
+                                            </label>
+                                            <label class="block w-28 shrink-0">
+                                                <span class="block text-xs font-medium text-ink-soft mb-1">Preț (lei)</span>
+                                                <input type="number" step="0.01" min="0" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.price" placeholder="0" class="{{ $in }}">
+                                            </label>
+                                            <button type="button" wire:click="removeTicketDiscount({{ $ti }}, {{ $dii }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină reducerea">
+                                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                            </button>
+                                        </div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <label class="block min-w-0">
+                                                <span class="block text-xs font-medium text-ink-soft mb-1">Se poate cumpăra cu acest preț până la</span>
+                                                <input type="datetime-local" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.until" class="accent-primary [color-scheme:light] {{ $in }}">
+                                                <span class="block text-[11px] text-ink-soft/70 mt-1">Data și ora achiziției. Gol = oricând.</span>
+                                            </label>
+                                            <label class="block min-w-0">
+                                                <span class="block text-xs font-medium text-ink-soft mb-1">Se poate intra cu acest preț până la</span>
+                                                <input type="datetime-local" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.enter_until" class="accent-primary [color-scheme:light] {{ $in }}">
+                                                <span class="block text-[11px] text-ink-soft/70 mt-1">Ora la Recepție; după, se plătește diferența. Gol = fără limită.</span>
+                                            </label>
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>
                             <button type="button" wire:click="addTicketDiscount({{ $ti }})" class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
                                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                                 Adaugă reducere
+                            </button>
+                        </div>
+
+                        {{-- DXA: adaugat (runda 13). Trepte după numărul de bilete vândute --}}
+                        <div class="pl-1">
+                            <span class="text-xs font-medium text-ink-soft">Trepte după numărul de bilete vândute (ex. primele 50 la 40 lei, apoi prețul de mai sus)</span>
+                            <div class="mt-2 space-y-2">
+                                @foreach ($type['qty_tiers'] ?? [] as $qi => $q)
+                                    <div wire:key="tt-{{ $ti }}-q-{{ $qi }}" class="grid grid-cols-1 sm:grid-cols-[1fr_7rem_8rem_auto] gap-2 items-start">
+                                        <input type="text" wire:model="ticket_types.{{ $ti }}.qty_tiers.{{ $qi }}.label" placeholder="Etichetă (ex. Primele 50)" class="{{ $in }}">
+                                        <input type="number" step="0.01" min="0" wire:model="ticket_types.{{ $ti }}.qty_tiers.{{ $qi }}.price" placeholder="Preț" class="{{ $in }}">
+                                        <input type="number" step="1" min="1" wire:model="ticket_types.{{ $ti }}.qty_tiers.{{ $qi }}.first" placeholder="Primele … bilete" class="{{ $in }}" title="Câte bilete se vând la acest preț (numărate de la începutul vânzării)">
+                                        <button type="button" wire:click="removeQtyTier({{ $ti }}, {{ $qi }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                            @error('ticket_types.'.$ti.'.qty_tiers') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            @error('ticket_types.'.$ti.'.qty_tiers.*.first') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            <button type="button" wire:click="addQtyTier({{ $ti }})" class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                Adaugă treaptă
                             </button>
                         </div>
                     </div>
@@ -343,85 +298,6 @@
                     Adaugă tip de bilet
                 </button>
             </div>
-        </div>
-
-        {{-- ============ Modalități plată ============ --}}
-        <div class="{{ $card }}">
-            <div>
-                <h3 class="text-sm font-semibold text-ink">Modalități de plată</h3>
-                <p class="mt-1 text-xs text-ink-soft leading-relaxed">
-                    Alege ce se acceptă la această petrecere. Lista vine din
-                    <a href="{{ route('admin.settings.index') }}" wire:navigate class="text-primary hover:underline">Setări</a>,
-                    unde se adaugă și metodele noi. Tokenii se folosesc doar la bar; creditele plătesc și intrarea, și barul; la bar, cash se acceptă mereu.
-                </p>
-                @if (empty($payment_methods))
-                    <p class="mt-1 text-xs text-warning">Nicio metodă bifată — se acceptă toate metodele active din Setări.</p>
-                @endif
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                @foreach ($paymentChoices as $key => $choice)
-                    <label wire:key="pay-{{ $key }}" class="flex items-center gap-2.5 text-sm {{ $choice['enabled'] ? 'text-ink' : 'text-ink-soft' }}">
-                        <input type="checkbox" value="{{ $key }}" wire:model="payment_methods" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
-                        {{ $choice['label'] }}
-                        @unless ($choice['enabled']) <span class="text-xs text-warning">(dezactivată)</span> @endunless
-                        @if ($key === 'token') <span class="text-xs text-ink-soft/70">doar la bar</span> @endif
-                    </label>
-                @endforeach
-            </div>
-        </div>
-
-        {{-- ============ Card de fidelitate ============ --}}
-        @if ($loyaltyEnabled)
-            <div class="{{ $card }}">
-                <label class="flex items-start gap-2.5 text-sm text-ink">
-                    <input type="checkbox" wire:model="loyalty_eligible" class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
-                    <span>
-                        <span class="font-medium">Acordă ștampile de fidelitate</span>
-                        <span class="block mt-0.5 text-xs text-ink-soft leading-relaxed">
-                            Participanții înrolați primesc automat o ștampilă la o intrare identificată. Controlează și acceptarea plății „Beneficiu" la intrare (folosită pentru bonusul de fidelitate — card digital complet sau card fizic).
-                        </span>
-                    </span>
-                </label>
-            </div>
-        @endif
-
-        {{-- ============ Contact (mai multe persoane) ============ --}}
-        <div class="{{ $card }}">
-            <h3 class="text-sm font-semibold text-ink">Contact</h3>
-
-            <div class="space-y-3">
-                @foreach ($contacts as $i => $c)
-                    @php $cid = $c['admin_id'] ?? null; $ca = $cid ? ($contactAdmins[$cid] ?? null) : null; @endphp
-                    <div wire:key="contact-{{ $i }}" class="rounded-xl border border-border p-3 space-y-2">
-                        <div class="flex items-center gap-2">
-                            <x-dropdown-select path="contacts.{{ $i }}.admin_id" :options="$contactOptions" :selected="$c['admin_id'] ?? ''" placeholder="Alege…" class="flex-1" />
-                            @if (count($contacts) > 1)
-                                <button type="button" wire:click="removeContact({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Șterge contactul">
-                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                                </button>
-                            @endif
-                        </div>
-
-                        @if ($ca)
-                            <div class="rounded-lg bg-bg border border-border px-3.5 py-2.5 text-sm text-ink-soft">
-                                <span class="font-medium text-ink">{{ $ca['name'] ?: 'Fără nume' }}</span>{{ $ca['phone'] ? ' — '.$ca['phone'] : '' }}
-                            </div>
-                        @else
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <input type="text" wire:model="contacts.{{ $i }}.name" placeholder="Nume" class="{{ $in }}">
-                                <input type="text" wire:model="contacts.{{ $i }}.phone" placeholder="07XXXXXXXX" class="{{ $in }}">
-                            </div>
-                        @endif
-
-                        <input type="text" wire:model="contacts.{{ $i }}.note" placeholder="Notă (opțional): ex. Mesaje pe WhatsApp" class="{{ $in }}">
-                    </div>
-                @endforeach
-            </div>
-
-            <button type="button" wire:click="addContact" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                Adaugă persoană de contact
-            </button>
         </div>
 
         {{-- ============ Coduri de reducere (DXA: Coduri de reducere) ============ --}}
@@ -547,6 +423,223 @@
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Adaugă cod de reducere
             </button>
+        </div>
+
+        {{-- ============ Vânzare bilete și capacitate (DXA: runda 13) ============ --}}
+        <div class="{{ $card }}" x-data="{ open: $wire.entangle('online_sales') }">
+            <div>
+                <h3 class="text-sm font-semibold text-ink">Vânzare bilete și capacitate</h3>
+                <p class="mt-1 text-xs text-ink-soft leading-relaxed">Cum se vând biletele în aplicația participanților și cât de multă lume încape.</p>
+            </div>
+
+            <label class="flex items-start gap-2.5 text-sm text-ink">
+                <input type="checkbox" x-model="open" class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                <span>
+                    <span class="font-medium">Se vând bilete online</span>
+                    <span class="block mt-0.5 text-xs text-ink-soft leading-relaxed">Dacă e oprit, aplicația afișează doar petrecerea și prețurile (biletele se cumpără la intrare), iar limitele de mai jos de vânzare nu contează.</span>
+                </span>
+            </label>
+
+            <div x-show="open" x-cloak class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-ink mb-1.5">Bilete per comandă (maxim) <span class="text-ink-soft/60 font-normal">(gol = oricâte)</span></label>
+                        <input type="number" step="1" min="1" wire:model="max_tickets_per_order" placeholder="Oricâte" class="{{ $in }}">
+                        @error('max_tickets_per_order') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-ink mb-1.5">Bilete disponibile la vânzare <span class="text-ink-soft/60 font-normal">(gol = nelimitat)</span></label>
+                        <input type="number" step="1" min="1" wire:model="tickets_for_sale" placeholder="ex. 200" class="{{ $in }}">
+                        @error('tickets_for_sale') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                @if (! $is_free)
+                    <div class="rounded-xl border border-border p-3 space-y-2">
+                        <span class="text-xs font-medium text-ink-soft">Limită pe tip de bilet <span class="text-ink-soft/60 font-normal">(gol = doar limita totală)</span></span>
+                        @foreach ($ticket_types as $ti => $type)
+                            @if (trim((string) ($type['name'] ?? '')) !== '')
+                                <div wire:key="lim-{{ $ti }}" class="grid grid-cols-[1fr_9rem] gap-2 items-center">
+                                    <span class="text-sm text-ink truncate">{{ $type['name'] }}</span>
+                                    <input type="number" step="1" min="1" wire:model="ticket_types.{{ $ti }}.limit" placeholder="Nelimitat" class="{{ $in }}">
+                                </div>
+                                @error('ticket_types.'.$ti.'.limit') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            @endif
+                        @endforeach
+                        <p class="text-xs text-ink-soft/80">Prețul în trepte după numărul de bilete vândute se setează la „Preț”, la fiecare tip de bilet.</p>
+                    </div>
+                @endif
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-ink mb-1.5">Număr maxim de participanți <span class="text-ink-soft/60 font-normal">(gol = fără prag)</span></label>
+                <input type="number" step="1" min="1" wire:model="max_participants" placeholder="ex. 250" class="{{ $in }}">
+                <p class="mt-1 text-xs text-ink-soft leading-relaxed">Nu blochează nici cumpărarea de bilete, nici intrarea: când pragul e atins, Recepția primește doar o atenționare.</p>
+                @error('max_participants') <p class="{{ $err }}">{{ $message }}</p> @enderror
+            </div>
+        </div>
+
+        {{-- ============ Modalități plată ============ --}}
+        <div class="{{ $card }}">
+            <div>
+                <h3 class="text-sm font-semibold text-ink">Modalități de plată</h3>
+                <p class="mt-1 text-xs text-ink-soft leading-relaxed">
+                    Alege ce se acceptă la această petrecere. Lista vine din
+                    <a href="{{ route('admin.settings.index') }}" wire:navigate class="text-primary hover:underline">Setări</a>,
+                    unde se adaugă și metodele noi. Tokenii se folosesc doar la bar; creditele plătesc și intrarea, și barul; la bar, cash se acceptă mereu.
+                </p>
+                @if (empty($payment_methods))
+                    <p class="mt-1 text-xs text-warning">Nicio metodă bifată — se acceptă toate metodele active din Setări.</p>
+                @endif
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                @foreach ($paymentChoices as $key => $choice)
+                    <label wire:key="pay-{{ $key }}" class="flex items-center gap-2.5 text-sm {{ $choice['enabled'] ? 'text-ink' : 'text-ink-soft' }}">
+                        <input type="checkbox" value="{{ $key }}" wire:model="payment_methods" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                        {{ $choice['label'] }}
+                        @unless ($choice['enabled']) <span class="text-xs text-warning">(dezactivată)</span> @endunless
+                        @if ($key === 'token') <span class="text-xs text-ink-soft/70">doar la bar</span> @endif
+                    </label>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- ============ Card de fidelitate ============ --}}
+        @if ($loyaltyEnabled)
+            <div class="{{ $card }}">
+                <label class="flex items-start gap-2.5 text-sm text-ink">
+                    <input type="checkbox" wire:model="loyalty_eligible" class="mt-0.5 w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                    <span>
+                        <span class="font-medium">Acordă ștampile de fidelitate</span>
+                        <span class="block mt-0.5 text-xs text-ink-soft leading-relaxed">
+                            Participanții înrolați primesc automat o ștampilă la o intrare identificată. Controlează și acceptarea plății „Beneficiu" la intrare (folosită pentru bonusul de fidelitate — card digital complet sau card fizic).
+                        </span>
+                    </span>
+                </label>
+            </div>
+        @endif
+
+        {{-- ============ Contact (mai multe persoane) ============ --}}
+        <div class="{{ $card }}">
+            <h3 class="text-sm font-semibold text-ink">Contact</h3>
+
+            <div class="space-y-3">
+                @foreach ($contacts as $i => $c)
+                    @php $cid = $c['admin_id'] ?? null; $ca = $cid ? ($contactAdmins[$cid] ?? null) : null; @endphp
+                    <div wire:key="contact-{{ $i }}" class="rounded-xl border border-border p-3 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <x-dropdown-select path="contacts.{{ $i }}.admin_id" :options="$contactOptions" :selected="$c['admin_id'] ?? ''" placeholder="Alege…" class="flex-1" />
+                            @if (count($contacts) > 1)
+                                <button type="button" wire:click="removeContact({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Șterge contactul">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            @endif
+                        </div>
+
+                        {{-- Contact ales din listă: numele și telefonul se văd deja în select (fără a doua casetă). --}}
+                        @if (! $ca)
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <input type="text" wire:model="contacts.{{ $i }}.name" placeholder="Nume" class="{{ $in }}">
+                                <input type="text" wire:model="contacts.{{ $i }}.phone" placeholder="07XXXXXXXX" class="{{ $in }}">
+                            </div>
+                        @endif
+
+                        <input type="text" wire:model="contacts.{{ $i }}.note" placeholder="Notă (opțional): ex. Mesaje pe WhatsApp" class="{{ $in }}">
+                    </div>
+                @endforeach
+            </div>
+
+            <button type="button" wire:click="addContact" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Adaugă persoană de contact
+            </button>
+        </div>
+
+        {{-- ============ Invitați (FESTIVAL) ============ --}}
+        <div class="{{ $card }}" x-show="$wire.kind === 'festival'" x-cloak>
+            <h3 class="text-sm font-semibold text-ink">Invitați</h3>
+
+            <div class="space-y-3">
+                @foreach ($guests as $i => $g)
+                    <div wire:key="guest-{{ $i }}" class="rounded-xl border border-border p-3">
+                        <div class="flex items-start gap-3">
+                            <div class="shrink-0">
+                                @if (isset($guestPhotos[$i]) && $guestPhotos[$i])
+                                    <img src="{{ $guestPhotos[$i]->temporaryUrl() }}" class="w-16 h-16 object-cover rounded-lg border border-border">
+                                @elseif (! empty($g['photo_path']))
+                                    <img src="{{ asset('storage/'.$g['photo_path']) }}" class="w-16 h-16 object-cover rounded-lg border border-border">
+                                @else
+                                    <div class="w-16 h-16 rounded-lg border border-dashed border-border bg-bg flex items-center justify-center text-ink-soft/40">
+                                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="min-w-0 flex-1 space-y-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <input type="text" wire:model="guests.{{ $i }}.name" placeholder="Nume" class="{{ $in }}">
+                                    <input type="text" wire:model="guests.{{ $i }}.country" placeholder="Țară (ex. RO, ES, CU)" class="{{ $in }}">
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <x-dropdown-select path="guests.{{ $i }}.style" :options="$guestStyles" :selected="$g['style'] ?? ''" placeholder="Stil" />
+                                    @if (($g['style'] ?? '') === 'other')
+                                        <input type="text" wire:model="guests.{{ $i }}.style_other" placeholder="Care stil?" class="{{ $in }}">
+                                    @endif
+                                </div>
+                                <input type="url" wire:model="guests.{{ $i }}.url" placeholder="Link (opțional): Instagram, site…" class="{{ $in }}">
+                                @error('guests.'.$i.'.url') <p class="{{ $err }}">{{ $message }}</p> @enderror
+
+                                <div class="flex items-center gap-3 pt-0.5">
+                                    <label class="text-xs font-medium text-primary hover:underline cursor-pointer">
+                                        <input type="file" wire:model="guestPhotos.{{ $i }}" accept="image/*" class="hidden">
+                                        {{ (! empty($g['photo_path']) || isset($guestPhotos[$i])) ? 'Schimbă poza' : 'Adaugă poză' }}
+                                    </label>
+                                    @if (! empty($g['photo_path']) || isset($guestPhotos[$i]))
+                                        <button type="button" wire:click="clearGuestPhoto({{ $i }})" class="text-xs font-medium text-danger hover:underline">Elimină poza</button>
+                                    @endif
+                                    <div wire:loading wire:target="guestPhotos.{{ $i }}" class="text-xs text-ink-soft">Se încarcă…</div>
+                                    <button type="button" wire:click="removeGuest({{ $i }})" class="ml-auto text-xs font-medium text-ink-soft hover:text-danger">Șterge invitatul</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <button type="button" wire:click="addGuest" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Adaugă invitat
+            </button>
+        </div>
+
+        {{-- ============ Stiluri muzică ============ --}}
+        <div class="{{ $card }}">
+            <h3 class="text-sm font-semibold text-ink">Stiluri muzică</h3>
+            <p class="text-xs text-ink-soft/80">Ciclul de redare al DJ-ului, în ordine: câte melodii din fiecare stil, apoi se reia de la primul.</p>
+
+            <div class="space-y-2">
+                @foreach ($music_styles as $i => $ms)
+                    <div wire:key="ms-{{ $i }}" class="grid grid-cols-[1fr_7rem_auto] gap-2 items-start">
+                        <input type="text" wire:model="music_styles.{{ $i }}.style" placeholder="Stil (ex. Bachata)" class="{{ $in }}">
+                        <input type="number" step="1" min="1" wire:model="music_styles.{{ $i }}.frequency" placeholder="Nr. melodii" class="{{ $in }}">
+                        <button type="button" wire:click="removeMusicStyle({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                        </button>
+                    </div>
+                    @error('music_styles.'.$i.'.frequency') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                @endforeach
+            </div>
+
+            <button type="button" wire:click="addMusicStyle" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Adaugă stil
+            </button>
+
+            @if (count(array_filter($music_styles, fn ($ms) => trim($ms['style'] ?? '') !== '')) > 1)
+                <p class="text-xs text-ink-soft/70">
+                    Ciclu: {{ implode(' → ', array_map(fn ($ms) => trim(($ms['style'] ?? '') !== '' ? ($ms['frequency'] ?: '?').'× '.$ms['style'] : ''), array_filter($music_styles, fn ($ms) => trim($ms['style'] ?? '') !== ''))) }} → se reia
+                </p>
+            @endif
         </div>
 
         {{-- ============ Linkuri ============ --}}

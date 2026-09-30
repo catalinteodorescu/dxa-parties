@@ -4,6 +4,7 @@ namespace App\Livewire\Participant;
 
 use App\Contracts\SmsSender;
 use App\Services\ParticipantAccounts;
+use App\Support\ParticipantApp;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -57,7 +58,7 @@ class Verify extends Component
         session()->forget(Register::VERIFY_SESSION_KEY);
         session()->flash('status', 'Contul tău e activ. Bine ai venit!');
 
-        $this->redirect(session()->pull('url.intended', route('app.home')), navigate: true);
+        $this->redirect(ParticipantApp::intendedOrHome(), navigate: true);
     }
 
     public function resend(SmsSender $sms): void

@@ -6,18 +6,20 @@ use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\PartyEntry;
 use App\Models\Promoter;
+use App\Models\Ticket;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * DXA: adaugat (Coduri de reducere - statistici). Cât au adus codurile și promotorii, din intrările VALABILE cu cod
- * (anularea scoate intrarea din cifre). Nu depinde de raportări: intrările se numără imediat.
+ * DXA: adaugat (Coduri de reducere - statistici). Cât au adus codurile și promotorii, din BILETELE ONLINE cu cod
+ * (biletele anulate nu se numără). Codurile se folosesc doar la biletele online; la Recepție nu se folosesc coduri
+ * (câmpul de acolo e doar de test), deci intrările nu intră în aceste cifre.
  *
  * Definiții:
- *  - bilete = intrări valabile cu cod (o reducere acordată = un bilet);
- *  - participanți = participanți identificați distincți din acele intrări (intrările anonime se numără ca bilete, nu ca persoane);
- *  - noi = participanți identificați care nu aveau nicio intrare valabilă la o petrecere anterioară (începută mai devreme);
+ *  - bilete = bilete online neanulate cu cod (o reducere acordată = un bilet);
+ *  - participanți = deținători cu nume distincți (biletele fără deținător cu nume se numără ca anonime);
+ *  - noi = participanți care nu aveau nicio intrare/bilet online la o petrecere anterioară (începută mai devreme);
  *    reveniți = restul. „Noi" înseamnă aduși ca persoane noi în comunitate, nu doar la prima petrecere cu cod;
  *  - reducere = suma discount_amount; încasat = suma price_paid a biletelor cu cod;
  *  - promotor = promotorul codului (fără promotor: grupul „Fără promotor").
@@ -35,7 +37,7 @@ class DiscountCodeStats
         $entries = self::codedEntries(fn ($q) => $q->where('party_id', $party->id));
         $new = self::newParticipants($entries);
 
-        $partyEntries = (int) PartyEntry::query()->where('party_id', $party->id)->active()->count();
+        $partyEntries = (int) Ticket::query()->where('party_id', $party->id)->counted()->count();
 
         $rows = $codes->map(fn (PartyDiscountCode $c) => self::row(
             $entries->where('discount_code_id', $c->id), $new,
@@ -74,7 +76,7 @@ class DiscountCodeStats
     {
         $entries = self::codedEntries(fn ($q) => $q
             ->when($partyIds !== null, fn ($q2) => $q2->whereIn('party_id', $partyIds))
-            ->when($since !== null, fn ($q2) => $q2->where('entered_at', '>=', $since)));
+            ->when($since !== null, fn ($q2) => $q2->where('created_at', '>=', $since)));
         $new = self::newParticipants($entries);
         $codes = PartyDiscountCode::query()->with(['promoter', 'party'])->whereIn('id', $entries->pluck('discount_code_id')->unique())->get()->keyBy('id');
 
@@ -112,7 +114,7 @@ class DiscountCodeStats
         $since = $now->copy()->subDays($days);
 
         $period = self::overall(null, $since)->totals;
-        $periodEntries = (int) PartyEntry::query()->active()->where('entered_at', '>=', $since)->count();
+        $periodEntries = (int) Ticket::query()->counted()->where('created_at', '>=', $since)->count();
 
         // Petrecerea curentă: cea în desfășurare, altfel cea mai apropiată viitoare (publicată, activă, neîncheiată).
         $party = Party::query()
@@ -135,11 +137,24 @@ class DiscountCodeStats
         ];
     }
 
-    /** Intrările valabile cu cod (minimul de coloane). @return Collection<int, PartyEntry> */
+    /**
+     * Biletele online neanulate cu cod, aduse la aceeași formă (participant_id, price_paid, discount_amount, entered_at).
+     *
+     * @return Collection<int, object>
+     */
     private static function codedEntries(\Closure $scope): Collection
     {
-        return $scope(PartyEntry::query()->active()->whereNotNull('discount_code_id'))
-            ->get(['id', 'party_id', 'discount_code_id', 'participant_id', 'price_paid', 'discount_amount', 'entered_at']);
+        return $scope(Ticket::query()->counted()->whereNotNull('discount_code_id'))
+            ->get(['id', 'party_id', 'discount_code_id', 'holder_participant_id', 'price', 'discount_amount', 'created_at'])
+            ->map(fn (Ticket $t) => (object) [
+                'id' => $t->id,
+                'party_id' => $t->party_id,
+                'discount_code_id' => $t->discount_code_id,
+                'participant_id' => $t->holder_participant_id,
+                'price_paid' => $t->price,
+                'discount_amount' => $t->discount_amount,
+                'entered_at' => $t->created_at,
+            ]);
     }
 
     /**
@@ -156,10 +171,14 @@ class DiscountCodeStats
 
         $starts = DB::table('parties')->whereIn('id', $entries->pluck('party_id')->unique())->pluck('starts_at', 'id'); // texte 'Y-m-d H:i:s' (comparabile)
 
-        $history = PartyEntry::query()->active()->whereIn('participant_id', $ids)
+        $fromEntries = PartyEntry::query()->active()->whereIn('participant_id', $ids)
             ->join('parties', 'parties.id', '=', 'party_entries.party_id')
-            ->get(['party_entries.participant_id', 'party_entries.party_id', 'parties.starts_at as p_starts'])
-            ->groupBy('participant_id');
+            ->get(['party_entries.participant_id', 'party_entries.party_id', 'parties.starts_at as p_starts']);
+        $fromTickets = Ticket::query()->where('tickets.status', '!=', Ticket::VOID)->whereIn('tickets.holder_participant_id', $ids)
+            ->join('parties', 'parties.id', '=', 'tickets.party_id')
+            ->get(['tickets.holder_participant_id', 'tickets.party_id', 'parties.starts_at as p_starts'])
+            ->map(fn ($t) => (object) ['participant_id' => $t->holder_participant_id, 'party_id' => $t->party_id, 'p_starts' => $t->p_starts]);
+        $history = $fromEntries->concat($fromTickets)->groupBy('participant_id');
 
         $new = [];
         foreach ($entries->filter(fn ($e) => $e->participant_id)->unique(fn ($e) => $e->party_id.':'.$e->participant_id) as $e) {

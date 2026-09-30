@@ -2,8 +2,8 @@
     @include('livewire.participant._flash')
 
     <div class="pa-section" style="margin-top: .5rem">
-        <div class="pa-eyebrow">Seara următoare</div>
-        <h1 class="pa-h1">Hai la dans,<br>hai la petrecere.</h1>
+        <div class="pa-eyebrow">Hai în comunitate</div>
+        <h1 class="pa-h1">Dansează și distrează-te alături de noi</h1>
     </div>
 
     @if ($carousel->isNotEmpty())
@@ -27,19 +27,10 @@
         </div>
     @endif
 
-    @if ($announcements->isNotEmpty())
-        <section class="pa-section">
-            <h2 class="pa-h2">Anunțuri</h2>
-            @foreach ($announcements as $announcement)
-                @include('livewire.participant._announcement-card', ['announcement' => $announcement])
-            @endforeach
-        </section>
-    @endif
-
     <section class="pa-section">
         <div class="pa-between">
             <h2 class="pa-h2">Petreceri următoare</h2>
-            <a href="{{ route('app.parties') }}" wire:navigate class="pa-link" style="font-size: .85rem">Toate</a>
+            <a href="{{ route('app.parties') }}" wire:navigate class="pa-link" style="font-size: .85rem">Vezi toate</a>
         </div>
         @forelse ($parties as $party)
             @include('livewire.participant._party-row', ['party' => $party])
@@ -47,4 +38,16 @@
             <div class="pa-glass pa-pad pa-soft" style="text-align: center">Nu sunt petreceri programate acum. Revino curând!</div>
         @endforelse
     </section>
+
+    @if ($announcements->isNotEmpty())
+        <section class="pa-section">
+            <div class="pa-between">
+                <h2 class="pa-h2">Anunțuri</h2>
+                <a href="{{ route('app.announcements') }}" wire:navigate class="pa-link" style="font-size: .85rem">Vezi toate</a>
+            </div>
+            @foreach ($announcements as $announcement)
+                <div wire:key="an-{{ $announcement->id }}">@include('livewire.participant._announcement-row', ['announcement' => $announcement])</div>
+            @endforeach
+        </section>
+    @endif
 </div>

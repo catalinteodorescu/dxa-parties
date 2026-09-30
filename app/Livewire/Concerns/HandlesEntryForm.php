@@ -5,11 +5,13 @@ namespace App\Livewire\Concerns;
 use App\Livewire\Admin\Concerns\PicksParticipants;
 use App\Models\Participant;
 use App\Models\ReceptionSession;
+use App\Models\Ticket;
 use App\Services\EntryRecorder;
 use App\Services\LoyaltyLedger;
 use App\Support\PaymentMethods;
 use App\Support\RecentEntryParticipants;
 use DomainException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -40,6 +42,9 @@ trait HandlesEntryForm
 
     /** Motivul pentru care codul introdus nu se aplică (null = ok sau gol). */
     public ?string $codeError = null;
+
+    /** DXA: adaugat (runda 15). Biletele online scanate la intrare (ordinea = a rândurilor; fiecare acoperă o persoană). @var array<int, int> */
+    public array $ticketIds = [];
 
     /** @var array<int, array{method: string, amount: string}> plata pe TOTALUL grupului */
     public array $payments = [['method' => 'cash', 'amount' => '']];
@@ -98,7 +103,7 @@ trait HandlesEntryForm
     public function stepCount(int $delta): void
     {
         // Nu coborî sub numărul de participanți deja aleși.
-        $min = max(1, count($this->participantIds));
+        $min = max(1, count($this->participantIds), count($this->ticketIds));
         $this->count = max($min, min(EntryRecorder::MAX_GROUP, (int) $this->count + $delta));
     }
 
@@ -133,6 +138,123 @@ trait HandlesEntryForm
     public function payAll(string $method): void
     {
         $this->payments = [['method' => $method, 'amount' => $this->fmt($this->totalCents() / 100)]];
+    }
+
+    /**
+     * DXA: adaugat (runda 15). Scanarea la Recepție: QR de bilet (DXA:T:) sau QR personal (DXA:P:).
+     *  - bilet: se adaugă biletul (dacă e valabil și al acestei petreceri) și deținătorul lui devine participant;
+     *  - personal: se alege participantul și se adaugă biletele lui valabile la petrecere (cumpărate de el sau pe numele lui).
+     * Numărul de persoane crește ca să acopere biletele. Nu înregistrează nimic.
+     *
+     * @return array{ok: bool, message: string}
+     */
+    public function scanParticipant(string $code): array
+    {
+        $this->participantError = null;
+        $party = $this->currentParty();
+        $code = trim($code);
+
+        if (str_starts_with($code, Ticket::QR_PREFIX)) {
+            $ticket = Ticket::findByQrPayload($code);
+            if (! $ticket) {
+                return ['ok' => false, 'message' => 'Bilet necunoscut. Încearcă din nou.'];
+            }
+            if (! $party || (int) $ticket->party_id !== (int) $party->id) {
+                return ['ok' => false, 'message' => 'Biletul e pentru altă petrecere.'];
+            }
+            if ($ticket->status !== Ticket::VALID) {
+                return ['ok' => false, 'message' => $ticket->status === Ticket::USED ? 'Biletul a fost deja folosit.' : 'Biletul a fost anulat.'];
+            }
+
+            $this->addTickets(collect([$ticket]));
+
+            return $this->participantError
+                ? ['ok' => false, 'message' => (string) tap($this->participantError, fn () => $this->participantError = null)]
+                : ['ok' => true, 'message' => $ticket->holder?->name ?? 'Bilet '.$ticket->ticket_type];
+        }
+
+        $participant = Participant::findByQrPayload($code);
+        if (! $participant) {
+            return ['ok' => false, 'message' => 'Cod necunoscut. Încearcă din nou.'];
+        }
+
+        $tickets = $party
+            ? Ticket::query()->where('party_id', $party->id)->where('status', Ticket::VALID)
+                ->where(fn ($q) => $q->where('owner_participant_id', $participant->id)->orWhere('holder_participant_id', $participant->id))
+                ->orderBy('id')->get()
+            : collect();
+
+        if ($tickets->isNotEmpty()) {
+            $this->addTickets($tickets);
+        } else {
+            $this->addParticipant($participant->id);
+        }
+
+        if ($this->participantError) {
+            $message = $this->participantError;
+            $this->participantError = null;
+
+            return ['ok' => false, 'message' => $message];
+        }
+
+        return ['ok' => true, 'message' => $participant->name.($tickets->isNotEmpty() ? ' · '.$tickets->count().' '.($tickets->count() === 1 ? 'bilet' : 'bilete') : '')];
+    }
+
+    /** Adaugă biletele (fără dubluri) și deținătorii lor cu nume ca participanți; ridică numărul de persoane la nevoie. */
+    protected function addTickets(Collection $tickets): void
+    {
+        foreach ($tickets as $t) {
+            if (in_array($t->id, $this->ticketIds, true)) {
+                continue;
+            }
+            if ($t->holder_participant_id) {
+                $this->addParticipant((int) $t->holder_participant_id);
+                if ($this->participantError) {
+                    return;
+                }
+            }
+            $this->ticketIds[] = $t->id;
+        }
+
+        if ((int) $this->count < count($this->ticketIds)) {
+            $this->count = count($this->ticketIds);
+        }
+    }
+
+    public function removeTicket(int $id): void
+    {
+        $this->ticketIds = array_values(array_filter($this->ticketIds, fn ($t) => $t !== $id));
+    }
+
+    /**
+     * Biletele scanate, cu ce se încasează pentru fiecare (folosit de partialul livewire.partials.entry-tickets).
+     *
+     * @return Collection<int, array{ticket: Ticket, holder: string, due: float, expired: bool, current: ?float}>
+     */
+    public function ticketRows(): Collection
+    {
+        if ($this->ticketIds === []) {
+            return collect();
+        }
+
+        $found = Ticket::query()->with(['holder', 'order', 'party'])->whereIn('id', $this->ticketIds)->get()->keyBy('id');
+
+        return collect($this->ticketIds)->map(fn ($id) => $found->get($id))->filter(fn ($t) => $t && $t->status === Ticket::VALID)
+            ->map(function (Ticket $t) {
+                $d = EntryRecorder::ticketDue($t);
+
+                return ['ticket' => $t, 'holder' => $t->holder?->name ?? ('Fără nume'.($t->holder_phone ? ' · '.$t->holder_phone : '')), 'due' => $d['due'] / 100, 'expired' => $d['expired'], 'current' => $d['current']];
+            })->values();
+    }
+
+    /** Textul rândului „Total": la biletele online, împărțit pe bilete și persoane la intrare. */
+    public function totalLabel(): string
+    {
+        $n = max(1, (int) $this->count);
+        $t = $this->ticketRows()->count();
+        $unit = number_format($this->unitCents() / 100, 2, ',', '.');
+
+        return $t === 0 ? 'Total ('.$n.' × '.$unit.' lei)' : 'Total ('.$t.' '.($t === 1 ? 'bilet' : 'bilete').' online'.($n > $t ? ' + '.($n - $t).' × '.$unit.' lei' : '').')';
     }
 
     public function save(): void
@@ -171,6 +293,7 @@ trait HandlesEntryForm
                 Auth::guard('admin')->id(),
                 participants: $this->participantIds,
                 discountCode: trim($this->discountCode) !== '' ? $this->discountCode : null,
+                ticketIds: $this->ticketIds,
             ));
 
             $this->message = sprintf(
@@ -207,6 +330,7 @@ trait HandlesEntryForm
         $this->payments = [['method' => 'cash', 'amount' => '']];
         $this->discountCode = '';
         $this->codeError = null;
+        $this->ticketIds = [];
         $this->resetParticipants();
     }
 
@@ -284,7 +408,11 @@ trait HandlesEntryForm
 
     protected function totalCents(): int
     {
-        return $this->unitCents() * max(1, min(EntryRecorder::MAX_GROUP, (int) $this->count));
+        $rows = $this->ticketRows();
+        $people = max(1, min(EntryRecorder::MAX_GROUP, (int) $this->count));
+        $ticketCents = (int) $rows->sum(fn ($r) => (int) round($r['due'] * 100));
+
+        return $ticketCents + $this->unitCents() * max(0, $people - $rows->count());
     }
 
     protected function fmt(float $n): string

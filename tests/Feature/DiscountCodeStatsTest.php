@@ -6,13 +6,15 @@ use App\Livewire\Admin\Parties\Stats as PartyStatsPage;
 use App\Livewire\Admin\Promoters\Index as PromotersPage;
 use App\Livewire\Admin\Reception\Index as ReceptionIndex;
 use App\Models\Admin;
+use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyDiscountCode;
-use App\Models\PartyEntry;
 use App\Models\Promoter;
+use App\Models\Ticket;
 use App\Services\DiscountCodeStats;
 use App\Services\EntryRecorder;
 use App\Services\ParticipantRegistry;
+use App\Services\TicketOrders;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -56,13 +58,27 @@ function dsParty(string $name, string $date): Party
 
 function dsEnter(Party $party, ?string $code, string $at, array $participants = [], int $count = 1)
 {
-    $unit = EntryRecorder::quote($party, 'Bilet', Carbon::parse($at), $code, $participants, $count)->price;
-
     return EntryRecorder::record(
-        $party, 'Bilet', $count,
-        $unit * $count > 0 ? [['method' => 'cash', 'amount' => $unit * $count]] : [],
-        at: Carbon::parse($at), enforceState: false, participants: $participants, discountCode: $code,
+        $party, 'Bilet', $count, [['method' => 'cash', 'amount' => 50 * $count]],
+        at: Carbon::parse($at), enforceState: false, participants: $participants,
     );
+}
+
+/** Bilet(e) online: cumpărător cu cont; $holderId = deținătorul cu nume al primului bilet (null = biletele rămân anonime). */
+function dsBuy(Party $party, ?string $code, string $at, ?int $holderId = null, int $count = 1): Ticket
+{
+    static $n = 0;
+    $n++;
+    $buyer = $holderId ? Participant::find($holderId) : ParticipantRegistry::create('Cumpărător '.$n, '07300'.str_pad((string) $n, 5, '0', STR_PAD_LEFT));
+    $buyer->forceFill(['password' => 'parola-sigura', 'phone_verified_at' => now()])->save();
+
+    $order = TicketOrders::place($buyer, $party, 'Bilet', $count, [], $code, Carbon::parse($at));
+    $order->tickets()->update(['created_at' => Carbon::parse($at)]);
+    if (! $holderId) {
+        $order->tickets()->update(['holder_participant_id' => null]);
+    }
+
+    return $order->tickets->first();
 }
 
 /** @return array{a: Party, b: Party, ana: Promoter, bob: Promoter, ionel: mixed, maria: mixed, dan: mixed} */
@@ -72,6 +88,7 @@ function dsScenario(): array
     $admin = dsAdmin();
     $a = dsParty('Petrecere A', '2026-09-19');
     $b = dsParty('Petrecere B', '2026-10-03');
+    $b->update(['online_sales' => true]);
 
     $ana = Promoter::create(['name' => 'Ana']);
     $bob = Promoter::create(['name' => 'Bob']);
@@ -85,11 +102,12 @@ function dsScenario(): array
 
     dsEnter($a, null, '2026-09-19 22:00', [$ionel->id]);                 // Ionel a mai fost (fără cod)
 
-    dsEnter($b, 'ANA10', '2026-09-28 10:00', [$ionel->id]);              // Ana: revenit, 45
-    dsEnter($b, 'ANA10', '2026-09-28 11:00', [$maria->id]);              // Ana: nou, 45
-    dsEnter($b, 'ANA10', '2026-09-29 09:00', [], 2);                     // Ana: 2 bilete anonime, 2 x 45
-    dsEnter($b, 'BOB5', '2026-09-29 10:00', [$dan->id]);                 // Bob: nou, 45
-    dsEnter($b, null, '2026-09-30 10:00');                               // fara cod (nu intra in stat)
+    dsBuy($b, 'ANA10', '2026-09-28 10:00', $ionel->id);                  // Ana: revenit, 45
+    dsBuy($b, 'ANA10', '2026-09-28 11:00', $maria->id);                  // Ana: nou, 45
+    dsBuy($b, 'ANA10', '2026-09-29 09:00', null, 2);                     // Ana: 2 bilete anonime, 2 x 45
+    dsBuy($b, 'BOB5', '2026-09-29 10:00', $dan->id);                     // Bob: nou, 45
+    dsBuy($b, null, '2026-09-30 10:00');                                 // online fara cod (conteaza doar la total)
+    dsEnter($b, null, '2026-09-30 11:00');                               // intrare la Recepție (nu intră în stat)
 
     return compact('a', 'b', 'ana', 'bob', 'ionel', 'maria', 'dan');
 }
@@ -108,7 +126,7 @@ it('calculeaza statisticile pe petrecere: totaluri, pe promotor, pe cod, noi vs 
         ->and($t->anonymous)->toBe(2)
         ->and($t->discount)->toBe(25.0)
         ->and($t->revenue)->toBe(225.0)
-        ->and($t->party_entries)->toBe(6)           // 5 cu cod + 1 fara + (Ionel la A nu conteaza)
+        ->and($t->party_entries)->toBe(6)           // 5 cu cod + 1 online fara cod (intrarile de la Receptie nu conteaza)
         ->and($t->share_pct)->toBe(round(5 / 6 * 100, 1));
 
     // Ana: 4 bilete x 5 lei reducere (10% din 50) = 20; Bob: 1 x 5.
@@ -129,11 +147,10 @@ it('calculeaza statisticile pe petrecere: totaluri, pe promotor, pe cod, noi vs 
         ->and($s->daily->pluck('tickets')->all())->toBe([2, 3]);
 });
 
-it('anularea unei intrari o scoate din statistici', function () {
+it('un bilet anulat (void) iese din statistici; intrarile de la Receptie nu conteaza', function () {
     ['b' => $b, 'maria' => $maria] = dsScenario();
 
-    $entry = PartyEntry::query()->where('participant_id', $maria->id)->where('party_id', $b->id)->firstOrFail();
-    EntryRecorder::cancelBatch($entry->batch, 'test');
+    Ticket::query()->where('holder_participant_id', $maria->id)->where('party_id', $b->id)->update(['status' => 'void']);
 
     $t = DiscountCodeStats::forParty($b)->totals;
     expect($t->tickets)->toBe(4)->and($t->participants)->toBe(2)->and($t->new)->toBe(1);
@@ -144,9 +161,12 @@ it('clasamentul intre petreceri aduna codurile aceluiasi promotor si tine cont d
 
     // Ana are cod si la A (mai veche): participant nou la A.
     $admin = Admin::first();
+    $a->update(['online_sales' => true]);
     $codeA = PartyDiscountCode::create(['party_id' => $a->id, 'code' => 'ANAA', 'promoter_id' => $ana->id, 'type' => 'amount', 'value' => 10, 'max_uses_per_participant' => null]);
     $eva = ParticipantRegistry::create('Eva Veche', '0722000009', $admin->id);
-    dsEnter($a, 'ANAA', '2026-09-19 23:00', [$eva->id]);   // (dupa Ionel, aceeasi sesiune dar alt participant)
+    Carbon::setTestNow(Carbon::parse('2026-09-19 12:00:00'));   // A încă nu s-a încheiat la cumpărare
+    dsBuy($a, 'ANAA', '2026-09-19 23:00', $eva->id);
+    Carbon::setTestNow(Carbon::parse('2026-10-01 12:00:00'));   // (dupa Ionel, aceeasi sesiune dar alt participant)
 
     $all = DiscountCodeStats::overall();
     $anaRow = $all->promoters->firstWhere('promoter_id', $ana->id);
@@ -166,7 +186,7 @@ it('clasamentul intre petreceri aduna codurile aceluiasi promotor si tine cont d
 it('coduri fara promotor apar in grupul „Fara promotor"', function () {
     ['b' => $b] = dsScenario();
     $code = PartyDiscountCode::create(['party_id' => $b->id, 'code' => 'FARA', 'type' => 'amount', 'value' => 5, 'max_uses_per_participant' => null]);
-    dsEnter($b, 'FARA', '2026-09-30 11:00');
+    dsBuy($b, 'FARA', '2026-09-30 11:00');
 
     $none = DiscountCodeStats::forParty($b)->promoters->firstWhere('promoter_id', null);
     expect($none->promoter)->toBe('Fără promotor')->and($none->tickets)->toBe(1)->and($none->codes)->toBe(['FARA']);
@@ -259,8 +279,10 @@ it('pagina Promotori: clasament, adaugare / editare / dezactivare / stergere doa
 it('coloana „Cod" apare in Tranzactii (admin) pentru intrarile cu cod', function () {
     $this->actingAs(dsAdmin(), 'admin');
     ['b' => $b] = dsScenario();
+    $code = PartyDiscountCode::create(['party_id' => $b->id, 'code' => 'RECEPT', 'type' => 'amount', 'value' => 5, 'max_uses_per_participant' => null]);
+    EntryRecorder::record($b, 'Bilet', 1, [['method' => 'cash', 'amount' => 45]], at: Carbon::parse('2026-09-30 12:00'), enforceState: false, discountCode: 'RECEPT');
 
-    Livewire::test(ReceptionIndex::class)->set('party', (string) $b->id)->assertSee('ANA10')->assertSee('BOB5');
+    Livewire::test(ReceptionIndex::class)->set('party', (string) $b->id)->assertSee('RECEPT');
 });
 
 it('dashboard: reduceri pe 30 de zile, petrecerea curentă, top promotori, noi vs reveniți', function () {
@@ -271,8 +293,8 @@ it('dashboard: reduceri pe 30 de zile, petrecerea curentă, top promotori, noi v
     expect($d->period->tickets)->toBe(5)
         ->and($d->period->discount)->toBe(25.0)
         ->and($d->period->new)->toBe(2)->and($d->period->returning)->toBe(1)->and($d->period->anonymous)->toBe(2)
-        ->and($d->period_entries)->toBe(7)                       // 5 cu cod + 1 fără cod la B + 1 la A (în ultimele 30 de zile)
-        ->and($d->share_pct)->toBe(round(5 / 7 * 100, 1))
+        ->and($d->period_entries)->toBe(6)                       // 5 cu cod + 1 online fără cod (doar bilete online)
+        ->and($d->share_pct)->toBe(round(5 / 6 * 100, 1))
         ->and($d->party->id)->toBe($b->id)                       // A s-a încheiat; B e următoarea
         ->and($d->top_code->code)->toBe('ANA10')
         ->and($d->promoters->pluck('promoter')->all())->toBe(['Ana', 'Bob']);
@@ -300,7 +322,7 @@ it('dashboard: cardurile „Coduri de reducere” arată cifrele din scenariu', 
     Livewire::test(Dashboard::class)
         ->assertSee('Coduri de reducere')
         ->assertSee('25,00 lei')            // reduceri acordate (30 zile)
-        ->assertSee('71,4% din intrări')
+        ->assertSee('83,3% din biletele online')
         ->assertSee('Bilete cu cod · Petrecere B')
         ->assertSee('top: ANA10 (4)')
         ->assertSee('Top promotor')->assertSee('Ana')->assertSee('2. Bob')

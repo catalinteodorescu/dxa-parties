@@ -46,6 +46,10 @@ class Party extends Model
         'contacts',
         'payment_methods',
         'loyalty_eligible',
+        'online_sales',
+        'max_tickets_per_order',
+        'tickets_for_sale',
+        'max_participants',
         'audience',
         'in_carousel',
         'is_active',
@@ -68,6 +72,10 @@ class Party extends Model
             'ends_at' => 'datetime',
             'is_free' => 'boolean',
             'loyalty_eligible' => 'boolean',
+            'online_sales' => 'boolean',
+            'max_tickets_per_order' => 'integer',
+            'tickets_for_sale' => 'integer',
+            'max_participants' => 'integer',
             'in_carousel' => 'boolean',
             'is_active' => 'boolean',
             'ticket_types' => 'array',
@@ -188,11 +196,24 @@ class Party extends Model
      */
     public function priceForTypeAt(array $type, ?Carbon $at = null, int $graceMinutes = 0): ?float
     {
+        return $this->priceRowAt($type, $at, $graceMinutes)['price'] ?? null;
+    }
+
+    /**
+     * DXA: adaugat (runda 15). Rândul de preț câștigător la momentul $at: prețul cel mai mic dintre baza și reducerile valabile.
+     * O reducere are două limite, independente și opționale: `until` (cumperi până la) și `enter_until` (intri până la).
+     * Ambele trebuie să fie încă valabile ca reducerea să se aplice (la cumpărare și la intrare). La preț egal câștigă cea fără
+     * limită de intrare, apoi cea cu limita de intrare mai târzie. `enter_until` e limita pusă pe bilet (null = biletul nu expiră).
+     *
+     * @return array{price: float, enter_until: ?string}|null
+     */
+    public function priceRowAt(array $type, ?Carbon $at = null, int $graceMinutes = 0): ?array
+    {
         $at ??= now();
         $candidates = [];
 
         if (isset($type['price']) && is_numeric($type['price'])) {
-            $candidates[] = (float) $type['price'];
+            $candidates[] = ['price' => (float) $type['price'], 'enter_until' => null];
         }
 
         foreach ($type['discounts'] ?? $type['tiers'] ?? [] as $t) {
@@ -200,20 +221,53 @@ class Party extends Model
                 continue;
             }
 
-            $until = $t['until'] ?? null;
-            $check = $at;
-            if ($graceMinutes > 0 && $until !== null && mb_strlen(trim((string) $until)) > 10) {
-                $check = $at->copy()->subMinutes($graceMinutes);
+            $active = true;
+            foreach (['until', 'enter_until'] as $key) {
+                $limit = $t[$key] ?? null;
+                $check = $at;
+                if ($graceMinutes > 0 && $limit !== null && mb_strlen(trim((string) $limit)) > 10) {
+                    $check = $at->copy()->subMinutes($graceMinutes);
+                }
+                if (! static::discountActive($limit, $check)) {
+                    $active = false;
+                }
             }
-
-            if (! static::discountActive($until, $check)) {
+            if (! $active) {
                 continue;
             }
 
-            $candidates[] = (float) $t['price'];
+            $enter = trim((string) ($t['enter_until'] ?? ''));
+            $candidates[] = ['price' => (float) $t['price'], 'enter_until' => $enter !== '' ? $enter : null];
         }
 
-        return $candidates ? min($candidates) : null;
+        if (! $candidates) {
+            return null;
+        }
+
+        usort($candidates, function ($x, $y) {
+            if ($x['price'] !== $y['price']) {
+                return $x['price'] <=> $y['price'];
+            }
+            // La preț egal: fără limită de intrare întâi, apoi limita cea mai târzie.
+            if ($x['enter_until'] === null || $y['enter_until'] === null) {
+                return ($x['enter_until'] === null ? 0 : 1) <=> ($y['enter_until'] === null ? 0 : 1);
+            }
+
+            return strcmp((string) $y['enter_until'], (string) $x['enter_until']);
+        });
+
+        return $candidates[0];
+    }
+
+    /** Data și ora „intri până la" ca Carbon (o limită doar cu zi = sfârșitul zilei); null dacă nu e limită. */
+    public static function enterUntilAt(?string $enterUntil): ?Carbon
+    {
+        $enterUntil = trim((string) $enterUntil);
+        if ($enterUntil === '') {
+            return null;
+        }
+
+        return mb_strlen($enterUntil) <= 10 ? Carbon::parse($enterUntil)->endOfDay() : Carbon::parse($enterUntil);
     }
 
     /**
@@ -429,5 +483,40 @@ class Party extends Model
             ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now))
             ->when($audience === 'all', fn ($q) => $q->where('audience', 'all'))
             ->orderBy('starts_at');
+    }
+
+    /**
+     * DXA: adaugat (runda 16b). Petrecerile publicate și active care s-au încheiat (cele mai recente întâi), pentru „Petreceri trecute”.
+     */
+    public function scopeVisiblePast(Builder $query, string $audience = 'all'): Builder
+    {
+        return $query
+            ->where('status', 'published')
+            ->where('is_active', true)
+            ->whereNotNull('ends_at')->where('ends_at', '<', now())
+            ->when($audience === 'all', fn ($q) => $q->where('audience', 'all'))
+            ->orderByDesc('starts_at');
+    }
+
+    /**
+     * DXA: adaugat (runda 13). Starea capacității: null dacă petrecerea n-are „număr maxim de participanți”. Doar informativă —
+     * nu blochează nici intrarea, nici cumpărarea; Recepția afișează o atenționare când pragul e atins (intrările valabile, neanulate).
+     *
+     * @return object{max: int, count: int, reached: bool, over: bool}|null
+     */
+    public function capacityStatus(): ?object
+    {
+        if (! $this->max_participants) {
+            return null;
+        }
+
+        $count = PartyEntry::query()->where('party_id', $this->id)->whereNull('cancelled_at')->count();
+
+        return (object) [
+            'max' => (int) $this->max_participants,
+            'count' => $count,
+            'reached' => $count >= $this->max_participants,
+            'over' => $count > $this->max_participants,
+        ];
     }
 }

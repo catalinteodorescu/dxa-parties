@@ -97,81 +97,42 @@
 
     @if ($me)
         <section class="pa-section">
-            {{-- Cod QR personal: îl arăți la recepție / bar. Biblioteca e servită local (funcționează și cu semnal slab). --}}
-            <div class="pa-glass pa-pad" style="display: flex; flex-direction: column; align-items: center; gap: .75rem; text-align: center">
-                <div class="pa-label" style="margin: 0">Codul tău personal</div>
-                <div wire:ignore
-                     x-data="{ ok: true }"
-                     x-init="(async () => {
-                         try {
-                             if (! window.qrcode) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = @js(asset('vendor/qrcode-generator.js')); s.onload = res; s.onerror = rej; document.head.appendChild(s); });
-                             const q = qrcode(0, 'M'); q.addData(@js($qr)); q.make();
-                             $refs.qr.innerHTML = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true });
-                         } catch (e) { ok = false; }
-                     })()">
-                    <div x-ref="qr" data-qr="{{ $qr }}" style="width: 220px; height: 220px; background: #fff; padding: 12px; border-radius: 1rem"></div>
-                    <p x-show="! ok" x-cloak class="pa-err" style="margin-top: .5rem">Nu am putut desena codul. Reîncarcă pagina.</p>
-                </div>
-                <div class="pa-soft" style="font-size: .85rem">Arată-l la intrare ca să-ți fie recunoscut contul.</div>
-            </div>
-
-            {{-- Credite --}}
-            <div class="pa-glass pa-pad pa-stack">
-                <div class="pa-between">
-                    <div class="pa-label" style="margin: 0">Portofel credite</div>
-                    <div class="pa-price" style="font-size: 1.4rem">{{ number_format($balance, 2, ',', '.') }} lei</div>
-                </div>
-                @forelse ($creditTx as $t)
-                    <div class="pa-between pa-line" style="padding-top: .5rem; font-size: .9rem">
-                        <div>
-                            <div style="font-weight: 700">{{ \App\Models\CreditTransaction::TYPE_LABELS[$t->type] ?? $t->type }}</div>
-                            <div class="pa-soft" style="font-size: .8rem">{{ $t->occurred_at?->format('d.m.Y H:i') }}@if ($t->note) · {{ $t->note }} @endif</div>
-                        </div>
-                        <div style="font-weight: 800; white-space: nowrap">{{ (float) $t->amount > 0 ? '+' : '' }}{{ number_format((float) $t->amount, 2, ',', '.') }}</div>
-                    </div>
-                @empty
-                    <div class="pa-soft" style="font-size: .9rem">Nu ai încă mișcări în portofel. Creditele se încarcă la recepție.</div>
-                @endforelse
-            </div>
-
             {{-- Fidelitate --}}
-            @if ($card || $loyaltyOn)
+            @if ($card)
+                @include('livewire.participant._loyalty-card', ['me' => $me, 'card' => $card, 'stamps' => $stamps])
+            @elseif ($loyaltyOn)
                 <div class="pa-glass pa-pad pa-stack">
                     <div class="pa-label" style="margin: 0">Card de fidelitate</div>
-                    @if ($card)
-                        <div style="display: flex; flex-wrap: wrap; gap: .5rem">
-                            @for ($i = 0; $i < $card->stamps_required; $i++)
-                                @php($s = $stamps->get($i))
-                                <div title="{{ $s ? $s->stamped_at->format('d.m.Y') : 'necompletat' }}" style="width: 2.4rem; height: 2.4rem; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid {{ $s ? 'currentColor' : 'rgba(255,255,255,.25)' }}" class="{{ $s ? 'pa-amber' : 'pa-soft' }}">{{ $s ? '✓' : $i + 1 }}</div>
-                            @endfor
-                            <div title="Intrare gratis" style="width: 2.4rem; height: 2.4rem; border-radius: 999px; display: flex; align-items: center; justify-content: center; border: 2px dashed currentColor" class="pa-amber">🎁</div>
-                        </div>
-                        <div class="pa-soft" style="font-size: .9rem">
-                            {{ $stamps->count() }} din {{ $card->stamps_required }} ștampile
-                            @if ($stamps->count() >= $card->stamps_required) · următoarea intrare e gratis! @endif
-                        </div>
-                    @else
-                        <div style="font-size: .95rem; font-weight: 700">Vrei să beneficiezi de oferte și de o intrare gratis?</div>
-                        <div class="pa-soft" style="font-size: .9rem">Înscrie-te la cardul de fidelitate: primești o ștampilă la fiecare petrecere la care ești prezent, iar după ce strângi {{ \App\Services\LoyaltyLedger::stampsRequired() }} ștampile urmează o intrare gratis.</div>
-                        <button type="button" class="pa-btn pa-btn-block" wire:click="enrollLoyalty" wire:loading.attr="disabled" wire:target="enrollLoyalty">Aplică pentru card</button>
-                    @endif
+                    <div style="font-size: .95rem; font-weight: 700">Vrei să beneficiezi de oferte și de o intrare gratis?</div>
+                    <div class="pa-soft" style="font-size: .9rem">Înscrie-te la cardul de fidelitate: primești o ștampilă la fiecare petrecere la care ești prezent, iar după ce strângi {{ \App\Services\LoyaltyLedger::stampsRequired() }} ștampile urmează o intrare gratis.</div>
+                    <button type="button" class="pa-btn pa-btn-block" wire:click="enrollLoyalty" wire:loading.attr="disabled" wire:target="enrollLoyalty">Aplică pentru card</button>
                 </div>
             @endif
 
-            {{-- Intrările mele --}}
+            {{-- Intrările mele: ultimele 5 --}}
             <div class="pa-glass pa-pad pa-stack">
                 <div class="pa-label" style="margin: 0">Intrările mele</div>
                 @forelse ($entries as $e)
-                    <div class="pa-between pa-line" style="padding-top: .5rem; font-size: .9rem">
-                        <div>
-                            <div style="font-weight: 700">{{ $e->party?->name ?? 'Petrecere' }}</div>
-                            <div class="pa-soft" style="font-size: .8rem">{{ $e->ticket_type }} · {{ $e->entered_at?->format('d.m.Y') }}</div>
-                        </div>
-                        <div style="font-weight: 800; white-space: nowrap">{{ $e->isFree() ? 'gratis' : number_format((float) $e->price_paid, 2, ',', '.').' lei' }}</div>
-                    </div>
+                    <div wire:key="ent-{{ $e->id }}">@include('livewire.participant._entry-row', ['e' => $e])</div>
                 @empty
                     <div class="pa-soft" style="font-size: .9rem">Nicio intrare înregistrată pe contul tău încă.</div>
                 @endforelse
+                @if ($entriesMore)
+                    <a href="{{ route('app.entries.all') }}" wire:navigate class="pa-link" style="text-align: center; padding-top: .25rem">Vezi tot</a>
+                @endif
+            </div>
+
+            {{-- Consumațiile de la bar: ultimele 5 --}}
+            <div class="pa-glass pa-pad pa-stack">
+                <div class="pa-label" style="margin: 0">Consumații la bar</div>
+                @forelse ($barSales as $s)
+                    <div wire:key="bar-{{ $s->id }}">@include('livewire.participant._bar-row', ['s' => $s])</div>
+                @empty
+                    <div class="pa-soft" style="font-size: .9rem">Nicio consumație la bar pe contul tău încă.</div>
+                @endforelse
+                @if ($barMore)
+                    <a href="{{ route('app.bar.all') }}" wire:navigate class="pa-link" style="text-align: center; padding-top: .25rem">Vezi tot</a>
+                @endif
             </div>
 
             <div class="pa-glass pa-pad pa-stack">

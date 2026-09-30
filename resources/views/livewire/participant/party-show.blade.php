@@ -36,7 +36,7 @@
                     <div class="pa-label" style="margin: 0">Locație</div>
                     <div style="font-weight: 800">{{ $party->location_name }}</div>
                     @if ($party->location_address) <div class="pa-soft" style="font-size: .9rem">{{ $party->location_address }}</div> @endif
-                    @if ($party->location_url) <a href="{{ $party->location_url }}" target="_blank" rel="noopener" class="pa-link" style="font-size: .9rem">Vezi pe hartă</a> @endif
+                    @if ($party->location_url) <a href="{{ $party->location_url }}" target="_blank" rel="noopener" class="pa-link" style="font-size: .9rem; display: inline-flex; align-items: center; gap: .3rem">Vezi pe hartă <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></a> @endif
                 </div>
             @endif
             @if ($dresscode)
@@ -105,7 +105,10 @@
         <section class="pa-section">
             <h2 class="pa-h2">Stiluri muzicale</h2>
             <div style="display: flex; flex-wrap: wrap; gap: .5rem">
-                @foreach ($styles as $m) <span class="pa-chip" wire:key="style-{{ $loop->index }}">{{ $m['style'] }}</span> @endforeach
+                @foreach ($styles as $m)
+                    @php $freq = isset($m['frequency']) && is_numeric($m['frequency']) && (int) $m['frequency'] > 0 ? (int) $m['frequency'] : null; @endphp
+                    <span class="pa-chip" wire:key="style-{{ $loop->index }}">{{ ($freq ? $freq.'× ' : '').$m['style'] }}</span>
+                @endforeach
             </div>
         </section>
     @endif
@@ -119,7 +122,7 @@
         @if ($party->is_free)
             <div class="pa-tier on"><div style="flex: 1; font-weight: 800">Intrare gratuită</div></div>
         @elseif (! $tickets)
-            <div class="pa-glass pa-pad pa-soft">Prețurile vor fi anunțate în curând.</div>
+            <div class="pa-glass pa-pad pa-soft" style="font-size: .92rem">Prețurile vor fi anunțate în curând.</div>
         @else
             @foreach ($tickets as $t)
                 <div class="pa-stack" style="gap: .5rem" wire:key="ticket-{{ $loop->index }}">
@@ -133,7 +136,10 @@
                                 </div>
                                 @if ($r['note'] !== '') <div class="pa-soft" style="font-size: .8rem">{{ $r['note'] }}</div> @endif
                             </div>
-                            <span class="pa-price" style="font-size: 1.15rem; {{ $r['on'] ? '' : 'color: var(--pa-ink)' }}">{{ PartyPublic::lei($r['price']) }}</span>
+                            <span style="text-align: right">
+                                @if ($r['was'] !== null) <s class="pa-soft pa-was" style="display: block; font-size: .8rem; font-weight: 700">{{ PartyPublic::lei($r['was']) }}</s> @endif
+                                <span class="pa-price" style="font-size: 1.15rem; {{ $r['on'] ? '' : 'color: var(--pa-ink)' }}">{{ PartyPublic::lei($r['price']) }}</span>
+                            </span>
                         </div>
                     @endforeach
                 </div>
@@ -141,9 +147,11 @@
         @endif
 
         @if (! $ended)
-            <div class="pa-glass pa-pad pa-soft" style="font-size: .88rem">
-                Cumpărarea biletelor din aplicație va fi disponibilă în curând. Până atunci, biletul se ia la intrare.
-            </div>
+            @if ($saleBlock === null)
+                @include('livewire.participant._buy', ['party' => $party, 'me' => $me, 'options' => $options, 'maxQty' => $maxQty, 'quote' => $quote, 'quoteError' => $quoteError])
+            @else
+                <div class="pa-glass pa-pad pa-soft" style="font-size: .92rem">{{ $party->online_sales ? $saleBlock : 'Biletele se cumpără la intrare.' }}</div>
+            @endif
         @endif
     </section>
 
@@ -154,17 +162,20 @@
                 @foreach ($fields as $f)
                     <div wire:key="field-{{ $loop->index }}"><div class="pa-label" style="margin: 0">{{ $f['label'] }}</div><div style="font-weight: 800">{{ $f['value'] }}</div></div>
                 @endforeach
-                @foreach ($contacts as $c)
-                    <div wire:key="contact-{{ $loop->index }}">
-                        <div class="pa-label" style="margin: 0">Contact{{ ! empty($c['note']) ? ' · '.$c['note'] : '' }}</div>
-                        <div style="font-weight: 800">
-                            {{ $c['name'] ?? '' }}
-                            @if (! empty($c['phone'])) <a href="tel:{{ preg_replace('/[^\d+]/', '', $c['phone']) }}" class="pa-link">{{ $c['phone'] }}</a> @endif
-                        </div>
+                @if ($contacts->isNotEmpty())
+                    <div>
+                        <div class="pa-label" style="margin: 0">Contact</div>
+                        @foreach ($contacts as $c)
+                            <div style="font-weight: 800" wire:key="contact-{{ $loop->index }}">
+                                {{ $c['name'] ?? '' }}
+                                @if (! empty($c['phone'])) <a href="tel:{{ preg_replace('/[^\d+]/', '', $c['phone']) }}" class="pa-link">{{ $c['phone'] }}</a> @endif
+                                @if (! empty($c['note'])) <span class="pa-soft" style="font-size: .8rem; font-weight: 600">· {{ $c['note'] }}</span> @endif
+                            </div>
+                        @endforeach
                     </div>
-                @endforeach
+                @endif
                 @foreach ($links as $l)
-                    <div wire:key="link-{{ $loop->index }}"><a href="{{ $l['url'] }}" target="_blank" rel="noopener" class="pa-link">{{ $l['label'] ?: $l['url'] }}</a></div>
+                    <div wire:key="link-{{ $loop->index }}"><a href="{{ $l['url'] }}" target="_blank" rel="noopener" class="pa-link" style="display: inline-flex; align-items: center; gap: .4rem"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>{{ $l['label'] ?: $l['url'] }}</a></div>
                 @endforeach
             </div>
         </section>

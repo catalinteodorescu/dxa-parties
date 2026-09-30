@@ -2,9 +2,8 @@
 
 namespace App\Livewire\Participant;
 
-use App\Models\CreditTransaction;
 use App\Models\PartyEntry;
-use App\Services\CreditLedger;
+use App\Models\Sale;
 use App\Services\LoyaltyLedger;
 use App\Services\ParticipantAccounts;
 use App\Services\ParticipantAvatar;
@@ -15,8 +14,8 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
 /**
- * DXA: adaugat (Aplicația participanților - runda 2). Contul meu: cod QR personal (același conținut ca în fișa din admin),
- * soldul de credite cu ultimele mișcări, cardul de fidelitate și intrările mele. Doar citire — nimic de aici nu modifică date.
+ * DXA: adaugat (Aplicația participanților - runda 2). Contul meu: profil, cardul de fidelitate, ultimele 5 intrări și ultimele 5
+ * consumații la bar (cu „Vezi tot”). Codul QR, biletele și creditele au pagini proprii (meniu). Doar citire, în afară de profil.
  */
 #[Layout('layouts.participant', ['title' => 'Cont'])]
 class Account extends Component
@@ -126,21 +125,18 @@ class Account extends Component
         $card = $me ? LoyaltyLedger::activeCard($me) : null;
         $stamps = $card ? $card->stamps()->whereNull('voided_at')->orderBy('stamped_at')->orderBy('id')->get() : collect();
 
+        $entries = fn () => PartyEntry::query()->active()->where('participant_id', $me->id);
+        $bar = fn () => Sale::query()->where('customer_id', $me->id)->where('status', 'completed');
+
         return view('livewire.participant.account', [
             'me' => $me,
-            'qr' => $me?->qrPayload(),
-            'balance' => $me ? CreditLedger::balance($me) : 0.0,
-            'creditTx' => $me
-                ? CreditTransaction::query()->where('participant_id', $me->id)->whereNull('cancelled_at')
-                    ->orderByDesc('occurred_at')->orderByDesc('id')->limit(10)->get()
-                : collect(),
             'loyaltyOn' => LoyaltyLedger::enabled(),
             'card' => $card,
             'stamps' => $stamps,
-            'entries' => $me
-                ? PartyEntry::query()->active()->where('participant_id', $me->id)->with('party')
-                    ->orderByDesc('entered_at')->orderByDesc('id')->limit(15)->get()
-                : collect(),
+            'entries' => $entries()->with('party')->orderByDesc('entered_at')->orderByDesc('id')->limit(5)->get(),
+            'entriesMore' => $entries()->count() > 5,
+            'barSales' => $bar()->with(['lines.menuItem', 'group.party'])->orderByDesc('sold_at')->orderByDesc('id')->limit(5)->get(),
+            'barMore' => $bar()->count() > 5,
         ]);
     }
 }
