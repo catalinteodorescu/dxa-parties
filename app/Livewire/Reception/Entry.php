@@ -52,6 +52,8 @@ class Entry extends Component
             'methodLabels' => PaymentMethods::labels(),
             'total' => $total / 100,
             'unit' => $this->unitCents() / 100,
+            'codeQuote' => $this->quote(),
+            'codeError' => $this->codeError,
             'paid' => $paid / 100,
             'rest' => ($total - $paid) / 100,
             'graceMinutes' => EntryRecorder::graceMinutes(),

@@ -4,13 +4,16 @@ namespace App\Livewire\Admin\Parties;
 
 use App\Models\Admin;
 use App\Models\Party;
+use App\Models\PartyDiscountCode;
 use App\Services\ActivityLogger;
+use App\Services\DiscountCodes;
 use App\Services\LoyaltyLedger;
 use App\Support\Branding;
 use App\Support\HandlesImageUploads;
 use App\Support\PaymentMethods;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -81,6 +84,9 @@ class Form extends Component
 
     // Contact (mai multe persoane)
     public array $contacts = [];       // [['admin_id','name','phone','note'], ...]
+
+    /** DXA: adaugat (Coduri de reducere). Vezi emptyDiscountCode() pentru câmpuri. */
+    public array $discount_codes = [];
 
     // Extra
     public array $custom_fields = [];
@@ -177,6 +183,22 @@ class Form extends Component
 
             $this->payment_methods = array_values(array_filter($party->payment_methods ?? [], 'is_string'));
             $this->loyalty_eligible = (bool) $party->loyalty_eligible;
+
+            $this->discount_codes = $party->discountCodes->map(fn (PartyDiscountCode $c) => [
+                'id' => $c->id,
+                'code' => $c->code,
+                'promoter' => (string) $c->promoter,
+                'type' => $c->type,
+                'value' => $c->value !== null ? rtrim(rtrim((string) $c->value, '0'), '.') : '',
+                'tier_label' => (string) $c->tier_label,
+                'ticket_types' => array_values((array) $c->ticket_types),
+                'valid_from' => $c->valid_from?->format('Y-m-d\TH:i') ?? '',
+                'valid_until' => $c->valid_until?->format('Y-m-d\TH:i') ?? '',
+                'max_uses' => $c->max_uses !== null ? (string) $c->max_uses : '',
+                'max_uses_per_participant' => $c->max_uses_per_participant !== null ? (string) $c->max_uses_per_participant : '',
+                'is_active' => (bool) $c->is_active,
+                'note' => (string) $c->note,
+            ])->all();
         } else {
             $this->start_date = now()->next(Carbon::SATURDAY)->format('Y-m-d');
             $this->start_time = '21:00';
@@ -197,6 +219,15 @@ class Form extends Component
     private function emptyTicketType(): array
     {
         return ['name' => '', 'price' => '', 'discounts' => []];
+    }
+
+    private function emptyDiscountCode(): array
+    {
+        return [
+            'id' => null, 'code' => '', 'promoter' => '', 'type' => 'percent', 'value' => '', 'tier_label' => '',
+            'ticket_types' => [], 'valid_from' => '', 'valid_until' => '', 'max_uses' => '',
+            'max_uses_per_participant' => '1', 'is_active' => true, 'note' => '',
+        ];
     }
 
     private function emptyContact(): array
@@ -498,6 +529,203 @@ class Form extends Component
     {
         unset($this->contacts[$i]);
         $this->contacts = array_values($this->contacts);
+    }
+
+    // ---- Repeatere: coduri de reducere ----------------------------------
+
+    public function addDiscountCode(): void
+    {
+        $this->discount_codes[] = $this->emptyDiscountCode();
+    }
+
+    public function removeDiscountCode(int $i): void
+    {
+        $id = $this->discount_codes[$i]['id'] ?? null;
+
+        // Un cod deja folosit nu se șterge (istoricul intrărilor îl referă): se dezactivează.
+        if ($id && $this->party && ($c = $this->party->discountCodes()->whereKey($id)->first()) && $c->usesCount() > 0) {
+            $this->addError('discount_codes.'.$i.'.code', 'Codul a fost deja folosit și nu se poate șterge. Dezactivează-l (debifează „Activ").');
+
+            return;
+        }
+
+        unset($this->discount_codes[$i]);
+        $this->discount_codes = array_values($this->discount_codes);
+    }
+
+    /** Un cod scurt, fără caractere ușor de confundat (0/O, 1/I), unic pe petrecere. */
+    public function generateDiscountCode(int $i): void
+    {
+        if (! isset($this->discount_codes[$i])) {
+            return;
+        }
+
+        $taken = collect($this->discount_codes)->pluck('code')->map(fn ($c) => DiscountCodes::normalize($c))->all();
+        do {
+            $code = '';
+            for ($n = 0; $n < 6; $n++) {
+                $code .= 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[random_int(0, 31)];
+            }
+        } while (in_array($code, $taken, true));
+
+        $this->discount_codes[$i]['code'] = $code;
+        $this->resetErrorBag('discount_codes.'.$i.'.code');
+    }
+
+    /** Numele tipurilor de bilet, cum le vede Recepția („Bilet" când n-au nume), pentru restricția unui cod. */
+    private function ticketNames(): array
+    {
+        return collect($this->cleanTicketTypes())->map(fn ($t) => $t['name'] ?: 'Bilet')->unique()->values()->all();
+    }
+
+    /** Etichetele reducerilor (trepte) din tipurile de bilet: ce poate debloca un cod „treaptă". */
+    private function tierLabels(): array
+    {
+        return collect($this->cleanTicketTypes())->flatMap(fn ($t) => collect($t['discounts'])->pluck('label'))
+            ->filter()->unique(fn ($l) => mb_strtolower($l))->values()->all();
+    }
+
+    /**
+     * Validează și curăță codurile de reducere. Întoarce rândurile curate sau null dacă există erori
+     * (adăugate pe `discount_codes.{i}.{câmp}`).
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function cleanDiscountCodes(): ?array
+    {
+        $names = $this->ticketNames();
+        $labels = array_map('mb_strtolower', $this->tierLabels());
+        $clean = [];
+        $seen = [];
+        $ok = true;
+
+        foreach ($this->discount_codes as $i => $r) {
+            $fail = function (string $field, string $msg) use ($i, &$ok) {
+                $this->addError('discount_codes.'.$i.'.'.$field, $msg);
+                $ok = false;
+            };
+
+            $code = DiscountCodes::normalize($r['code'] ?? '');
+            $blank = $code === '' && trim((string) ($r['promoter'] ?? '')) === '' && trim((string) ($r['value'] ?? '')) === '' && empty($r['id']);
+            if ($blank) {
+                continue;
+            }
+
+            if (! preg_match('/^[A-Z0-9_-]{3,40}$/u', $code)) {
+                $fail('code', 'Codul are 3–40 de caractere: litere, cifre, - sau _ (fără spații).');
+            } elseif (isset($seen[$code])) {
+                $fail('code', 'Codul „'.$code.'" apare de două ori la această petrecere.');
+            }
+            $seen[$code] = true;
+
+            $type = (string) ($r['type'] ?? '');
+            if (! isset(PartyDiscountCode::TYPES[$type])) {
+                $fail('type', 'Alege tipul reducerii.');
+            }
+
+            $value = null;
+            $tier = null;
+            if ($type === 'percent' || $type === 'amount') {
+                $raw = str_replace(',', '.', trim((string) ($r['value'] ?? '')));
+                if (! is_numeric($raw) || (float) $raw <= 0) {
+                    $fail('value', 'Introdu o valoare mai mare ca 0.');
+                } elseif ($type === 'percent' && (float) $raw > 100) {
+                    $fail('value', 'Procentul nu poate depăși 100.');
+                } elseif ($type === 'amount' && (float) $raw > 10000) {
+                    $fail('value', 'Suma nu poate depăși 10.000 lei.');
+                } else {
+                    $value = round((float) $raw, 2);
+                }
+            } elseif ($type === 'tier') {
+                $tier = trim((string) ($r['tier_label'] ?? ''));
+                if ($tier === '') {
+                    $fail('tier_label', 'Alege treapta pe care o deblochează codul.');
+                } elseif (! in_array(mb_strtolower($tier), $labels, true)) {
+                    $fail('tier_label', 'Treapta „'.$tier.'" nu mai există la niciun bilet (ai redenumit-o sau ai șters-o?). Alege alta sau corectează treapta.');
+                }
+            }
+
+            $only = array_values(array_unique(array_filter((array) ($r['ticket_types'] ?? []), fn ($n) => is_string($n) && $n !== '')));
+            foreach ($only as $n) {
+                if (! in_array($n, $names, true)) {
+                    $fail('ticket_types', 'Biletul „'.$n.'" nu mai există (l-ai redenumit sau șters?). Bifează din nou biletele codului.');
+                    break;
+                }
+            }
+
+            $dates = [];
+            foreach (['valid_from', 'valid_until'] as $field) {
+                $raw = trim((string) ($r[$field] ?? ''));
+                $dates[$field] = null;
+                if ($raw === '') {
+                    continue;
+                }
+                try {
+                    $dates[$field] = Carbon::parse($raw);
+                } catch (\Throwable) {
+                    $fail($field, 'Data nu este validă.');
+                }
+            }
+            [$from, $until] = [$dates['valid_from'], $dates['valid_until']];
+            if ($from && $until && $until->lessThanOrEqualTo($from)) {
+                $fail('valid_until', 'Data „până la" trebuie să fie după data „de la".');
+            }
+
+            $ints = [];
+            foreach (['max_uses' => 'Limita totală', 'max_uses_per_participant' => 'Limita per participant'] as $field => $label) {
+                $raw = trim((string) ($r[$field] ?? ''));
+                if ($raw === '') {
+                    $ints[$field] = null;
+                } elseif (! ctype_digit($raw) || (int) $raw < 1 || (int) $raw > 100000) {
+                    $fail($field, $label.' trebuie să fie un număr întreg de la 1 în sus (gol = nelimitat).');
+                } else {
+                    $ints[$field] = (int) $raw;
+                }
+            }
+
+            $clean[] = [
+                'id' => $r['id'] ?? null,
+                'code' => $code,
+                'promoter' => trim((string) ($r['promoter'] ?? '')) ?: null,
+                'type' => $type,
+                'value' => $value,
+                'tier_label' => $tier,
+                'ticket_types' => $only ?: null,
+                'valid_from' => $from,
+                'valid_until' => $until,
+                'max_uses' => $ints['max_uses'] ?? null,
+                'max_uses_per_participant' => $ints['max_uses_per_participant'] ?? null,
+                'is_active' => (bool) ($r['is_active'] ?? true),
+                'note' => trim((string) ($r['note'] ?? '')) ?: null,
+            ];
+        }
+
+        return $ok ? $clean : null;
+    }
+
+    /** Salvează codurile: actualizează, creează; cele scoase din listă se șterg (nefolosite) sau se dezactivează (folosite). */
+    private function syncDiscountCodes(Party $party, array $rows): void
+    {
+        DB::transaction(function () use ($party, $rows) {
+            $existing = $party->discountCodes()->get()->keyBy('id');
+            $keep = [];
+
+            foreach ($rows as $r) {
+                $attrs = collect($r)->except('id')->all();
+                $model = $existing->get((int) ($r['id'] ?? 0));
+
+                if ($model) {
+                    $model->update($attrs);
+                } else {
+                    $model = $party->discountCodes()->create($attrs);
+                }
+                $keep[] = $model->id;
+            }
+
+            foreach ($existing->except($keep) as $gone) {
+                $gone->usesCount() > 0 ? $gone->update(['is_active' => false]) : $gone->delete();
+            }
+        });
     }
 
     // ---- Repeatere: festival --------------------------------------------
@@ -916,6 +1144,17 @@ class Form extends Component
             throw $e;
         }
 
+        // DXA: adaugat (Coduri de reducere). La petrecere gratuită codurile nu se ating.
+        $discountRows = null;
+        if (! $this->is_free) {
+            $discountRows = $this->cleanDiscountCodes();
+            if ($discountRows === null) {
+                $this->dispatch('scroll-to-error');
+
+                return;
+            }
+        }
+
         $isEditing = $this->party && $this->party->exists;
 
         // Imagine principala.
@@ -1003,16 +1242,32 @@ class Form extends Component
 
         if ($isEditing) {
             $this->party->update($payload);
+            if ($discountRows !== null) {
+                $this->syncDiscountCodes($this->party, $discountRows);
+            }
             ActivityLogger::log('party.updated', 'A modificat petrecerea „'.$this->party->name.'".');
             session()->flash('status', 'Petrecerea a fost actualizată.');
         } else {
             $payload['created_by'] = Auth::guard('admin')->id();
             $party = Party::create($payload);
+            if ($discountRows !== null) {
+                $this->syncDiscountCodes($party, $discountRows);
+            }
             ActivityLogger::log('party.created', 'A creat petrecerea „'.$party->name.'".');
             session()->flash('status', 'Petrecerea a fost creată.');
         }
 
         $this->redirectRoute('admin.parties.index', navigate: true);
+    }
+
+    /** @return array<int, int> id cod => comenzi valabile care l-au folosit */
+    private function codeUses(): array
+    {
+        if (! $this->party || ! $this->party->exists) {
+            return [];
+        }
+
+        return $this->party->discountCodes()->get()->mapWithKeys(fn (PartyDiscountCode $c) => [$c->id => $c->usesCount()])->all();
     }
 
     public function render()
@@ -1033,6 +1288,9 @@ class Form extends Component
             'contactAdmins' => $contactAdmins,
             'paymentChoices' => PaymentMethods::partyChoices($this->party?->payment_methods ?? []),
             'loyaltyEnabled' => LoyaltyLedger::enabled(),
+            'codeTicketNames' => $this->ticketNames(),
+            'codeTierLabels' => $this->tierLabels(),
+            'codeUses' => $this->codeUses(),
         ]);
     }
 }

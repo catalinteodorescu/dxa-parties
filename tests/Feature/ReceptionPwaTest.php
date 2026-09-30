@@ -14,6 +14,7 @@ use App\Models\Admin;
 use App\Models\AdminActivityLog;
 use App\Models\CreditTransaction;
 use App\Models\Party;
+use App\Models\PartyDiscountCode;
 use App\Models\PartyEntry;
 use App\Models\ReceptionReport;
 use App\Models\ReceptionSession;
@@ -313,6 +314,32 @@ it('Intrare înregistrează o intrare plătită cu numerar', function () {
 
     expect(PartyEntry::count())->toBe(2)
         ->and((float) PartyEntry::sum('price_paid'))->toBe(60.0);
+});
+
+it('în Intrare, câmpul de test „Cod de reducere" arată reducerea, refuză codurile invalide și înregistrează prețul cu cod', function () {
+    Carbon::setTestNow(Carbon::parse('2026-10-03 23:00:00'));
+    $party = rpParty('Petrecere Cod');
+    PartyDiscountCode::create(['party_id' => $party->id, 'code' => 'ANA10', 'type' => 'percent', 'value' => 10, 'promoter' => 'Ana', 'is_active' => true]);
+    $this->actingAs(rpUser(), 'admin');
+    session(['receptie.party_id' => $party->id]);
+
+    $c = Livewire::test(Entry::class)->assertSee('Cod de reducere')->assertSee('doar test');
+
+    // Cod inexistent: motivul apare, prețul rămâne cel întreg.
+    $c->set('discountCode', 'nuexista')->assertSee('nu există')->assertSet('codeError', 'Codul de reducere nu există la această petrecere.');
+
+    // Cod valid (litere mici, cu spații): reducerea se vede, iar totalul include codul.
+    $c->set('discountCode', ' ana10 ')->assertSet('codeError', null)->assertSee('Cod aplicat')->assertSee('27,00')
+        ->call('payAll', 'cash')->call('save')->assertSet('error', null)->assertSee('Intrare înregistrată')
+        ->assertSet('discountCode', '');
+
+    $e = PartyEntry::first();
+    expect((float) $e->price_paid)->toBe(27.0)->and((float) $e->list_price)->toBe(30.0)->and((float) $e->discount_amount)->toBe(3.0)
+        ->and($e->discount_code_id)->not->toBeNull();
+
+    // Fără cod, ca înainte.
+    Livewire::test(Entry::class)->call('payAll', 'cash')->call('save')->assertSet('error', null);
+    expect((float) PartyEntry::latest('id')->first()->price_paid)->toBe(30.0);
 });
 
 it('în Intrare doar un admin poate schimba prețul', function () {

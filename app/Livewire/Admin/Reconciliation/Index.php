@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Reconciliation;
 use App\Models\BarReport;
 use App\Models\Party;
 use App\Models\ReceptionReport;
+use App\Services\DiscountCodes;
 use App\Support\PaymentMethods;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -43,8 +44,10 @@ class Index extends Component
         $reception = collect();
         $bar = collect();
         $tot = null;
+        $discounts = collect();
 
         if ($selected) {
+            $discounts = DiscountCodes::grantedFor($selected); // DXA: adaugat (Coduri de reducere)
             $reception = ReceptionReport::query()->where('party_id', $selected->id)->with('session')->orderBy('id')->get()
                 ->map(fn (ReceptionReport $r) => (object) ['model' => $r, 'fig' => $r->figures(), 'final' => $r->isFinalized() || $r->isSubmitted()]);
             $bar = BarReport::query()->where('party_id', $selected->id)->with('group')->orderBy('id')->get()
@@ -73,6 +76,7 @@ class Index extends Component
             'reception' => $reception,
             'bar' => $bar,
             'tot' => $tot,
+            'discounts' => $discounts,
         ]);
     }
 }

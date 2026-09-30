@@ -251,6 +251,12 @@ class Party extends Model
         return $this->hasMany(PartyEntry::class);
     }
 
+    /** DXA: adaugat (Coduri de reducere): codurile petrecerii (câte unul pe promotor etc.). */
+    public function discountCodes(): HasMany
+    {
+        return $this->hasMany(PartyDiscountCode::class)->orderBy('id');
+    }
+
     /** DXA: adaugat (Recepție - sesiuni): sesiunile de recepție ale petrecerii (una deschisă cel mult). */
     public function receptionSessions(): HasMany
     {

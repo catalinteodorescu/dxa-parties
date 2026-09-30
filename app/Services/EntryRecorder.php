@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Participant;
 use App\Models\Party;
+use App\Models\PartyDiscountCode;
 use App\Models\PartyEntry;
 use App\Models\ReceptionSession;
 use App\Support\PaymentMethods;
@@ -25,6 +26,9 @@ use Illuminate\Support\Str;
  *  - list_price = ce spune sistemul la ora intrării (fără toleranță);
  *  - prețul implicit = cel cu toleranța din Setări (entry_grace_minutes) aplicată reducerilor cu oră;
  *  - recepționerul poate suprascrie prețul (per persoană), cu motiv obligatoriu (logat).
+ * Codul de reducere (DXA: Coduri de reducere, App\Services\DiscountCodes): opțional, un singur cod pe comandă, aplicat
+ * fiecărei persoane din grup peste prețul curent (fiecare bilet consumă o utilizare a codului); `list_price` rămâne prețul de listă, `price_paid` cel final,
+ * `discount_amount` (per persoană) ce a scăzut codul. Utilizările se numără din intrările valabile.
  * Plata: metode din PaymentMethods::forEntry($party) (fără tokeni); suma plăților = totalul grupului.
  * Nu se șterge nimic: anularea (cu motiv) marchează rândurile grupului.
  */
@@ -41,9 +45,13 @@ class EntryRecorder
     /**
      * Prețul unui tip de bilet acum: lista (fără toleranță) și prețul de încasat (cu toleranță).
      *
-     * @return object{name: string, list_price: float, price: float, grace: bool}|null
+     * Cu $code (opțional): prețul include codul de reducere (aruncă DomainException dacă nu se poate aplica);
+     * `price_before_code` = prețul curent fără cod, `discount` = ce a scăzut codul (per persoană), `code` = codul aplicat.
+     *
+     * @param  array<int, int>  $participantIds  pentru limita per participant a codului
+     * @return object{name: string, list_price: float, price: float, grace: bool, price_before_code: float, discount: float, code: ?PartyDiscountCode}|null
      */
-    public static function quote(Party $party, string $ticketName, ?Carbon $at = null): ?object
+    public static function quote(Party $party, string $ticketName, ?Carbon $at = null, ?string $code = null, array $participantIds = [], int $count = 1): ?object
     {
         $at ??= now();
 
@@ -59,12 +67,24 @@ class EntryRecorder
                 return null;
             }
 
-            return (object) [
+            $quote = (object) [
                 'name' => $t['name'],
                 'list_price' => round($list, 2),
                 'price' => round($price, 2),
                 'grace' => $price < $list - 0.004,
+                'price_before_code' => round($price, 2),
+                'discount' => 0.0,
+                'code' => null,
             ];
+
+            if ($code !== null && trim($code) !== '') {
+                $applied = DiscountCodes::apply($party, $t['name'], $quote->price, $code, $participantIds, $at, $count);
+                $quote->price = $applied->price;
+                $quote->discount = $applied->discount;
+                $quote->code = $applied->code;
+            }
+
+            return $quote;
         }
 
         return null;
@@ -89,6 +109,7 @@ class EntryRecorder
         ?Carbon $at = null,
         bool $enforceState = true,
         array $participants = [],
+        ?string $discountCode = null,
     ): Collection {
         if ($count < 1 || $count > self::MAX_GROUP) {
             throw new DomainException('Numărul de persoane trebuie să fie între 1 și '.self::MAX_GROUP.'.');
@@ -101,14 +122,23 @@ class EntryRecorder
         $quote = self::quote($party, $ticketName, $at)
             ?? throw new DomainException('Tipul de bilet „'.$ticketName.'” nu există sau nu are preț.');
 
-        // Pret per persoana: implicit cel cu toleranta; suprascrierea cere motiv.
-        $unit = $quote->price;
+        $participantIds = self::validatedParticipants($party, $participants, $count);
+
+        // Codul de reducere (opțional) se aplică peste prețul curent; de aici „prețul sistemului" e cel cu cod.
+        $applied = null;
+        if ($discountCode !== null && trim($discountCode) !== '') {
+            $applied = DiscountCodes::apply($party, $quote->name, $quote->price, $discountCode, $participantIds, $at, $count);
+        }
+        $systemPrice = $applied?->price ?? $quote->price;
+
+        // Pret per persoana: implicit cel cu toleranta (si cod); suprascrierea cere motiv.
+        $unit = $systemPrice;
         $reason = null;
         if ($overridePrice !== null) {
             if ($overridePrice < 0 || $overridePrice > 10000) {
                 throw new DomainException('Prețul trebuie să fie între 0 și 10.000 lei.');
             }
-            if (abs($overridePrice - $quote->price) >= 0.005) {
+            if (abs($overridePrice - $systemPrice) >= 0.005) {
                 $reason = trim((string) $overrideReason);
                 if ($reason === '') {
                     throw new DomainException('Spune de ce schimbi prețul (motiv obligatoriu).');
@@ -117,8 +147,6 @@ class EntryRecorder
             }
         }
         $overridden = $reason !== null;
-
-        $participantIds = self::validatedParticipants($party, $participants, $count);
 
         $unitCents = self::cents($unit);
         $totalCents = $unitCents * $count;
@@ -131,7 +159,15 @@ class EntryRecorder
             throw new DomainException('Plata cu credite la intrare necesită exact un participant identificat (creditele ies din portofelul lui).');
         }
 
-        $entries = DB::transaction(function () use ($party, $quote, $count, $unit, $unitCents, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents) {
+        $entries = DB::transaction(function () use ($party, $quote, $applied, $count, $unit, $unitCents, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents) {
+            // Codul de reducere: reverificat pe rândul blocat, ca două comenzi simultane să nu depășească limitele.
+            if ($applied) {
+                $locked = PartyDiscountCode::query()->whereKey($applied->code->id)->lockForUpdate()->first()
+                    ?? throw new DomainException('Codul de reducere nu mai există.');
+                DiscountCodes::assertUsable($locked, $quote->name, $at);
+                DiscountCodes::assertLimits($locked, $participantIds, $count);
+            }
+
             // Sesiunea de recepție deschisă a petrecerii (se deschide singură la prima înregistrare).
             $session = ReceptionSession::openFor($party->id, $adminId);
             $batch = (string) Str::uuid();
@@ -148,6 +184,8 @@ class EntryRecorder
                     'price_paid' => $unit,
                     'grace_applied' => $quote->grace && ! $overridden,
                     'override_reason' => $reason !== null ? Str::limit($reason, 255, '') : null,
+                    'discount_code_id' => $applied?->code->id,
+                    'discount_amount' => $applied?->discount ?? 0,
                     'entered_at' => $at,
                     'participant_id' => $participantIds[$i] ?? null,
                     'created_by' => $adminId,
@@ -201,7 +239,7 @@ class EntryRecorder
             $party->name,
             $participantIds ? ' — '.count($participantIds).' identificați' : '',
             $overridden ? ' — preț suprascris: '.$reason : ''
-        ));
+        ).($applied ? sprintf(' Cod de reducere „%s” (−%s lei/persoană).', $applied->code->code, self::money($applied->discount)) : ''));
 
         return $entries;
     }

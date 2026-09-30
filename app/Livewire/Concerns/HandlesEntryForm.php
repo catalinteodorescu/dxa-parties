@@ -35,6 +35,12 @@ trait HandlesEntryForm
 
     public string $overrideReason = '';
 
+    /** DXA: adaugat (Coduri de reducere) — câmp DOAR DE TEST în PWA Recepție, până există aplicația participanților. */
+    public string $discountCode = '';
+
+    /** Motivul pentru care codul introdus nu se aplică (null = ok sau gol). */
+    public ?string $codeError = null;
+
     /** @var array<int, array{method: string, amount: string}> plata pe TOTALUL grupului */
     public array $payments = [['method' => 'cash', 'amount' => '']];
 
@@ -164,6 +170,7 @@ trait HandlesEntryForm
                 $this->overrideReason,
                 Auth::guard('admin')->id(),
                 participants: $this->participantIds,
+                discountCode: trim($this->discountCode) !== '' ? $this->discountCode : null,
             ));
 
             $this->message = sprintf(
@@ -198,6 +205,8 @@ trait HandlesEntryForm
         $this->overridePrice = '';
         $this->overrideReason = '';
         $this->payments = [['method' => 'cash', 'amount' => '']];
+        $this->discountCode = '';
+        $this->codeError = null;
         $this->resetParticipants();
     }
 
@@ -243,7 +252,21 @@ trait HandlesEntryForm
     {
         $party = $this->currentParty();
 
-        return $party && $this->ticket !== '' ? EntryRecorder::quote($party, $this->ticket) : null;
+        $this->codeError = null;
+        if (! $party || $this->ticket === '') {
+            return null;
+        }
+
+        // Cod de reducere (test): dacă nu se poate aplica, arătăm motivul și calculăm prețul fără cod.
+        if (trim($this->discountCode) !== '') {
+            try {
+                return EntryRecorder::quote($party, $this->ticket, null, $this->discountCode, $this->participantIds, max(1, min(EntryRecorder::MAX_GROUP, (int) $this->count)));
+            } catch (DomainException $e) {
+                $this->codeError = $e->getMessage();
+            }
+        }
+
+        return EntryRecorder::quote($party, $this->ticket);
     }
 
     protected function unitCents(): int

@@ -22,6 +22,8 @@ class PartyEntry extends Model
         'price_paid',
         'grace_applied',
         'override_reason',
+        'discount_code_id',
+        'discount_amount',
         'entered_at',
         'participant_id',
         'created_by',
@@ -35,6 +37,7 @@ class PartyEntry extends Model
         return [
             'list_price' => 'decimal:2',
             'price_paid' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'grace_applied' => 'boolean',
             'entered_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -55,6 +58,12 @@ class PartyEntry extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(PartyEntryPayment::class);
+    }
+
+    /** Codul de reducere folosit (null = fără cod). FK doar în cod, nu în DB. */
+    public function discountCode(): BelongsTo
+    {
+        return $this->belongsTo(PartyDiscountCode::class, 'discount_code_id');
     }
 
     public function creator(): BelongsTo

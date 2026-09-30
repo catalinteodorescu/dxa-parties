@@ -43,6 +43,26 @@
             </div>
         </div>
 
+        {{-- Reduceri acordate (coduri de reducere folosite la intrări) --}}
+        <div class="{{ $card }}">
+            <div class="flex items-baseline justify-between gap-3 flex-wrap">
+                <h3 class="text-sm font-semibold text-ink">Reduceri acordate</h3>
+                <span class="text-sm text-ink"><span class="font-semibold">{{ $money($discounts->sum('amount')) }}</span> <span class="text-ink-soft">lei în total</span></span>
+            </div>
+            @forelse ($discounts as $d)
+                <div wire:key="disc-{{ $d->code }}" class="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border px-4 py-2.5 text-sm">
+                    <div class="min-w-0">
+                        <span class="font-mono font-medium text-ink">{{ $d->code }}</span>
+                        @if ($d->promoter)<span class="text-ink-soft"> · {{ $d->promoter }}</span>@endif
+                        <div class="text-xs text-ink-soft">{{ $d->tickets }} {{ $d->tickets === 1 ? 'bilet' : 'bilete' }} cu reducere</div>
+                    </div>
+                    <span class="shrink-0 font-medium text-ink">−{{ $money($d->amount) }} lei</span>
+                </div>
+            @empty
+                <p class="mt-3 text-sm text-ink-soft">Niciun cod de reducere folosit la această petrecere.</p>
+            @endforelse
+        </div>
+
         {{-- Recepție --}}
         <div class="{{ $card }}">
             <div class="flex items-center justify-between gap-3">

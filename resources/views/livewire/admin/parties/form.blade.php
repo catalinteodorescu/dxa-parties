@@ -424,6 +424,122 @@
             </button>
         </div>
 
+        {{-- ============ Coduri de reducere (DXA: Coduri de reducere) ============ --}}
+        <div class="{{ $card }}" x-show="!$wire.is_free" x-cloak>
+            <div>
+                <h3 class="text-sm font-semibold text-ink">Coduri de reducere</h3>
+                <p class="mt-1 text-xs text-ink-soft leading-relaxed">
+                    Pentru cumpărarea intrării din aplicația participanților. Poți avea mai multe coduri (de ex. câte unul pe promotor). Un cod se aplică peste prețul curent, fiecărui bilet din comandă, și nu se cumulează cu alt cod. Fiecare bilet cu reducere este o utilizare a codului.
+                </p>
+            </div>
+
+            @php $trash = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'; @endphp
+
+            <div class="space-y-3">
+                @forelse ($discount_codes as $i => $dc)
+                    @php
+                        $tierOptions = ['' => 'Alege treapta…'];
+                        foreach ($codeTierLabels as $tl) { $tierOptions[$tl] = $tl; }
+                        $curTier = trim((string) ($dc['tier_label'] ?? ''));
+                        if ($curTier !== '' && ! collect($codeTierLabels)->contains(fn ($l) => mb_strtolower($l) === mb_strtolower($curTier))) {
+                            $tierOptions[$curTier] = $curTier.' (nu mai există)';
+                        }
+                        $uses = isset($dc['id']) ? ($codeUses[$dc['id']] ?? 0) : 0;
+                    @endphp
+                    <div wire:key="dc-{{ $dc['id'] ?? 'n' }}-{{ $i }}" class="rounded-xl border border-border p-3 space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-start">
+                            <div>
+                                <input type="text" wire:model="discount_codes.{{ $i }}.code" placeholder="COD (ex. ANA10)" autocapitalize="characters" class="{{ $in }} font-mono uppercase tracking-wide">
+                                @error('discount_codes.'.$i.'.code') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            </div>
+                            <button type="button" wire:click="generateDiscountCode({{ $i }})" class="h-[42px] px-3 inline-flex items-center rounded-lg border border-border text-sm text-ink-soft hover:border-primary hover:text-primary">Generează</button>
+                            <button type="button" wire:click="removeDiscountCode({{ $i }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Șterge codul">{!! $trash !!}</button>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input type="text" wire:model="discount_codes.{{ $i }}.promoter" placeholder="Promotor (opțional)" class="{{ $in }}">
+                            <input type="text" wire:model="discount_codes.{{ $i }}.note" placeholder="Notă internă (opțional)" class="{{ $in }}">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-start">
+                            <div>
+                                <x-select wire:model="discount_codes.{{ $i }}.type" :live="true" :options="\App\Models\PartyDiscountCode::TYPES" />
+                                @error('discount_codes.'.$i.'.type') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                @if (($dc['type'] ?? '') === 'tier')
+                                    <x-select wire:model="discount_codes.{{ $i }}.tier_label" :live="true" :options="$tierOptions" />
+                                    @error('discount_codes.'.$i.'.tier_label') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                                @else
+                                    <div class="relative">
+                                        <input type="text" inputmode="decimal" wire:model="discount_codes.{{ $i }}.value" placeholder="{{ ($dc['type'] ?? '') === 'amount' ? 'Reducere (lei)' : 'Reducere (%)' }}" class="{{ $in }} pr-12">
+                                        <span class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-sm text-ink-soft">{{ ($dc['type'] ?? '') === 'amount' ? 'lei' : '%' }}</span>
+                                    </div>
+                                    @error('discount_codes.'.$i.'.value') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                                @endif
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-xs font-medium text-ink-soft">Se aplică la <span class="font-normal">(nimic bifat = toate biletele)</span></span>
+                            <div class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5">
+                                @foreach ($codeTicketNames as $tn)
+                                    <label wire:key="dc-{{ $i }}-tn-{{ $loop->index }}" class="inline-flex items-center gap-2 text-sm text-ink">
+                                        <input type="checkbox" value="{{ $tn }}" wire:model="discount_codes.{{ $i }}.ticket_types" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                                        {{ $tn }}
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('discount_codes.'.$i.'.ticket_types') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs font-medium text-ink-soft">Valabil de la</label>
+                                <input type="datetime-local" wire:model="discount_codes.{{ $i }}.valid_from" class="mt-1 accent-primary [color-scheme:light] {{ $in }}">
+                                @error('discount_codes.'.$i.'.valid_from') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-ink-soft">Valabil până la</label>
+                                <input type="datetime-local" wire:model="discount_codes.{{ $i }}.valid_until" class="mt-1 accent-primary [color-scheme:light] {{ $in }}">
+                                @error('discount_codes.'.$i.'.valid_until') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs font-medium text-ink-soft">Limită totală (bilete cu reducere) <span class="font-normal">— gol = nelimitat</span></label>
+                                <input type="text" inputmode="numeric" wire:model="discount_codes.{{ $i }}.max_uses" placeholder="nelimitat" class="mt-1 {{ $in }}">
+                                @error('discount_codes.'.$i.'.max_uses') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-ink-soft">Limită per participant (bilete) <span class="font-normal">— gol = nelimitat</span></label>
+                                <input type="text" inputmode="numeric" wire:model="discount_codes.{{ $i }}.max_uses_per_participant" placeholder="nelimitat" class="mt-1 {{ $in }}">
+                                @error('discount_codes.'.$i.'.max_uses_per_participant') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <label class="inline-flex items-center gap-2.5 text-sm text-ink">
+                                <input type="checkbox" wire:model="discount_codes.{{ $i }}.is_active" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                                Activ
+                            </label>
+                            @if (! empty($dc['id']))
+                                <span class="text-xs text-ink-soft">Folosit pentru {{ $uses }} {{ $uses === 1 ? 'bilet' : 'bilete' }}</span>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-sm text-ink-soft">Niciun cod încă.</p>
+                @endforelse
+            </div>
+
+            <button type="button" wire:click="addDiscountCode" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Adaugă cod de reducere
+            </button>
+        </div>
+
         {{-- ============ Linkuri ============ --}}
         <div class="{{ $card }}">
             <h3 class="text-sm font-semibold text-ink">Linkuri <span class="text-ink-soft/60 font-normal">(galerie foto, bilete, pagină event…)</span></h3>
