@@ -440,7 +440,7 @@
             <a href="{{ route('admin.promoters.index') }}" wire:navigate class="ml-1 text-sm text-primary hover:underline">Promotori</a>
         </div>
 
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
             <x-stat-card :value="$dp->tickets > 0 ? $lei($dp->discount) : '—'" label="Reduceri acordate ({{ $dd->days }} zile)"
                 :hint="$dp->tickets > 0 ? $dp->tickets.' '.($dp->tickets === 1 ? 'bilet' : 'bilete').' cu cod'.($dd->share_pct !== null ? ' · '.str_replace('.', ',', (string) $dd->share_pct).'% din intrări' : '') : 'niciun bilet cu cod'"
                 accent="warning" :href="route('admin.parties.overview')">

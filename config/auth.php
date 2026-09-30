@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\Admin;
+use App\Models\Participant;
+use App\Models\User;
+
 return [
 
     /*
@@ -34,6 +38,12 @@ return [
             'driver' => 'session',
             'provider' => 'admins',
         ],
+
+        // DXA: adaugat (Aplicația participanților): conturile participanților, separate de cele de admin.
+        'participant' => [
+            'driver' => 'session',
+            'provider' => 'participants',
+        ],
     ],
 
     /*
@@ -45,12 +55,17 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => App\Models\User::class,
+            'model' => User::class,
         ],
 
         'admins' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Admin::class,
+            'model' => Admin::class,
+        ],
+
+        'participants' => [
+            'driver' => 'eloquent',
+            'model' => Participant::class,
         ],
     ],
 

@@ -1,0 +1,172 @@
+@php
+    use App\Models\Party;
+    use App\Support\PartyPublic;
+
+    $image = PartyPublic::imageUrl($party);
+    $ended = $state === 'past';
+    $days = $party->isFestival() ? ($party->days ?? []) : [];
+    $guests = collect($party->guests ?? [])->filter(fn ($g) => trim((string) ($g['name'] ?? '')) !== '');
+    $contacts = collect($party->contacts ?? [])->filter(fn ($c) => trim((string) ($c['name'] ?? '')) !== '' || trim((string) ($c['phone'] ?? '')) !== '');
+    $fields = collect($party->custom_fields ?? [])->filter(fn ($f) => trim((string) ($f['label'] ?? '')) !== '' && trim((string) ($f['value'] ?? '')) !== '');
+    $links = collect($party->links ?? [])->filter(fn ($l) => trim((string) ($l['url'] ?? '')) !== '');
+    $styles = collect($party->music_styles ?? [])->filter(fn ($m) => trim((string) ($m['style'] ?? '')) !== '');
+    $dresscode = $party->dresscode ?: collect($days)->pluck('dresscode')->filter()->first();
+@endphp
+<div>
+    <div class="pa-hero" style="min-height: 19rem; margin-top: .5rem">
+        @if ($image) <img src="{{ $image }}" alt=""> @endif
+        <div class="pa-hero-top">
+            <a href="{{ route('app.parties') }}" wire:navigate class="pa-btn pa-btn-sm" style="background: rgba(18,8,16,.55); border: 1px solid rgba(255,255,255,.25); box-shadow: none" aria-label="Înapoi la petreceri">←</a>
+            @if ($state === 'live') <span class="pa-chip pa-chip-amber">ACUM</span> @elseif ($ended) <span class="pa-chip">ÎNCHEIATĂ</span> @endif
+        </div>
+        <div class="pa-hero-in">
+            <div><span class="pa-chip">{{ $party->isFestival() ? 'FESTIVAL' : 'PETRECERE' }}</span></div>
+            <h1 class="pa-h1" style="font-size: 2.2rem">{{ $party->name }}</h1>
+        </div>
+    </div>
+
+    <section class="pa-section" style="margin-top: 1rem">
+        <div class="pa-glass pa-pad pa-stack" style="gap: .9rem">
+            <div><div class="pa-label" style="margin: 0">Data</div><div style="font-weight: 800">{{ PartyPublic::dateLabel($party) }}</div></div>
+            @if (PartyPublic::timeLabel($party) !== '')
+                <div><div class="pa-label" style="margin: 0">{{ $party->isFestival() ? 'Durată' : 'Program' }}</div><div style="font-weight: 800">{{ PartyPublic::timeLabel($party) }}</div></div>
+            @endif
+            @if ($party->location_name || $party->location_address)
+                <div>
+                    <div class="pa-label" style="margin: 0">Locație</div>
+                    <div style="font-weight: 800">{{ $party->location_name }}</div>
+                    @if ($party->location_address) <div class="pa-soft" style="font-size: .9rem">{{ $party->location_address }}</div> @endif
+                    @if ($party->location_url) <a href="{{ $party->location_url }}" target="_blank" rel="noopener" class="pa-link" style="font-size: .9rem">Vezi pe hartă</a> @endif
+                </div>
+            @endif
+            @if ($dresscode)
+                <div><div class="pa-label" style="margin: 0">Dresscode</div><div style="font-weight: 800">{{ $dresscode }}</div></div>
+            @endif
+        </div>
+    </section>
+
+    @if ($party->description)
+        <section class="pa-section">
+            <h2 class="pa-h2">Despre petrecere</h2>
+            <div class="pa-prose pa-soft">{{ $party->description }}</div>
+        </section>
+    @endif
+
+    @if ($days)
+        <section class="pa-section">
+            <h2 class="pa-h2">Programul zilelor</h2>
+            @foreach ($days as $day)
+                @php $d = ! empty($day['date']) ? \Illuminate\Support\Carbon::parse($day['date'])->locale('ro') : null; @endphp
+                <div class="pa-glass pa-pad pa-stack" wire:key="day-{{ $loop->index }}">
+                    <div class="pa-between">
+                        <b>{{ $d?->translatedFormat('l, j F') }}</b>
+                        <span class="pa-soft" style="font-size: .85rem">{{ trim(PartyPublic::hm($day['start_time'] ?? null).' – '.PartyPublic::hm($day['end_time'] ?? null), ' –') }}</span>
+                    </div>
+                    @foreach (collect($day['program'] ?? [])->filter(fn ($p) => trim((string) ($p['title'] ?? '')) !== '') as $item)
+                        <div class="pa-row" style="align-items: flex-start" wire:key="day-{{ $loop->parent->index }}-item-{{ $loop->index }}">
+                            <span class="pa-chip pa-chip-amber" style="flex: none">{{ PartyPublic::hm($item['start'] ?? null) ?: '—' }}</span>
+                            <div>
+                                <div style="font-weight: 800">{{ $item['title'] }}</div>
+                                <div class="pa-soft" style="font-size: .85rem">
+                                    {{ collect([Party::PROGRAM_TYPES[$item['type'] ?? ''] ?? null, $item['guest'] ?? null, $item['room'] ?? null])->filter()->implode(' · ') }}
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endforeach
+        </section>
+    @endif
+
+    @if ($guests->isNotEmpty())
+        <section class="pa-section">
+            <h2 class="pa-h2">Invitații serii</h2>
+            <div class="pa-glass pa-pad" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem .5rem">
+                @foreach ($guests as $g)
+                    @php
+                        $style = ($g['style'] ?? '') === 'other' ? ($g['style_other'] ?? '') : (Party::GUEST_STYLES[$g['style'] ?? ''] ?? '');
+                        $photo = ! empty($g['photo_path']) ? asset('storage/'.$g['photo_path']) : null;
+                    @endphp
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: .4rem; text-align: center" wire:key="guest-{{ $loop->index }}">
+                        @if ($photo)
+                            <img src="{{ $photo }}" alt="" class="pa-avatar" loading="lazy">
+                        @else
+                            <div class="pa-avatar" aria-hidden="true">{{ PartyPublic::initials($g['name']) }}</div>
+                        @endif
+                        <span style="font-weight: 800; font-size: .85rem; line-height: 1.2">{{ $g['name'] }}</span>
+                        <span class="pa-soft" style="font-size: .75rem; line-height: 1.2">{{ collect([$style, $g['country'] ?? null])->filter()->implode(' · ') }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    @if ($styles->isNotEmpty())
+        <section class="pa-section">
+            <h2 class="pa-h2">Stiluri muzicale</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: .5rem">
+                @foreach ($styles as $m) <span class="pa-chip" wire:key="style-{{ $loop->index }}">{{ $m['style'] }}</span> @endforeach
+            </div>
+        </section>
+    @endif
+
+    <section class="pa-section">
+        <div class="pa-between">
+            <h2 class="pa-h2">Prețul biletului</h2>
+            @if ($tickets && ! $ended) <span class="pa-soft" style="font-size: .75rem; font-weight: 700">se actualizează în timp real</span> @endif
+        </div>
+
+        @if ($party->is_free)
+            <div class="pa-tier on"><div style="flex: 1; font-weight: 800">Intrare gratuită</div></div>
+        @elseif (! $tickets)
+            <div class="pa-glass pa-pad pa-soft">Prețurile vor fi anunțate în curând.</div>
+        @else
+            @foreach ($tickets as $t)
+                <div class="pa-stack" style="gap: .5rem" wire:key="ticket-{{ $loop->index }}">
+                    @if (count($tickets) > 1) <div style="font-weight: 800">{{ $t['name'] }}</div> @endif
+                    @foreach ($t['rows'] as $r)
+                        <div class="pa-tier {{ $r['on'] ? 'on' : '' }}" wire:key="ticket-{{ $loop->parent->index }}-row-{{ $loop->index }}">
+                            <div style="flex: 1; min-width: 0">
+                                <div class="pa-row" style="gap: .5rem">
+                                    <span style="font-weight: 800">{{ $r['label'] }}</span>
+                                    @if ($r['on']) <span class="pa-chip pa-chip-amber" style="height: 1.5rem">ACUM</span> @endif
+                                </div>
+                                @if ($r['note'] !== '') <div class="pa-soft" style="font-size: .8rem">{{ $r['note'] }}</div> @endif
+                            </div>
+                            <span class="pa-price" style="font-size: 1.15rem; {{ $r['on'] ? '' : 'color: var(--pa-ink)' }}">{{ PartyPublic::lei($r['price']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endforeach
+        @endif
+
+        @if (! $ended)
+            <div class="pa-glass pa-pad pa-soft" style="font-size: .88rem">
+                Cumpărarea biletelor din aplicație va fi disponibilă în curând. Până atunci, biletul se ia la intrare.
+            </div>
+        @endif
+    </section>
+
+    @if ($contacts->isNotEmpty() || $fields->isNotEmpty() || $links->isNotEmpty())
+        <section class="pa-section">
+            <h2 class="pa-h2">Informații utile</h2>
+            <div class="pa-glass pa-pad pa-stack" style="gap: .9rem">
+                @foreach ($fields as $f)
+                    <div wire:key="field-{{ $loop->index }}"><div class="pa-label" style="margin: 0">{{ $f['label'] }}</div><div style="font-weight: 800">{{ $f['value'] }}</div></div>
+                @endforeach
+                @foreach ($contacts as $c)
+                    <div wire:key="contact-{{ $loop->index }}">
+                        <div class="pa-label" style="margin: 0">Contact{{ ! empty($c['note']) ? ' · '.$c['note'] : '' }}</div>
+                        <div style="font-weight: 800">
+                            {{ $c['name'] ?? '' }}
+                            @if (! empty($c['phone'])) <a href="tel:{{ preg_replace('/[^\d+]/', '', $c['phone']) }}" class="pa-link">{{ $c['phone'] }}</a> @endif
+                        </div>
+                    </div>
+                @endforeach
+                @foreach ($links as $l)
+                    <div wire:key="link-{{ $loop->index }}"><a href="{{ $l['url'] }}" target="_blank" rel="noopener" class="pa-link">{{ $l['label'] ?: $l['url'] }}</a></div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+</div>

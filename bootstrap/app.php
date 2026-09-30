@@ -16,15 +16,18 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // DXA: adaugat (PWA Recepție): aplicația de recepție are propriul login și propria pagină de start.
+        // DXA: adaugat (Aplicația participanților): zonele de contul participantului (/cont, /iesire, /intra ...) au login propriu.
         $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
             $request->is('receptie', 'receptie/*') => route('receptie.login'),
             $request->is('bar', 'bar/*') => route('bar.login'),
-            default => route('admin.login'),
+            $request->is('admin', 'admin/*') => route('admin.login'),
+            default => route('app.login'),
         });
         $middleware->redirectUsersTo(fn (Request $request) => match (true) {
             $request->is('receptie', 'receptie/*') => route('receptie.home'),
             $request->is('bar', 'bar/*') => route('bar.home'),
-            default => route('admin.dashboard'),
+            $request->is('admin', 'admin/*') => route('admin.dashboard'),
+            default => route('app.home'),
         });
 
         $middleware->alias([

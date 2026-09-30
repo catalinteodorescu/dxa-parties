@@ -53,24 +53,29 @@ use App\Livewire\Bar\PartyPicker as BarPartyPicker;
 use App\Livewire\Bar\Recent as BarRecent;
 use App\Livewire\Bar\Report as BarReportPage;
 use App\Livewire\Bar\Sale as BarSale;
+use App\Livewire\Participant\Account as ParticipantAccount;
+use App\Livewire\Participant\ForgotPassword as ParticipantForgotPassword;
+use App\Livewire\Participant\Home as ParticipantHome; // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\Login as ParticipantLogin;
+use App\Livewire\Participant\Parties as ParticipantParties;
+use App\Livewire\Participant\PartyShow as ParticipantPartyShow;
+use App\Livewire\Participant\Register as ParticipantRegister;
+use App\Livewire\Participant\ResetPassword as ParticipantResetPassword; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\Verify as ParticipantVerify;
 use App\Livewire\Reception\CreditSale as ReceptieCreditSale;
 use App\Livewire\Reception\Entry as ReceptieEntry;
-use App\Livewire\Reception\Home as ReceptieHome; // DXA: adaugat (PWA Recepție)
+use App\Livewire\Reception\Home as ReceptieHome;
 use App\Livewire\Reception\Login as ReceptieLogin;
 use App\Livewire\Reception\PartyPicker as ReceptiePartyPicker;
 use App\Livewire\Reception\Recent as ReceptieRecent;
 use App\Livewire\Reception\Report as ReceptieReport;
-use App\Livewire\Reception\TokenSale as ReceptieTokenSale; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
+use App\Livewire\Reception\TokenSale as ReceptieTokenSale;
+use App\Models\Participant;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-
-Route::get('/', function () {
-    return redirect()->route(
-        Auth::guard('admin')->check() ? 'admin.dashboard' : 'admin.login'
-    );
-});
+use Illuminate\Support\Facades\Storage;
 
 Route::prefix('admin')->name('admin.')->group(function () {
 
@@ -130,6 +135,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/participants', ParticipantsIndex::class)->name('participants.index');
             Route::get('/participants/stats', ParticipantsStats::class)->name('participants.stats'); // DXA: adaugat (Participanți - statistici)
             Route::get('/participants/{participant}', ParticipantsShow::class)->name('participants.show');
+            // DXA: adaugat (Aplicația participanților - runda 12). Poza de profil a unui participant, pentru lista din admin (discul e privat).
+            Route::get('/participants/{participant}/poza', function (Participant $participant) {
+                abort_unless($participant->hasAvatar() && Storage::disk('local')->exists($participant->avatar_path), 404);
+
+                return response(Storage::disk('local')->get($participant->avatar_path), 200, [
+                    'Content-Type' => 'image/jpeg',
+                    'Cache-Control' => 'private, max-age=86400',
+                ]);
+            })->name('participants.avatar');
 
             // DXA: adaugat (Credite - pagina Credite, doar afișare, pe modelul paginii Carduri)
             Route::get('/credits', CreditsIndex::class)->name('credits.index');
@@ -238,3 +252,46 @@ Route::post('/sesiune/logout', function (Request $request) {
         default => 'admin.login',
     });
 })->middleware('auth:admin')->name('session.logout');
+
+// DXA: adaugat (Aplicația participanților - runda 1). PWA în rădăcina domeniului: partea publică (Acasă, Petreceri) fără cont,
+// login / înregistrare cu SMS / resetare parolă și contul (guard `participant`, separat de admin). Rutele cu cuvinte fixe
+// (/petreceri, /intra ...) nu se ating cu /admin, /receptie, /bar; service worker-ul (scope „/”) ignoră explicit acele zone.
+Route::name('app.')->group(function () {
+    Route::get('/manifest.webmanifest', [PwaController::class, 'participantManifest'])->name('manifest');
+    Route::get('/sw.js', [PwaController::class, 'participantServiceWorker'])->name('sw');
+    Route::get('/icon/{size}.png', [PwaController::class, 'participantIcon'])->whereNumber('size')->name('icon');
+
+    Route::get('/', ParticipantHome::class)->name('home');
+    Route::get('/petreceri', ParticipantParties::class)->name('parties');
+    Route::get('/petreceri/{party}', ParticipantPartyShow::class)->name('party');
+
+    Route::middleware('guest:participant')->group(function () {
+        Route::get('/intra', ParticipantLogin::class)->name('login');
+        Route::get('/inregistrare', ParticipantRegister::class)->name('register');
+        Route::get('/verificare', ParticipantVerify::class)->name('verify');
+        Route::get('/parola-uitata', ParticipantForgotPassword::class)->name('forgot');
+    });
+
+    // Linkul din SMS: semnat + temporar; funcționează și cu un cont deja logat (nu cere guest).
+    Route::get('/resetare-parola/{participant}', ParticipantResetPassword::class)->middleware('signed')->name('reset');
+
+    Route::middleware('auth:participant')->group(function () {
+        Route::get('/cont', ParticipantAccount::class)->name('account');
+        Route::get('/cont/poza', function () {
+            $me = Auth::guard('participant')->user();
+            abort_unless($me?->hasAvatar() && Storage::disk('local')->exists($me->avatar_path), 404);
+
+            return response(Storage::disk('local')->get($me->avatar_path), 200, [
+                'Content-Type' => 'image/jpeg',
+                'Cache-Control' => 'private, max-age=86400',
+            ]);
+        })->name('avatar');
+        Route::post('/iesire', function (Request $request) {
+            Auth::guard('participant')->logout();
+            $request->session()->regenerate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('app.home');
+        })->name('logout');
+    });
+});

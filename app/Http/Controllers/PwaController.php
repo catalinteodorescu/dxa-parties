@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\BarApp;
+use App\Support\ParticipantApp;
 use App\Support\PwaApp;
 use App\Support\ReceptionApp;
 use Illuminate\Http\JsonResponse;
@@ -46,6 +47,29 @@ class PwaController extends Controller
         return $this->serviceWorker('dxa-bar-static-v1', 'Bar');
     }
 
+    /** DXA: adaugat (Aplicația participanților). PWA în rădăcina domeniului (scope „/”), cu propriul manifest și service worker. */
+    public function participantManifest(): JsonResponse
+    {
+        return $this->manifest(ParticipantApp::class, 'Petreceri, anunțuri și bilete Dance Xplosion Academy.');
+    }
+
+    public function participantIcon(int $size): Response
+    {
+        return $this->icon(ParticipantApp::class, $size);
+    }
+
+    /**
+     * Service worker cu scope „/”: NU interceptează /admin, /receptie, /bar (au PWA-uri proprii sau nu au deloc) — vezi
+     * participant/sw.blade.php. Pentru siguranță stă la /sw.js (un service worker nu poate controla mai sus de calea lui).
+     */
+    public function participantServiceWorker(): Response
+    {
+        return response(view('participant.sw', ['cache' => 'dxa-app-static-v1'])->render(), 200, [
+            'Content-Type' => 'application/javascript; charset=utf-8',
+            'Cache-Control' => 'no-cache',
+        ]);
+    }
+
     /** @param  class-string<PwaApp>  $app */
     private function manifest(string $app, string $description): JsonResponse
     {
@@ -61,8 +85,8 @@ class PwaController extends Controller
             'scope' => $app::URL_PREFIX,
             'display' => 'standalone',
             'orientation' => 'portrait',
-            'theme_color' => $app::primary(),
-            'background_color' => '#F7F5F4',
+            'theme_color' => $app::manifestThemeColor(),
+            'background_color' => $app::manifestBackground(),
             'icons' => [
                 ['src' => $app::iconUrl(192), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
                 ['src' => $app::iconUrl(512), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],

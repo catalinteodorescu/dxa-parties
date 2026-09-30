@@ -96,11 +96,15 @@ class ParticipantRegistry
         }
 
         $label = $participant->label();
-        $participant->update([
+        $participant->forceFill([
             'name' => Participant::ANONYMIZED_NAME,
             'phone' => null,
+            'password' => null,          // contul de aplicație dispare odată cu datele personale
+            'phone_verified_at' => null,
+            'remember_token' => null,
             'anonymized_at' => now(),
-        ]);
+        ])->save();
+        ParticipantAvatar::delete($participant);
 
         ActivityLogger::log('participants.anonymized', 'A anonimizat participantul „'.$label.'”.');
     }

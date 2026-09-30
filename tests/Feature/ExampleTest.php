@@ -1,8 +1,11 @@
 <?php
 
-test('the application returns a successful response', function () {
-    $response = $this->get('/');
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-    // „/” nu randează un răspuns propriu: redirecționează mereu spre login (sau dashboard, cu sesiune de admin).
-    $response->assertRedirect(route('admin.login'));
+uses(RefreshDatabase::class);
+
+test('the application returns a successful response', function () {
+    // „/” e acasa aplicației participanților (publică, fără cont); admin-ul rămâne la /admin.
+    $this->get('/')->assertOk();
+    $this->get('/admin')->assertRedirect(route('admin.login'));
 });

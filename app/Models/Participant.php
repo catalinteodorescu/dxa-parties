@@ -2,24 +2,29 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Str;
 
 /**
  * DXA: adaugat (Participanți - fundația). O persoană identificată. Se creează/modifică prin
  * App\Services\ParticipantRegistry (validare, dedupe după telefon, log).
  */
-class Participant extends Model
+class Participant extends Authenticatable
 {
     public const ANONYMIZED_NAME = 'Participant șters';
 
-    protected $fillable = ['uuid', 'name', 'phone', 'source', 'created_by', 'anonymized_at'];
+    protected $fillable = ['uuid', 'name', 'phone', 'password', 'phone_verified_at', 'avatar_path', 'avatar_updated_at', 'source', 'created_by', 'anonymized_at'];
+
+    protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
         return [
             'anonymized_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
+            'avatar_updated_at' => 'datetime',
+            'password' => 'hashed',
             'credit_balance' => 'decimal:2',
         ];
     }
@@ -74,6 +79,12 @@ class Participant extends Model
         return $this->loyaltyCards()->exists();
     }
 
+    /** Are cont de aplicație activ (parolă setată + telefon confirmat prin SMS) și nu e anonimizat? */
+    public function hasAccount(): bool
+    {
+        return $this->password !== null && $this->phone_verified_at !== null && ! $this->isAnonymized();
+    }
+
     public function isAnonymized(): bool
     {
         return $this->anonymized_at !== null;
@@ -83,5 +94,35 @@ class Participant extends Model
     public function label(): string
     {
         return $this->phone ? $this->name.' · '.$this->phone : $this->name;
+    }
+
+    /** Inițialele pentru cercul fără poză: prima literă din primele două cuvinte ale numelui („Ana Maria Pop” → „AM”). */
+    public function initials(): string
+    {
+        $words = preg_split('/[\s\-]+/u', trim((string) $this->name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $letters = array_map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)), array_slice($words, 0, 2));
+
+        return implode('', $letters) ?: '?';
+    }
+
+    public function hasAvatar(): bool
+    {
+        return $this->avatar_path !== null && ! $this->isAnonymized();
+    }
+
+    /** URL-ul pozei proprii (servită de aplicație, nu public), cu versiune pentru cache; null fără poză. */
+    public function avatarUrl(): ?string
+    {
+        return $this->hasAvatar()
+            ? route('app.avatar', ['v' => $this->avatar_updated_at?->timestamp ?? 0], false)
+            : null;
+    }
+
+    /** Aceeași poză, pentru lista din admin (ruta admin, cu versiune pentru cache); null fără poză. */
+    public function adminAvatarUrl(): ?string
+    {
+        return $this->hasAvatar()
+            ? route('admin.participants.avatar', ['participant' => $this->id, 'v' => $this->avatar_updated_at?->timestamp ?? 0], false)
+            : null;
     }
 }

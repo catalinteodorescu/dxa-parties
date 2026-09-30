@@ -35,6 +35,18 @@ abstract class PwaApp
         return isset(Theme::presets()[$key]) ? $key : Theme::key();
     }
 
+    /** Culoarea de fundal a ecranului de pornire din manifest (aplicațiile pot să o schimbe, ex. tema întunecată). */
+    public static function manifestBackground(): string
+    {
+        return '#F7F5F4';
+    }
+
+    /** Culoarea barei de stare din manifest (implicit culoarea primară a temei). */
+    public static function manifestThemeColor(): string
+    {
+        return static::primary();
+    }
+
     public static function hasCustomTheme(): bool
     {
         return isset(Theme::presets()[(string) Settings::get(static::KEY_THEME)]);

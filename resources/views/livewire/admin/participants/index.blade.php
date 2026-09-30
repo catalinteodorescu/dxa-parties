@@ -86,9 +86,12 @@
                             md:px-5 md:py-3 md:grid {{ $cols }} md:items-center md:gap-4">
 
                     {{-- Nume --}}
-                    <div class="min-w-0">
-                        <div class="text-sm font-semibold {{ $anonymized ? 'text-ink-soft' : 'text-ink' }}">{{ $p->name }}</div>
-                        <div class="mt-0.5 text-xs text-ink-soft md:hidden">{{ $p->phone ?: 'fără telefon' }}</div>
+                    <div class="min-w-0 flex items-center gap-3">
+                        @include('livewire.admin.participants._avatar', ['p' => $p])
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold {{ $anonymized ? 'text-ink-soft' : 'text-ink' }}">{{ $p->name }}</div>
+                            <div class="mt-0.5 text-xs text-ink-soft md:hidden">{{ $p->phone ?: 'fără telefon' }}</div>
+                        </div>
                     </div>
 
                     {{-- Telefon --}}
