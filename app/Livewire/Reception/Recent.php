@@ -102,7 +102,7 @@ class Recent extends Component
         };
 
         $entries = PartyEntry::query()->where('reception_session_id', $session->id)
-            ->with(['payments', 'participant'])
+            ->with(['payments', 'participant', 'discountCode'])
             ->orderBy('id')->get()
             ->groupBy('batch')
             ->map(function ($group) use ($methods) {
@@ -118,6 +118,7 @@ class Recent extends Component
                     'amount' => $total,
                     'methods' => $methods($group->flatMap->payments),
                     'people' => $group->pluck('participant.name')->filter()->values()->all(),
+                    'code' => $first->discountCode ? $first->discountCode->code.' (−'.number_format((float) $group->sum('discount_amount'), 2, ',', '.').' lei)' : null, // DXA: adaugat (Coduri de reducere)
                     'cancelled' => $first->isCancelled(),
                     'cancel_reason' => $first->cancel_reason,
                 ];

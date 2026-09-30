@@ -156,11 +156,11 @@ class DiscountCodes
             ->get(['discount_code_id', 'discount_amount'])
             ->groupBy('discount_code_id');
 
-        $codes = PartyDiscountCode::query()->whereIn('id', $rows->keys())->get()->keyBy('id');
+        $codes = PartyDiscountCode::query()->with('promoter')->whereIn('id', $rows->keys())->get()->keyBy('id');
 
         return $rows->map(fn ($g, $id) => (object) [
             'code' => $codes->get($id)?->code ?? '#'.$id,
-            'promoter' => $codes->get($id)?->promoter,
+            'promoter' => $codes->get($id)?->promoter?->name,
             'tickets' => $g->count(),
             'amount' => round((float) $g->sum('discount_amount'), 2),
         ])->sortByDesc('amount')->values();

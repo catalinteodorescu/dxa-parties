@@ -457,7 +457,16 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <input type="text" wire:model="discount_codes.{{ $i }}.promoter" placeholder="Promotor (opțional)" class="{{ $in }}">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <x-select wire:model="discount_codes.{{ $i }}.promoter_id" :options="$promoterOptions" placeholder="Fără promotor" class="flex-1 min-w-0" />
+                                    <button type="button" wire:click="openPromoterModal({{ $i }})" title="Promotor nou" aria-label="Promotor nou"
+                                            class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-primary hover:text-primary shrink-0">
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                    </button>
+                                </div>
+                                @error('discount_codes.'.$i.'.promoter_id') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            </div>
                             <input type="text" wire:model="discount_codes.{{ $i }}.note" placeholder="Notă internă (opțional)" class="{{ $in }}">
                         </div>
 
@@ -625,4 +634,37 @@
         </div>
 
     </form>
+
+    {{-- Popup centrat: promotor nou (din butonul + de lângă selectul de promotor) --}}
+    @if ($promoterModalRow !== null)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4" x-data x-on:keydown.escape.window="$wire.closePromoterModal()">
+            <div class="absolute inset-0 bg-ink/40" wire:click="closePromoterModal"></div>
+            <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6" role="dialog" aria-modal="true" aria-labelledby="promoter-modal-title">
+                <h3 id="promoter-modal-title" class="text-base font-semibold text-ink">Promotor nou</h3>
+                <p class="mt-1 text-xs text-ink-soft">Se adaugă în evidența promotorilor și se alege pentru acest cod.</p>
+
+                <form wire:submit="savePromoter" class="mt-4 space-y-3">
+                    <div>
+                        <label class="{{ $lbl }} mb-1.5" for="new-promoter-name">Nume</label>
+                        <input type="text" id="new-promoter-name" wire:model="newPromoterName" autofocus autocomplete="off" placeholder="ex. Ana Popescu" class="{{ $in }}">
+                        @error('newPromoterName') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="{{ $lbl }} mb-1.5" for="new-promoter-phone">Telefon <span class="font-normal text-ink-soft">(opțional)</span></label>
+                        <input type="text" id="new-promoter-phone" wire:model="newPromoterPhone" autocomplete="off" placeholder="07XXXXXXXX" class="{{ $in }}">
+                        @error('newPromoterPhone') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="{{ $lbl }} mb-1.5" for="new-promoter-note">Notă <span class="font-normal text-ink-soft">(opțional)</span></label>
+                        <input type="text" id="new-promoter-note" wire:model="newPromoterNote" autocomplete="off" class="{{ $in }}">
+                        @error('newPromoterNote') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="pt-2 flex items-center justify-end gap-3">
+                        <button type="button" wire:click="closePromoterModal" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Anulează</button>
+                        <x-btn variant="primary" type="submit" wire:loading.attr="disabled" wire:target="savePromoter">Adaugă promotorul</x-btn>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 </div>

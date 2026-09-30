@@ -21,7 +21,7 @@ class PartyDiscountCode extends Model
     protected $fillable = [
         'party_id',
         'code',
-        'promoter',
+        'promoter_id',
         'type',
         'value',
         'tier_label',
@@ -50,6 +50,12 @@ class PartyDiscountCode extends Model
     public function party(): BelongsTo
     {
         return $this->belongsTo(Party::class);
+    }
+
+    /** Promotorul căruia îi aparține codul (null = fără promotor). */
+    public function promoter(): BelongsTo
+    {
+        return $this->belongsTo(Promoter::class);
     }
 
     public function entries(): HasMany

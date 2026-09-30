@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Parties;
 
 use App\Models\Party;
+use App\Services\DiscountCodeStats;
 use App\Services\PartyStats;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -168,6 +169,7 @@ class Stats extends Component
             'topTotal' => $ranked->count(),
             'entryAxis' => PartyStats::hourAxis($stats->attendance?->hours ?? [], $cmp?->attendance?->hours ?? []),
             'unreported' => PartyStats::unreported($this->party),
+            'codeStats' => DiscountCodeStats::forParty($this->party), // DXA: adaugat (Coduri de reducere)
         ]);
     }
 }

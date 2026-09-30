@@ -100,7 +100,7 @@ class Index extends Component
         $batchIds = collect($batchesPage->items())->pluck('batch');
 
         $rowsByBatch = PartyEntry::query()->whereIn('batch', $batchIds)
-            ->with(['payments', 'creator', 'participant', 'party'])
+            ->with(['payments', 'creator', 'participant', 'party', 'discountCode'])
             ->get()
             ->groupBy('batch');
 
@@ -127,6 +127,8 @@ class Index extends Component
                 'by' => $first->creator?->name,
                 'participants' => $group->sortBy('id')->pluck('participant.name')->filter()->values()->all(),
                 'override_reason' => $first->override_reason,
+                'code' => $first->discountCode?->code, // DXA: adaugat (Coduri de reducere)
+                'discount' => round((float) $group->sum('discount_amount'), 2),
                 'grace' => $first->grace_applied,
                 'cancelled' => $first->isCancelled(),
                 'cancel_reason' => $first->cancel_reason,

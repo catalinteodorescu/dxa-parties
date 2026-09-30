@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\PartyEntry;
+use App\Models\Promoter;
 use App\Models\ReceptionReport;
 use App\Models\ReceptionSession;
 use App\Services\DiscountCodes;
@@ -165,7 +166,7 @@ it('respecta valabilitatea (de la / pana la exclusiv), activarea si tipul de bil
 
 it('inregistreaza intrarea cu codul: pret de lista pastrat, pret platit si reducere inghetate, aplicat fiecarei persoane', function () {
     $party = dcParty();
-    $code = dcCode($party, ['code' => 'PROMO', 'type' => 'amount', 'value' => 5, 'promoter' => 'Ana']);
+    $code = dcCode($party, ['code' => 'PROMO', 'type' => 'amount', 'value' => 5, 'promoter_id' => Promoter::create(['name' => 'Ana'])->id]);
 
     $rows = dcRecord($party, 'promo', 'Bilet', 3);
 
@@ -260,14 +261,16 @@ it('un cod invalid opreste inregistrarea intreaga (nu se creeaza intrari)', func
 
 it('formularul petrecerii salveaza mai multe coduri (cate unul pe promotor) si le reincarca', function () {
     $this->actingAs(dcAdmin(), 'admin');
+    $ana = Promoter::create(['name' => 'Ana']);
+    $bob = Promoter::create(['name' => 'Bob']);
 
     $c = Livewire::test(PartyForm::class)
         ->set('name', 'Petrecere cu promotori')
         ->set('ticket_types', [['name' => 'Bilet', 'price' => '50', 'discounts' => [['label' => 'Early bird', 'price' => '30', 'until' => '2026-10-01T23:59']]]])
         ->set('discount_codes', [
-            ['id' => null, 'code' => ' ana10 ', 'promoter' => 'Ana', 'type' => 'percent', 'value' => '10', 'tier_label' => '', 'ticket_types' => [], 'valid_from' => '', 'valid_until' => '2026-10-03T20:00', 'max_uses' => '', 'max_uses_per_participant' => '1', 'is_active' => true, 'note' => ''],
-            ['id' => null, 'code' => 'BOB5', 'promoter' => 'Bob', 'type' => 'amount', 'value' => '5,50', 'tier_label' => '', 'ticket_types' => ['Bilet'], 'valid_from' => '', 'valid_until' => '', 'max_uses' => '20', 'max_uses_per_participant' => '', 'is_active' => true, 'note' => 'promotor facultate'],
-            ['id' => null, 'code' => 'EARLY', 'promoter' => '', 'type' => 'tier', 'value' => '', 'tier_label' => 'early bird', 'ticket_types' => [], 'valid_from' => '', 'valid_until' => '', 'max_uses' => '', 'max_uses_per_participant' => '1', 'is_active' => true, 'note' => ''],
+            ['id' => null, 'code' => ' ana10 ', 'promoter_id' => (string) $ana->id, 'type' => 'percent', 'value' => '10', 'tier_label' => '', 'ticket_types' => [], 'valid_from' => '', 'valid_until' => '2026-10-03T20:00', 'max_uses' => '', 'max_uses_per_participant' => '1', 'is_active' => true, 'note' => ''],
+            ['id' => null, 'code' => 'BOB5', 'promoter_id' => (string) $bob->id, 'type' => 'amount', 'value' => '5,50', 'tier_label' => '', 'ticket_types' => ['Bilet'], 'valid_from' => '', 'valid_until' => '', 'max_uses' => '20', 'max_uses_per_participant' => '', 'is_active' => true, 'note' => 'promotor facultate'],
+            ['id' => null, 'code' => 'EARLY', 'promoter_id' => '', 'type' => 'tier', 'value' => '', 'tier_label' => 'early bird', 'ticket_types' => [], 'valid_from' => '', 'valid_until' => '', 'max_uses' => '', 'max_uses_per_participant' => '1', 'is_active' => true, 'note' => ''],
         ])
         ->call('save')->assertHasNoErrors();
 
@@ -275,7 +278,9 @@ it('formularul petrecerii salveaza mai multe coduri (cate unul pe promotor) si l
     $codes = $party->discountCodes->keyBy('code');
 
     expect($codes->keys()->all())->toBe(['ANA10', 'BOB5', 'EARLY'])
-        ->and($codes['ANA10']->promoter)->toBe('Ana')
+        ->and($codes['ANA10']->promoter->name)->toBe('Ana')
+        ->and($codes['BOB5']->promoter_id)->toBe($bob->id)
+        ->and($codes['EARLY']->promoter_id)->toBeNull()
         ->and((float) $codes['ANA10']->value)->toBe(10.0)
         ->and($codes['ANA10']->valid_until->format('Y-m-d H:i'))->toBe('2026-10-03 20:00')
         ->and($codes['ANA10']->max_uses_per_participant)->toBe(1)
@@ -295,7 +300,7 @@ it('formularul petrecerii salveaza mai multe coduri (cate unul pe promotor) si l
 
 it('formularul respinge coduri invalide (validari pe rand)', function () {
     $this->actingAs(dcAdmin(), 'admin');
-    $base = ['id' => null, 'code' => 'COD1', 'promoter' => '', 'type' => 'percent', 'value' => '10', 'tier_label' => '', 'ticket_types' => [], 'valid_from' => '', 'valid_until' => '', 'max_uses' => '', 'max_uses_per_participant' => '1', 'is_active' => true, 'note' => ''];
+    $base = ['id' => null, 'code' => 'COD1', 'promoter_id' => '', 'type' => 'percent', 'value' => '10', 'tier_label' => '', 'ticket_types' => [], 'valid_from' => '', 'valid_until' => '', 'max_uses' => '', 'max_uses_per_participant' => '1', 'is_active' => true, 'note' => ''];
 
     $try = function (array $rows, array $expectErrors) use ($base) {
         $rows = array_map(fn ($r) => array_merge($base, $r), $rows);
@@ -314,6 +319,7 @@ it('formularul respinge coduri invalide (validari pe rand)', function () {
     $try([['type' => 'tier', 'tier_label' => 'Late owls']], ['discount_codes.0.tier_label']);  // treapta redenumita/inexistenta
     $try([['ticket_types' => ['Vechiul nume']]], ['discount_codes.0.ticket_types']);           // bilet redenumit
     $try([['valid_from' => '2026-10-03T22:00', 'valid_until' => '2026-10-03T20:00']], ['discount_codes.0.valid_until']);
+    $try([['promoter_id' => '9999']], ['discount_codes.0.promoter_id']);                        // promotor inexistent
     $try([['max_uses' => '0']], ['discount_codes.0.max_uses']);
     $try([['max_uses_per_participant' => 'x']], ['discount_codes.0.max_uses_per_participant']);
 
@@ -362,8 +368,10 @@ it('petrecerea gratuita nu atinge codurile existente', function () {
 it('Bilantul serii arata „Reduceri acordate" pe cod, cu promotor, doar din intrari valabile', function () {
     $this->actingAs(dcAdmin(), 'admin');
     $party = dcParty();
-    dcCode($party, ['code' => 'ANA10', 'promoter' => 'Ana', 'type' => 'amount', 'value' => 5]);
-    dcCode($party, ['code' => 'BOB', 'promoter' => 'Bob', 'type' => 'amount', 'value' => 10]);
+    $ana = Promoter::create(['name' => 'Ana']);
+    $bob = Promoter::create(['name' => 'Bob']);
+    dcCode($party, ['code' => 'ANA10', 'promoter_id' => $ana->id, 'type' => 'amount', 'value' => 5]);
+    dcCode($party, ['code' => 'BOB', 'promoter_id' => $bob->id, 'type' => 'amount', 'value' => 10]);
 
     dcRecord($party, 'ANA10', 'VIP', 2);                        // 2 bilete x 5 = 10
     $cancelled = dcRecord($party, 'BOB', 'VIP', 1);              // 10, va fi anulat

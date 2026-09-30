@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Parties;
 use App\Models\Admin;
 use App\Models\Party;
 use App\Models\PartyDiscountCode;
+use App\Models\Promoter;
 use App\Services\ActivityLogger;
 use App\Services\DiscountCodes;
 use App\Services\LoyaltyLedger;
@@ -187,7 +188,7 @@ class Form extends Component
             $this->discount_codes = $party->discountCodes->map(fn (PartyDiscountCode $c) => [
                 'id' => $c->id,
                 'code' => $c->code,
-                'promoter' => (string) $c->promoter,
+                'promoter_id' => $c->promoter_id ? (string) $c->promoter_id : '',
                 'type' => $c->type,
                 'value' => $c->value !== null ? rtrim(rtrim((string) $c->value, '0'), '.') : '',
                 'tier_label' => (string) $c->tier_label,
@@ -224,7 +225,7 @@ class Form extends Component
     private function emptyDiscountCode(): array
     {
         return [
-            'id' => null, 'code' => '', 'promoter' => '', 'type' => 'percent', 'value' => '', 'tier_label' => '',
+            'id' => null, 'code' => '', 'promoter_id' => '', 'type' => 'percent', 'value' => '', 'tier_label' => '',
             'ticket_types' => [], 'valid_from' => '', 'valid_until' => '', 'max_uses' => '',
             'max_uses_per_participant' => '1', 'is_active' => true, 'note' => '',
         ];
@@ -553,6 +554,62 @@ class Form extends Component
         $this->discount_codes = array_values($this->discount_codes);
     }
 
+    // ---- Promotori (popup „+" lângă selectul de promotor) ----------------
+
+    /** Rândul de cod pentru care e deschis popup-ul „Promotor nou" (null = închis). */
+    public ?int $promoterModalRow = null;
+
+    public string $newPromoterName = '';
+
+    public string $newPromoterPhone = '';
+
+    public string $newPromoterNote = '';
+
+    public function openPromoterModal(int $row): void
+    {
+        $this->reset('newPromoterName', 'newPromoterPhone', 'newPromoterNote');
+        $this->resetErrorBag(['newPromoterName', 'newPromoterPhone', 'newPromoterNote']);
+        $this->promoterModalRow = $row;
+    }
+
+    public function closePromoterModal(): void
+    {
+        $this->promoterModalRow = null;
+    }
+
+    /** Adaugă promotorul (sau îl reutilizează dacă numele există deja) și îl alege în rândul de cod. */
+    public function savePromoter(): void
+    {
+        abort_unless(Auth::guard('admin')->check(), 403);
+
+        $this->validate([
+            'newPromoterName' => ['required', 'string', 'max:120'],
+            'newPromoterPhone' => ['nullable', 'string', 'max:40'],
+            'newPromoterNote' => ['nullable', 'string', 'max:255'],
+        ], [
+            'newPromoterName.required' => 'Scrie numele promotorului.',
+        ]);
+
+        $name = trim($this->newPromoterName);
+        $promoter = Promoter::findByName($name);
+        if (! $promoter) {
+            $promoter = Promoter::create([
+                'name' => $name,
+                'phone' => trim($this->newPromoterPhone) ?: null,
+                'note' => trim($this->newPromoterNote) ?: null,
+                'is_active' => true,
+            ]);
+            ActivityLogger::log('promoter.created', 'A adăugat promotorul „'.$promoter->name.'".');
+        } elseif (! $promoter->is_active) {
+            $promoter->update(['is_active' => true]);
+        }
+
+        if ($this->promoterModalRow !== null && isset($this->discount_codes[$this->promoterModalRow])) {
+            $this->discount_codes[$this->promoterModalRow]['promoter_id'] = (string) $promoter->id;
+        }
+        $this->promoterModalRow = null;
+    }
+
     /** Un cod scurt, fără caractere ușor de confundat (0/O, 1/I), unic pe petrecere. */
     public function generateDiscountCode(int $i): void
     {
@@ -606,7 +663,7 @@ class Form extends Component
             };
 
             $code = DiscountCodes::normalize($r['code'] ?? '');
-            $blank = $code === '' && trim((string) ($r['promoter'] ?? '')) === '' && trim((string) ($r['value'] ?? '')) === '' && empty($r['id']);
+            $blank = $code === '' && trim((string) ($r['promoter_id'] ?? '')) === '' && trim((string) ($r['value'] ?? '')) === '' && empty($r['id']);
             if ($blank) {
                 continue;
             }
@@ -617,6 +674,16 @@ class Form extends Component
                 $fail('code', 'Codul „'.$code.'" apare de două ori la această petrecere.');
             }
             $seen[$code] = true;
+
+            $promoterId = null;
+            $rawPromoter = trim((string) ($r['promoter_id'] ?? ''));
+            if ($rawPromoter !== '') {
+                if (ctype_digit($rawPromoter) && Promoter::query()->whereKey((int) $rawPromoter)->exists()) {
+                    $promoterId = (int) $rawPromoter;
+                } else {
+                    $fail('promoter_id', 'Promotorul ales nu mai există. Alege altul.');
+                }
+            }
 
             $type = (string) ($r['type'] ?? '');
             if (! isset(PartyDiscountCode::TYPES[$type])) {
@@ -686,7 +753,7 @@ class Form extends Component
             $clean[] = [
                 'id' => $r['id'] ?? null,
                 'code' => $code,
-                'promoter' => trim((string) ($r['promoter'] ?? '')) ?: null,
+                'promoter_id' => $promoterId,
                 'type' => $type,
                 'value' => $value,
                 'tier_label' => $tier,
@@ -1260,7 +1327,20 @@ class Form extends Component
         $this->redirectRoute('admin.parties.index', navigate: true);
     }
 
-    /** @return array<int, int> id cod => comenzi valabile care l-au folosit */
+    /** @return array<string, string> id promotor => nume (activi + cei deja aleși în rânduri) */
+    private function promoterOptions(): array
+    {
+        $chosen = collect($this->discount_codes)->pluck('promoter_id')->filter()->map(fn ($v) => (int) $v)->all();
+
+        $options = ['' => 'Fără promotor'];
+        foreach (Promoter::query()->where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', $chosen))->orderBy('name')->get() as $p) {
+            $options[(string) $p->id] = $p->name.($p->is_active ? '' : ' (inactiv)');
+        }
+
+        return $options;
+    }
+
+    /** @return array<int, int> id cod => bilete cu reducere care l-au folosit */
     private function codeUses(): array
     {
         if (! $this->party || ! $this->party->exists) {
@@ -1291,6 +1371,7 @@ class Form extends Component
             'codeTicketNames' => $this->ticketNames(),
             'codeTierLabels' => $this->tierLabels(),
             'codeUses' => $this->codeUses(),
+            'promoterOptions' => $this->promoterOptions(),
         ]);
     }
 }

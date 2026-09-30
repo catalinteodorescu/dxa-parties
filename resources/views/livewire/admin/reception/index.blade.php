@@ -87,6 +87,9 @@
                             @if ($b->grace)
                                 <span class="inline-flex items-center rounded-full bg-info-soft text-info text-xs px-2 py-0.5">toleranță</span>
                             @endif
+                            @if ($b->code)
+                                <span class="inline-flex items-center rounded-full bg-success/10 text-success text-xs px-2 py-0.5">cod <span class="font-mono ml-1">{{ $b->code }}</span> · −{{ $money($b->discount) }} lei</span>
+                            @endif
                             @if ($b->override_reason)
                                 <span class="inline-flex items-center rounded-full bg-warning/10 text-warning text-xs px-2 py-0.5">preț suprascris</span>
                             @endif

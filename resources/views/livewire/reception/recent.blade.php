@@ -50,6 +50,7 @@
                                 {{ $o->title }} · {{ $o->amount > 0 ? $money($o->amount).' lei' : 'gratuit' }}
                             </div>
                             @if ($o->methods)<div class="mt-0.5 text-xs text-ink-soft">{{ $o->methods }}</div>@endif
+                            @if (! empty($o->code))<div class="mt-0.5 text-xs text-success">Cod {{ $o->code }}</div>@endif
                             @if ($o->people)
                                 <div class="mt-0.5 text-xs text-ink">{{ implode(', ', array_slice($o->people, 0, 3)) }}@if (count($o->people) > 3) +{{ count($o->people) - 3 }} @endif</div>
                             @endif

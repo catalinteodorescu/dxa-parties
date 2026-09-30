@@ -110,6 +110,9 @@
         @if ($stats->participants)
             @include('livewire.admin.parties._stats-participants')
         @endif
+        @if ($codeStats->has_data)
+            @include('livewire.admin.parties._stats-codes')
+        @endif
     @else
         {{-- KPI: cost / profit (mereu primele, cardurile mari) --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
@@ -398,6 +401,9 @@
         @endif
         @if ($stats->participants)
             @include('livewire.admin.parties._stats-participants')
+        @endif
+        @if ($codeStats->has_data)
+            @include('livewire.admin.parties._stats-codes')
         @endif
 
         <p class="mb-2 text-[11px] leading-relaxed text-ink-soft">
