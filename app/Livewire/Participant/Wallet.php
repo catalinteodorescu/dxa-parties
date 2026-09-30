@@ -9,11 +9,18 @@ use Livewire\Component;
 
 /**
  * DXA: adaugat (Aplicația participanților - runda 16). Pagina „Portofel”: numărul de credite (evidențiat), butonul „Încarcă”
- * și ultimele 5 mișcări (încărcări, plăți, refund-uri, ajustări), cu „Vezi mai mult” spre lista completă. Încărcarea online vine odată cu plata cu cardul.
+ * și lista tranzacțiilor (încărcări, plăți, refund-uri, ajustări), cu lazy load la defilare (câte 10). Încărcarea online vine odată cu plata cu cardul.
  */
 #[Layout('layouts.participant', ['title' => 'Portofel'])]
 class Wallet extends Component
 {
+    public int $limit = 10;
+
+    public function more(): void
+    {
+        $this->limit += 10;
+    }
+
     public function render()
     {
         $me = auth('participant')->user();
@@ -21,8 +28,8 @@ class Wallet extends Component
 
         return view('livewire.participant.wallet', [
             'balance' => CreditLedger::balance($me),
-            'moves' => $moves()->orderByDesc('occurred_at')->orderByDesc('id')->limit(5)->get(),
-            'hasMore' => $moves()->count() > 5,
+            'moves' => $moves()->orderByDesc('occurred_at')->orderByDesc('id')->limit($this->limit)->get(),
+            'hasMore' => $moves()->count() > $this->limit,
         ]);
     }
 }

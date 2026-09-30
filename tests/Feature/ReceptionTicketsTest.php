@@ -262,3 +262,52 @@ it('contul participantului arată termenul biletului', function () {
     $this->actingAs($ana, 'participant');
     Livewire::test(Tickets::class)->assertSee('Valabil la acest preț până la 03.10.2026 22:00');
 });
+
+/** DXA: teste (runda 17). Alegerea manuală încarcă biletele; QR personal / căutarea găsesc și biletele pe telefonul participantului. */
+it('alegerea manuală a participantului încarcă biletele lui (ca scanarea QR personal)', function () {
+    $party = rtParty();
+    $ana = rtUser();
+    $order = rtBuy($ana, $party, '2026-10-03 21:30', 2);
+
+    $this->actingAs(rtAdmin(), 'admin');
+    session(['receptie.party_id' => $party->id]);
+    $c = Livewire::test(Entry::class)->call('addParticipant', $ana->id);
+
+    $c->assertSet('ticketIds', $order->tickets->pluck('id')->all())->assertSet('count', 2);
+    // A doua alegere a aceluiași participant nu dublează nimic.
+    $c->call('addParticipant', $ana->id)->assertSet('ticketIds', $order->tickets->pluck('id')->all());
+});
+
+it('participant fără bilete: alegerea manuală îl adaugă fără bilete', function () {
+    $party = rtParty();
+    $bob = rtUser('Bob', '0733222333');
+
+    $this->actingAs(rtAdmin(), 'admin');
+    session(['receptie.party_id' => $party->id]);
+    Livewire::test(Entry::class)->call('addParticipant', $bob->id)->assertSet('ticketIds', [])->assertSet('participantIds', [$bob->id]);
+});
+
+it('bilet luat de un prieten pe telefonul lui (fără cont atunci) e găsit după telefon, prin căutare și prin QR personal', function () {
+    $party = rtParty();
+    $ana = rtUser();
+    $order = rtBuy($ana, $party, '2026-10-03 21:30', 2, ['0744333444']);
+    $friendTicket = $order->tickets->firstWhere('holder_phone', '+40744333444');
+    expect($friendTicket)->not->toBeNull()->and($friendTicket->holder_participant_id)->toBeNull();
+
+    $mihai = rtUser('Mihai', '0744333444');   // face cont după ce biletul a fost luat pe telefonul lui
+
+    $this->actingAs(rtAdmin(), 'admin');
+    session(['receptie.party_id' => $party->id]);
+    Livewire::test(Entry::class)->call('addParticipant', $mihai->id)->assertSet('ticketIds', [$friendTicket->id]);
+    Livewire::test(Entry::class)->call('scanParticipant', $mihai->qrPayload())->assertSet('ticketIds', [$friendTicket->id])->assertSet('participantIds', [$mihai->id]);
+});
+
+it('QR-ul personal încarcă și biletele cumpărate de el pentru alții', function () {
+    $party = rtParty();
+    $ana = rtUser();
+    $order = rtBuy($ana, $party, '2026-10-03 21:30', 3, ['0755111000', '0755222000']);
+
+    $this->actingAs(rtAdmin(), 'admin');
+    session(['receptie.party_id' => $party->id]);
+    Livewire::test(Entry::class)->call('scanParticipant', $ana->qrPayload())->assertSet('ticketIds', $order->tickets->pluck('id')->all())->assertSet('count', 3);
+});

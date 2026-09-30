@@ -22,7 +22,7 @@
                 <div class="pa-soft" style="font-size: .9rem">Nimic de arătat încă.</div>
             @endforelse
             @if ($hasMore)
-                <button type="button" class="pa-link" style="padding-top: .25rem" wire:click="more" wire:loading.attr="disabled">Arată mai multe</button>
+                @include('livewire.participant._lazy-sentinel', ['limit' => $limit])
             @endif
         </div>
     </section>

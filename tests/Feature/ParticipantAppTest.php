@@ -2,10 +2,15 @@
 
 use App\Contracts\SmsSender;
 use App\Livewire\Participant\Account;
+use App\Livewire\Participant\Announcements;
 use App\Livewire\Participant\ForgotPassword;
+use App\Livewire\Participant\History;
 use App\Livewire\Participant\Login;
+use App\Livewire\Participant\Parties;
 use App\Livewire\Participant\Register;
+use App\Livewire\Participant\Tickets;
 use App\Livewire\Participant\Verify;
+use App\Livewire\Participant\Wallet;
 use App\Models\Admin;
 use App\Models\Announcement;
 use App\Models\CreditTransaction;
@@ -363,7 +368,7 @@ it('contul afișează codul QR personal cu același conținut ca în admin', fun
     expect(file_exists(public_path('vendor/qrcode-generator.js')))->toBeTrue();
 });
 
-it('portofelul arată soldul evidențiat și toate mișcările proprii (încărcări și plăți; ultimele 5, cu „Vezi mai mult”)', function () {
+it('portofelul arată soldul evidențiat și toate mișcările proprii (încărcări și plăți; lazy load, câte 10)', function () {
     $p = paAccount();
     $other = paAccount('0733111222');
     CreditLedger::load($p, 40, CreditTransaction::SOURCE_RECEPTION, null, 'Prima încărcare');
@@ -378,11 +383,15 @@ it('portofelul arată soldul evidențiat și toate mișcările proprii (încărc
     CreditLedger::pay($p, 12, Sale::class, 1, null);
     $this->get('/portofel')->assertOk()->assertSee('Plată')->assertSee('-12,00');
 
-    foreach (range(1, 6) as $i) {
+    $this->get('/portofel')->assertOk()->assertSee('Ultimele tranzacții')->assertDontSee('Se încarcă');
+
+    foreach (range(1, 12) as $i) {
         CreditLedger::load($p, 10, CreditTransaction::SOURCE_RECEPTION, null, 'Încărcare '.$i);
     }
-    $this->get('/portofel')->assertOk()->assertSee('Vezi mai mult');
-    $this->get('/portofel/incarcari')->assertOk()->assertSee('Toate mișcările din portofel')->assertSee('Prima încărcare')->assertSee('Plată')->assertSee('Încărcare 6')->assertDontSee('Al altcuiva');
+    // 15 tranzacții: pagina arată 10 și o santinelă de lazy load; „more” aduce următoarele 10.
+    $c = Livewire::test(Wallet::class)->assertSee('Se încarcă')->assertSee('Încărcare 12')->assertDontSee('Prima încărcare');
+    $c->call('more')->assertSee('Prima încărcare')->assertDontSee('Se încarcă');
+    $this->get('/portofel/incarcari')->assertOk()->assertSee('Toate tranzacțiile')->assertSee('Încărcare 12')->assertDontSee('Al altcuiva');
 });
 
 it('paginile din meniu cer cont: vizitatorul e trimis la login', function () {
@@ -621,15 +630,16 @@ it('bilete: mai multe bilete valabile într-un carusel cu puncte; ultimele 5 fol
     expect($order->tickets)->toHaveCount(3);
 
     $this->actingAs($p, 'participant')->get('/bilete')->assertOk()
-        ->assertSee('data-tickets-carousel', false)->assertSee('3 bilete valabile')
-        ->assertDontSee('Ultimele bilete')->assertDontSee('Vezi mai mult');
+        ->assertSee('data-tickets-carousel', false)->assertSee('pa-dots', false)->assertDontSee('glisează')->assertDontSee('bilete valabile')
+        ->assertDontSee('Ultimele bilete')->assertDontSee('Se încarcă');
 
-    // Șase bilete folosite: apar ultimele 5 și linkul spre toate.
-    foreach (range(1, 6) as $i) {
+    // Douăsprezece bilete folosite: apar 10, cu lazy load pentru restul.
+    foreach (range(1, 12) as $i) {
         $t = TicketOrders::place($p, $party, 'Bilet', 1)->tickets->first();
         $t->update(['status' => 'used']);
     }
-    $this->get('/bilete')->assertOk()->assertSee('Ultimele bilete')->assertSee('Vezi mai mult');
+    $this->get('/bilete')->assertOk()->assertSee('Ultimele bilete')->assertSee('Se încarcă');
+    Livewire::test(Tickets::class)->assertSet('limit', 10)->call('more')->assertSet('limit', 20)->assertDontSee('Se încarcă');
     $this->get('/bilete/toate')->assertOk()->assertSee('Toate biletele');
 });
 
@@ -655,4 +665,31 @@ it('lista de petreceri arată și petrecerile trecute, după cele următoare', f
 
     $this->get('/petreceri')->assertOk()->assertSeeInOrder(['Următoare', 'Urmează', 'Trecute', 'A trecut']);
     $this->get('/')->assertOk()->assertSee('Urmează')->assertDontSee('A trecut');
+});
+
+it('anunțuri, petreceri și istoricul se încarcă treptat (lazy load): o tranșă de 10, apoi „more”', function () {
+    $p = paAccount();
+    foreach (range(1, 12) as $i) {
+        Announcement::create(['title' => 'Anunț '.str_pad((string) $i, 2, '0', STR_PAD_LEFT), 'body' => 'x', 'audience' => 'all', 'in_list' => true, 'is_active' => true, 'status' => 'published']);
+        paParty(['name' => 'Urmează '.str_pad((string) $i, 2, '0', STR_PAD_LEFT), 'start_date' => now()->addDays($i)->toDateString()]);
+    }
+
+    Livewire::test(Announcements::class)->assertSet('limit', 10)->assertSee('Se încarcă')->call('more')->assertSet('limit', 20)->assertDontSee('Se încarcă');
+    Livewire::test(Parties::class)->assertSee('Se încarcă')->call('more')->assertDontSee('Se încarcă')->assertSee('Urmează 12');
+
+    foreach (range(1, 25) as $i) {
+        CreditLedger::load($p, 1, CreditTransaction::SOURCE_RECEPTION, null, 'Mișcare '.$i);
+    }
+    $this->actingAs($p, 'participant');
+    Livewire::test(History::class, ['kind' => 'credits'])->assertSee('Se încarcă')->call('more')->assertSee('Mișcare 1')->assertDontSee('Se încarcă');
+});
+
+it('cardul de fidelitate nu mai spune „Mai ai … ștampile”, iar numărul e id-ul cardului pe cel puțin 4 cifre', function () {
+    $p = paAccount();
+    LoyaltyLedger::enroll($p);
+    $card = LoyaltyLedger::activeCard($p);
+
+    $this->actingAs($p, 'participant')->get('/cont')->assertOk()
+        ->assertDontSee('Mai ai')->assertDontSee('până la intrarea gratis')
+        ->assertSee('#'.str_pad((string) $card->id, 4, '0', STR_PAD_LEFT));
 });

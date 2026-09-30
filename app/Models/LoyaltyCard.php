@@ -27,6 +27,12 @@ class LoyaltyCard extends Model
         ];
     }
 
+    /** DXA: adaugat (runda 20). Numărul afișat al cardului = id-ul lui, minim 4 cifre (0001, 0023, 1023); la fel în aplicație și în admin. */
+    public function number(): string
+    {
+        return str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+    }
+
     public function participant(): BelongsTo
     {
         return $this->belongsTo(Participant::class);

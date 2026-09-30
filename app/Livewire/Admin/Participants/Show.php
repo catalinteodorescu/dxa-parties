@@ -269,7 +269,7 @@ class Show extends Component
                 ->get();
 
             foreach ($cards as $i => $c) {
-                $loyaltyCardNumbers[$c->id] = $i + 1;
+                $loyaltyCardNumbers[$c->id] = $c->number();
             }
 
             $rows = collect();
@@ -291,7 +291,7 @@ class Show extends Component
                         'voided' => $activeCount === 0,
                         'void_reason' => optional($group->first(fn ($s) => $s->isVoided()))->void_reason,
                         'party_name' => $first->partyEntry?->party?->name,
-                        'card_number' => $loyaltyCardNumbers[$c->id] ?? $c->id,
+                        'card_number' => $loyaltyCardNumbers[$c->id] ?? $c->number(),
                     ]);
                 }
             }
@@ -315,7 +315,7 @@ class Show extends Component
             'loyaltyOn' => LoyaltyLedger::enabled(),
             'loyaltyEnrolled' => $loyaltyEnrolled,
             'loyaltyCard' => $loyaltyCard,
-            'loyaltyCardNumber' => $loyaltyCard ? ($loyaltyCardNumbers[$loyaltyCard->id] ?? $loyaltyCard->id) : null,
+            'loyaltyCardNumber' => $loyaltyCard?->number(),
             'loyaltyCardNumbers' => $loyaltyCardNumbers,
             'loyaltyStamps' => $loyaltyStamps,
             'loyaltyHistory' => $loyaltyHistory,

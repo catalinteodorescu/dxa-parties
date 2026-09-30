@@ -10,16 +10,16 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * DXA: adaugat (Aplicația participanților - runda 16). Ecranele „Vezi tot”: toate biletele, toate mișcările din portofel (încărcări, plăți, refund-uri, ajustări),
+ * DXA: adaugat (Aplicația participanților - runda 16). Ecranele „Vezi tot”: toate biletele, toate tranzacțiile din portofel (încărcări, plăți, refund-uri, ajustări),
  * toate intrările și toate consumațiile de la bar ale contului meu. Aceeași componentă, `kind` vine din rută. Lista crește
- * cu „Arată mai multe” (câte 20). Doar citire.
+ * cu lazy load (câte 20, la defilare). Doar citire.
  */
 #[Layout('layouts.participant', ['title' => 'Istoric'])]
 class History extends Component
 {
     public const KINDS = [
         'tickets' => ['Toate biletele', 'app.tickets'],
-        'credits' => ['Toate mișcările din portofel', 'app.wallet'],
+        'credits' => ['Toate tranzacțiile', 'app.wallet'],
         'entries' => ['Toate intrările', 'app.account'],
         'bar' => ['Toate consumațiile de la bar', 'app.account'],
     ];

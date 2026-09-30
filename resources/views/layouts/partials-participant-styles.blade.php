@@ -76,7 +76,8 @@
     .pa-chip { display: inline-flex; align-items: center; gap: .35rem; height: 1.9rem; padding: 0 .8rem; border-radius: 1rem; font-size: .72rem; font-weight: 800; letter-spacing: .04em; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); color: #fff; }
     .pa-chip-amber { background: var(--pa-amber); border-color: var(--pa-amber); color: #2a1208; }
     .pa-hero { position: relative; overflow: hidden; border-radius: 1.9rem; min-height: 22rem; display: flex; flex-direction: column; justify-content: flex-end; color: #fff; text-decoration: none;
-        background: radial-gradient(60% 50% at 25% 30%, #FFB36B, transparent 62%), radial-gradient(70% 60% at 85% 20%, #E0489A, transparent 64%), radial-gradient(80% 70% at 55% 95%, #7C4DBC, transparent 68%), linear-gradient(160deg, #DD6441, #4a1740); box-shadow: 0 24px 60px rgba(221,100,65,.3); }
+        background: radial-gradient(60% 50% at 25% 30%, #FFB36B, transparent 62%), radial-gradient(70% 60% at 85% 20%, #E0489A, transparent 64%), radial-gradient(80% 70% at 55% 95%, #7C4DBC, transparent 68%), linear-gradient(160deg, #DD6441, #4a1740); }
+    /* DXA: modificat (runda 20). Fără box-shadow pe cardul hero: caruselul defilează (overflow), iar umbra era tăiată în dreptunghi = „fundal diferit” sub carusel. */
     .pa-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .pa-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(18,8,16,0) 30%, rgba(18,8,16,.9) 100%); }
     .pa-hero-in { position: relative; z-index: 1; padding: 1.25rem; display: flex; flex-direction: column; gap: .6rem; }

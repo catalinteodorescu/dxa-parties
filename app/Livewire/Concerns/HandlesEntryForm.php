@@ -9,6 +9,7 @@ use App\Models\Ticket;
 use App\Services\EntryRecorder;
 use App\Services\LoyaltyLedger;
 use App\Support\PaymentMethods;
+use App\Support\Phone;
 use App\Support\RecentEntryParticipants;
 use DomainException;
 use Illuminate\Support\Collection;
@@ -25,7 +26,10 @@ use Illuminate\Support\Facades\Auth;
 trait HandlesEntryForm
 {
     use GuardsResubmit;
-    use PicksParticipants;
+    use PicksParticipants {
+        // DXA: adaugat (runda 17). addParticipant din trait rămâne pentru bar/tokeni; aici îl extindem cu biletele.
+        addParticipant as protected pickParticipant;
+    }
 
     public string $ticket = '';
 
@@ -36,12 +40,6 @@ trait HandlesEntryForm
     public string $overridePrice = '';
 
     public string $overrideReason = '';
-
-    /** DXA: adaugat (Coduri de reducere) — câmp DOAR DE TEST în PWA Recepție, până există aplicația participanților. */
-    public string $discountCode = '';
-
-    /** Motivul pentru care codul introdus nu se aplică (null = ok sau gol). */
-    public ?string $codeError = null;
 
     /** DXA: adaugat (runda 15). Biletele online scanate la intrare (ordinea = a rândurilor; fiecare acoperă o persoană). @var array<int, int> */
     public array $ticketIds = [];
@@ -178,16 +176,13 @@ trait HandlesEntryForm
             return ['ok' => false, 'message' => 'Cod necunoscut. Încearcă din nou.'];
         }
 
-        $tickets = $party
-            ? Ticket::query()->where('party_id', $party->id)->where('status', Ticket::VALID)
-                ->where(fn ($q) => $q->where('owner_participant_id', $participant->id)->orWhere('holder_participant_id', $participant->id))
-                ->orderBy('id')->get()
-            : collect();
+        $tickets = $this->validTicketsFor($participant);
 
         if ($tickets->isNotEmpty()) {
             $this->addTickets($tickets);
+            $this->pickParticipant($participant->id);
         } else {
-            $this->addParticipant($participant->id);
+            $this->pickParticipant($participant->id);
         }
 
         if ($this->participantError) {
@@ -200,6 +195,51 @@ trait HandlesEntryForm
         return ['ok' => true, 'message' => $participant->name.($tickets->isNotEmpty() ? ' · '.$tickets->count().' '.($tickets->count() === 1 ? 'bilet' : 'bilete') : '')];
     }
 
+    /**
+     * DXA: adaugat (runda 17). Alegerea manuală (căutare) încarcă și biletele participantului, ca scanarea QR personal.
+     * Restul aplicațiilor care folosesc picker-ul (bar, tokeni) păstrează comportamentul vechi din trait.
+     */
+    public function addParticipant(int $id): void
+    {
+        $alreadyPicked = in_array($id, $this->participantIds, true);
+        $this->pickParticipant($id);
+
+        if ($alreadyPicked || $this->participantError || ! in_array($id, $this->participantIds, true)) {
+            return;
+        }
+
+        $participant = Participant::find($id);
+        $tickets = $participant ? $this->validTicketsFor($participant) : collect();
+        if ($tickets->isNotEmpty()) {
+            $this->addTickets($tickets);
+        }
+    }
+
+    /**
+     * Biletele valabile ale participantului la petrecerea curentă: cumpărate de el, pe numele lui sau pe telefonul lui
+     * (bilete luate de un prieten înainte ca el să aibă cont au doar holder_phone).
+     *
+     * @return Collection<int, Ticket>
+     */
+    protected function validTicketsFor(Participant $participant): Collection
+    {
+        $party = $this->currentParty();
+        if (! $party) {
+            return collect();
+        }
+
+        $phone = Phone::normalize($participant->phone);
+
+        return Ticket::query()->where('party_id', $party->id)->where('status', Ticket::VALID)
+            ->where(function ($q) use ($participant, $phone) {
+                $q->where('owner_participant_id', $participant->id)->orWhere('holder_participant_id', $participant->id);
+                if ($phone) {
+                    $q->orWhere('holder_phone', $phone);
+                }
+            })
+            ->orderBy('id')->get();
+    }
+
     /** Adaugă biletele (fără dubluri) și deținătorii lor cu nume ca participanți; ridică numărul de persoane la nevoie. */
     protected function addTickets(Collection $tickets): void
     {
@@ -208,7 +248,7 @@ trait HandlesEntryForm
                 continue;
             }
             if ($t->holder_participant_id) {
-                $this->addParticipant((int) $t->holder_participant_id);
+                $this->pickParticipant((int) $t->holder_participant_id);
                 if ($this->participantError) {
                     return;
                 }
@@ -292,7 +332,6 @@ trait HandlesEntryForm
                 $this->overrideReason,
                 Auth::guard('admin')->id(),
                 participants: $this->participantIds,
-                discountCode: trim($this->discountCode) !== '' ? $this->discountCode : null,
                 ticketIds: $this->ticketIds,
             ));
 
@@ -328,8 +367,6 @@ trait HandlesEntryForm
         $this->overridePrice = '';
         $this->overrideReason = '';
         $this->payments = [['method' => 'cash', 'amount' => '']];
-        $this->discountCode = '';
-        $this->codeError = null;
         $this->ticketIds = [];
         $this->resetParticipants();
     }
@@ -376,18 +413,8 @@ trait HandlesEntryForm
     {
         $party = $this->currentParty();
 
-        $this->codeError = null;
         if (! $party || $this->ticket === '') {
             return null;
-        }
-
-        // Cod de reducere (test): dacă nu se poate aplica, arătăm motivul și calculăm prețul fără cod.
-        if (trim($this->discountCode) !== '') {
-            try {
-                return EntryRecorder::quote($party, $this->ticket, null, $this->discountCode, $this->participantIds, max(1, min(EntryRecorder::MAX_GROUP, (int) $this->count)));
-            } catch (DomainException $e) {
-                $this->codeError = $e->getMessage();
-            }
         }
 
         return EntryRecorder::quote($party, $this->ticket);

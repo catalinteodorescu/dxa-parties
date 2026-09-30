@@ -36,11 +36,9 @@
             <div class="pa-lcard-note">
                 @if ($complete)
                     Următoarea intrare e gratis! 🎉
-                @else
-                    Mai ai {{ $required - $count }} {{ $required - $count === 1 ? 'ștampilă' : 'ștampile' }} până la intrarea gratis
                 @endif
             </div>
         </div>
-        <div class="pa-lcard-no">#{{ str_pad((string) $card->id, 4, '0', STR_PAD_LEFT) }}</div>
+        <div class="pa-lcard-no">#{{ $card->number() }}</div>
     </div>
 </div>

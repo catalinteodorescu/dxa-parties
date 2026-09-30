@@ -358,7 +358,7 @@ it('fisa participantului: istoricul grupeaza ajustarea manuala intr-un singur ra
         ->assertOk()
         ->assertSee('Ajustare manuală ×2')
         ->assertSee($party->name)
-        ->assertSee('Card #1');
+        ->assertSee('Card #'.$p->loyaltyCards()->first()->number());
 });
 
 it('fisa participantului: popup de card (doar-afisare) din lista participanti', function () {
@@ -372,7 +372,7 @@ it('fisa participantului: popup de card (doar-afisare) din lista participanti', 
         ->assertSee('Zoe Fidel')
         ->call('showLoyaltyCard', $p->id)
         ->assertSee('Card de fidelitate')
-        ->assertSee('#1')
+        ->assertSee('#'.$p->loyaltyCards()->first()->number())
         ->call('closeLoyaltyCard')
         ->assertSet('loyaltyPopupParticipantId', null);
 });
@@ -414,4 +414,16 @@ it('pagina Carduri: link-ul din sidebar apare doar cat fidelitatea e activa glob
 
     loySettings();
     $this->get(route('admin.dashboard'))->assertSee('Carduri');
+});
+
+it('numărul cardului = id-ul lui pe cel puțin 4 cifre (0001, 0023, 1023), la fel în admin și în aplicație', function () {
+    loySettings(3);
+    $p = ParticipantRegistry::create('Ioana Card', '0722 111 099');
+    $card = LoyaltyLedger::enroll($p, loyAdmin()->id);
+
+    expect($card->number())->toBe(str_pad((string) $card->id, 4, '0', STR_PAD_LEFT))->toHaveLength(4);
+    $card->id = 1023;
+    expect($card->number())->toBe('1023');
+    $card->id = 23;
+    expect($card->number())->toBe('0023');
 });

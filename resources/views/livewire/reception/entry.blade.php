@@ -58,18 +58,6 @@
             'scannable' => true,
         ])
 
-        {{-- Cod de reducere: DOAR DE TEST, până există aplicația participanților --}}
-        <div>
-            <label class="block text-sm font-medium text-ink mb-1.5">Cod de reducere <span class="text-xs font-normal text-warning">(doar test)</span></label>
-            <input type="text" wire:model.live.debounce.400ms="discountCode" placeholder="ex. ANA10" autocapitalize="characters" autocomplete="off"
-                   class="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm font-mono uppercase text-ink placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-            @if ($codeError)
-                <p class="mt-1.5 text-sm text-danger">{{ $codeError }}</p>
-            @elseif (trim($discountCode) !== '' && $codeQuote?->code)
-                <p class="mt-1.5 text-sm text-success">Cod aplicat: −{{ $money($codeQuote->discount) }} lei / persoană ({{ $money($codeQuote->price_before_code) }} → {{ $money($codeQuote->price) }} lei)</p>
-            @endif
-        </div>
-
         @if ($canOverride)
         {{-- Suprascriere preț --}}
         <div>

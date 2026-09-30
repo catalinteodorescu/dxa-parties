@@ -169,7 +169,7 @@ class Index extends Component
                 $loyaltyPopupCard = LoyaltyLedger::activeCard($loyaltyPopupParticipant);
                 if ($loyaltyPopupCard) {
                     $loyaltyPopupStamps = $loyaltyPopupCard->stamps()->whereNull('voided_at')->orderBy('stamped_at')->orderBy('id')->get();
-                    $loyaltyPopupCardNumber = $loyaltyPopupParticipant->loyaltyCards()->where('id', '<=', $loyaltyPopupCard->id)->count();
+                    $loyaltyPopupCardNumber = $loyaltyPopupCard->number();
                     $loyaltyPopupLastAt = $loyaltyPopupParticipant->entries()->active()->max('entered_at');
                 }
             }

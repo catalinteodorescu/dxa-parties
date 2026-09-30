@@ -23,12 +23,11 @@
                     @endforeach
                 </div>
                 @if ($valid->count() > 1)
-                    <div style="display: flex; justify-content: center; gap: .4rem" aria-hidden="true">
+                    <div class="pa-dots" style="margin-top: 0" aria-hidden="true">
                         @foreach ($valid as $k => $t)
-                            <span :style="i === {{ $k }} ? 'background: var(--pa-amber); width: 1.3rem' : 'background: var(--pa-line); width: .5rem'" style="height: .5rem; border-radius: .25rem; transition: all .2s"></span>
+                            <span :class="{ 'on': i === {{ $k }} }"></span>
                         @endforeach
                     </div>
-                    <div class="pa-soft" style="text-align: center; font-size: .8rem">{{ $valid->count() }} bilete valabile · glisează</div>
                 @endif
             </div>
         @endif
@@ -42,7 +41,7 @@
                     <div wire:key="rt-{{ $t->id }}">@include('livewire.participant._ticket-row', ['t' => $t])</div>
                 @endforeach
                 @if ($hasMore)
-                    <a href="{{ route('app.tickets.all') }}" wire:navigate class="pa-link" style="text-align: center; padding-top: .25rem">Vezi mai mult</a>
+                    @include('livewire.participant._lazy-sentinel', ['limit' => $limit])
                 @endif
             </div>
         </section>

@@ -10,5 +10,8 @@
         @empty
             <div class="pa-glass pa-pad pa-soft" style="text-align: center">Niciun anunț acum.</div>
         @endforelse
+        @if ($hasMore)
+            @include('livewire.participant._lazy-sentinel', ['limit' => $limit])
+        @endif
     </section>
 </div>
