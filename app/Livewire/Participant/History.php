@@ -45,7 +45,7 @@ class History extends Component
         $take = $this->limit + 1;
 
         $rows = match ($this->kind) {
-            'tickets' => Ticket::query()->where('owner_participant_id', $me->id)->with(['party', 'holder'])->orderByDesc('id')->limit($take)->get(),
+            'tickets' => Ticket::query()->visibleTo($me->id)->with(['party', 'holder'])->orderByDesc('id')->limit($take)->get(),
             'credits' => CreditTransaction::query()->where('participant_id', $me->id)->whereNull('cancelled_at')
                 ->orderByDesc('occurred_at')->orderByDesc('id')->limit($take)->get(),
             'entries' => PartyEntry::query()->active()->where('participant_id', $me->id)->with('party')->orderByDesc('entered_at')->orderByDesc('id')->limit($take)->get(),

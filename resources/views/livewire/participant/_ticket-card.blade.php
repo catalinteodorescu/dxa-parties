@@ -27,6 +27,9 @@
         @endif
         <span class="pa-soft"> · {{ (float) $t->price > 0 ? number_format((float) $t->price, 2, ',', '.').' lei, de plătit la intrare' : 'gratuit' }}</span>
     </div>
+    @if ($t->owner_participant_id !== auth('participant')->id() && $t->owner)
+        <div class="pa-soft" style="font-size: .85rem">Trimis în contul lui {{ $t->owner->name }}.</div>
+    @endif
     @if ($t->valid_until)
         <div class="pa-soft" style="font-size: .85rem; {{ $t->isExpired() ? 'color: #ffb4a8; font-weight: 700' : '' }}">
             @if ($t->isExpired())

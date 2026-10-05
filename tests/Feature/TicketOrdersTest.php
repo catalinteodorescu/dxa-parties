@@ -10,6 +10,7 @@ use App\Models\Ticket;
 use App\Services\ParticipantRegistry;
 use App\Services\TicketOrders;
 use App\Support\PartyPublic;
+use App\Support\Settings\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -179,7 +180,9 @@ it('cod de reducere: se aplică per bilet, fiecare bilet cu reducere consumă o 
         ->and($order->tickets->every(fn ($t) => $t->discount_code_id === $code->id && (float) $t->price === 45.0))->toBeTrue()
         ->and($code->fresh()->usesCount())->toBe(2);
 
-    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 2, [], 'PROMO10'))->toThrow(DomainException::class, 'doar pentru 1 bilet');
+    // Runda 28: mai e o singură utilizare => primul bilet cu reducere, al doilea la preț întreg (nu mai e eroare).
+    $partial = TicketOrders::quote($party, 'Bilet', 2, 'PROMO10');
+    expect($partial->code_applied)->toBe(1)->and($partial->total)->toBe(95.0);
     expect(TicketOrders::place($ana, $party, 'Bilet', 1, [], 'PROMO10')->tickets_count)->toBe(1);
     expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, [], 'PROMO10'))->toThrow(DomainException::class, 'maxim de ori');
 });
@@ -319,4 +322,85 @@ it('biletele altui participant nu apar în contul meu', function () {
     $this->actingAs($ana, 'participant')->get('/bilete')->assertOk()->assertSee('Nu ai bilete valabile')->assertDontSee('data-tickets-carousel', false);
     Livewire::actingAs($ana, 'participant')->test(Tickets::class)
         ->assertViewHas('valid', fn ($t) => $t->isEmpty())->assertViewHas('recent', fn ($t) => $t->isEmpty());
+});
+
+/** DXA: teste (runda 25). Treptele „primele N” numără doar biletele cu preț de listă ≠ 0. */
+function toFreeTierParty(array $typeOverrides = []): Party
+{
+    return toParty(['ticket_types' => [array_merge(['name' => 'Bilet', 'price' => 50,
+        'discounts' => [['label' => 'Gratuit', 'price' => 0, 'until' => null, 'enter_until' => '2026-10-03T22:00']],
+        'qty_tiers' => [['label' => 'Primele 10', 'price' => 30, 'first' => 10]]], $typeOverrides)]]);
+}
+
+it('biletele gratuite nu consumă locuri din treapta „primele 10 la 30 lei”; după oră, primele 10 plătite costă 30, apoi 50', function () {
+    $ana = toUser();
+    $party = toFreeTierParty();
+
+    // Înainte de 22:00 (la 12:00): 12 bilete gratuite, în două comenzi. Treapta rămâne neatinsă.
+    foreach ([6, 6] as $n) {
+        $order = TicketOrders::place($ana, $party, 'Bilet', $n);
+        expect($order->tickets->every(fn ($t) => (float) $t->price === 0.0))->toBeTrue();
+    }
+    expect(TicketOrders::soldCount($party, 'Bilet'))->toBe(12)->and(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(0);
+
+    // Pagina petrecerii: tot 10 locuri în treaptă; prețul curent e 0 (gratuit câștigă).
+    $row = collect(PartyPublic::tickets($party))->first();
+    expect($row['current'])->toBe(0.0)
+        ->and(collect($row['rows'])->firstWhere('label', 'Primele 10')['note'])->toContain('sunt 10 bilete');
+
+    // După 22:00: reducerea cu oră nu mai e activă, treapta e încă deschisă: 10 bilete la 30, al 11-lea la 50.
+    $after = Carbon::parse('2026-10-03 22:30:00');
+    Carbon::setTestNow($after);
+    $ten = TicketOrders::place($ana, $party, 'Bilet', 10, [], null, $after);
+    expect($ten->tickets->every(fn ($t) => (float) $t->price === 30.0 && $t->valid_until === null))->toBeTrue()
+        ->and((float) $ten->total)->toBe(300.0);
+
+    $next = TicketOrders::place($ana, $party, 'Bilet', 1, [], null, $after)->tickets->first();
+    expect((float) $next->price)->toBe(50.0)
+        ->and(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(11)->and(TicketOrders::soldCount($party, 'Bilet'))->toBe(23);   // și biletul de 50 lei e plătit, deci numărat
+});
+
+it('într-o singură comandă: un bilet gratuit nu avansează numărătoarea treptei', function () {
+    $ana = toUser();
+    $party = toFreeTierParty();
+
+    $q = TicketOrders::quote($party, 'Bilet', 3);
+    expect(array_map(fn ($l) => $l['list'], $q->lines))->toBe([0.0, 0.0, 0.0]);
+
+    // După oră, 12 bilete într-o comandă: primele 10 la 30, ultimele 2 la 50.
+    $after = Carbon::parse('2026-10-03 22:30:00');
+    Carbon::setTestNow($after);
+    $q = TicketOrders::quote($party, 'Bilet', 12, null, [], $after);
+    expect(array_map(fn ($l) => $l['list'], $q->lines))->toBe(array_merge(array_fill(0, 10, 30.0), [50.0, 50.0]));
+});
+
+it('un bilet din treaptă redus la 0 de un cod de 100% a ocupat totuși un loc (după prețul de listă)', function () {
+    $ana = toUser();
+    $party = toParty(['ticket_types' => [['name' => 'Bilet', 'price' => 50, 'discounts' => [], 'qty_tiers' => [['label' => 'Primele 10', 'price' => 30, 'first' => 10]]]]]);
+    toCode($party, ['code' => 'GRATIS', 'value' => 100]);
+
+    $order = TicketOrders::place($ana, $party, 'Bilet', 1, [], 'GRATIS');
+    $t = $order->tickets->first();
+    expect((float) $t->list_price)->toBe(30.0)->and((float) $t->price)->toBe(0.0)
+        ->and(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(1);
+});
+
+it('stocul rămâne neschimbat: biletele gratuite scad din locurile disponibile, deși nu consumă treapta', function () {
+    $ana = toUser();
+    $party = toFreeTierParty(['limit' => 3]);
+
+    TicketOrders::place($ana, $party, 'Bilet', 3);
+    expect(TicketOrders::available($party, 'Bilet'))->toBe(0)->and(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(0);
+});
+
+it('doar de acum înainte: biletele vândute înainte de marcaj se numără ca înainte (toate), cele noi doar dacă au preț ≠ 0', function () {
+    $ana = toUser();
+    $party = toFreeTierParty();
+
+    TicketOrders::place($ana, $party, 'Bilet', 3);                       // 3 gratuite
+    Settings::set('tickets_tier_marker', Ticket::max('id'));              // „introducerea regulii”: cele 3 devin istorice
+    expect(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(3);
+
+    TicketOrders::place($ana, $party, 'Bilet', 2);                       // 2 gratuite noi
+    expect(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(3);       // nu se adaugă
 });

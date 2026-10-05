@@ -2,8 +2,8 @@
     @include('livewire.participant._flash')
 
     <div class="pa-section" style="margin-top: .5rem">
-        <div class="pa-eyebrow">Hai în comunitate</div>
-        <h1 class="pa-h1">Dansează și distrează-te alături de noi</h1>
+        <div class="pa-eyebrow">{{ $eyebrow }}</div>
+        <h1 class="pa-h1">{{ $title }}</h1>
     </div>
 
     @if ($carousel->isNotEmpty())

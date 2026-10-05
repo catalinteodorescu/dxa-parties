@@ -8,6 +8,7 @@ use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\Ticket;
 use App\Support\Phone;
+use App\Support\Settings\Settings;
 use DomainException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,8 @@ use Illuminate\Support\Str;
  *    tranzacție, cu rândul petrecerii blocat, ca două comenzi simultane să nu depășească stocul.
  *  - Primul bilet e pe numele cumpărătorului. La celelalte se poate da telefonul participantului: dacă are cont, biletul apare în
  *    contul lui (cu numele lui); altfel rămâne în contul cumpărătorului, fără nume (telefonul se păstrează).
+ *  - Combo (runda 26): „3+1” = în fiecare set de 4 bilete de același tip, primele 3 se plătesc, al 4-lea e oferit (0 lei, bilet real cu
+ *    stoc și QR, nu expiră, nu ocupă locuri din treptele „primele N”). Codul se aplică doar biletelor plătite. Nume/telefoane rămân opționale.
  *  - Fără plată online încă: comanda e „de plătit la intrare”. Nu există anulare din aplicație.
  */
 class TicketOrders
@@ -63,6 +66,27 @@ class TicketOrders
     public static function soldCount(Party $party, string $ticketName): int
     {
         return (int) Ticket::query()->counted()->where('party_id', $party->id)->where('ticket_type', $ticketName)->count();
+    }
+
+    /**
+     * DXA: adaugat (runda 25). Câte bilete au „consumat” locuri din treptele „primele N”: doar cele cu preț de listă diferit de 0
+     * (cele plătite, chiar dacă un cod le-a redus apoi la 0). Biletele gratuite (ex. „gratis până la 22:00”) nu ocupă locuri din
+     * treaptă. Regula se aplică DOAR biletelor vândute după introducerea ei: cele cu id până la marcajul `tickets_tier_marker`
+     * (setat o singură dată, la prima folosire, = ultimul id de bilet de atunci) se numără ca înainte, toate.
+     * Stocul și limitele (soldCount) rămân neschimbate: biletele gratuite scad din locurile disponibile.
+     */
+    public static function tierSoldCount(Party $party, string $ticketName): int
+    {
+        $marker = Settings::get('tickets_tier_marker');
+        if ($marker === null) {
+            $marker = (int) (Ticket::query()->max('id') ?? 0);
+            Settings::set('tickets_tier_marker', $marker);
+        }
+
+        return (int) Ticket::query()->counted()->where('party_id', $party->id)->where('ticket_type', $ticketName)
+            ->where('combo_free', false)   // runda 26: biletul oferit într-un combo nu ocupă locuri din treaptă
+            ->where(fn ($q) => $q->where('id', '<=', (int) $marker)->orWhere('list_price', '>', 0))
+            ->count();
     }
 
     public static function soldTotal(Party $party): int
@@ -116,6 +140,32 @@ class TicketOrders
         return null;
     }
 
+    /**
+     * DXA: adaugat (runda 27). Mențiune pentru un combo când treapta „primele N” e activă și ieftinește prețul: câte bilete mai sunt la
+     * prețul special și, dacă nu ajung pentru toate biletele plătite din set, că restul se plătesc la prețul curent. Null = nimic de spus.
+     */
+    public static function comboNote(Party $party, array $type, string $ticketName, array $combo, ?Carbon $at = null): ?string
+    {
+        $sold = self::tierSoldCount($party, $ticketName);
+        $current = (float) ($party->priceForTypeAt($type, $at) ?? 0);
+        $open = collect($type['qty_tiers'] ?? [])
+            ->filter(fn ($q) => isset($q['price'], $q['first']) && is_numeric($q['price']) && is_numeric($q['first']))
+            ->sortBy(fn ($q) => (int) $q['first'])
+            ->first(fn ($q) => $sold < (int) $q['first']);
+        if ($open === null || (float) $open['price'] >= $current - 0.005) {
+            return null;
+        }
+
+        $left = (int) $open['first'] - $sold;
+        $price = rtrim(rtrim(number_format((float) $open['price'], 2, ',', ''), '0'), ',');
+        $text = 'Preț special '.$price.' lei: '.($left === 1 ? 'a mai rămas 1 bilet' : 'au mai rămas '.$left.' bilete').' la acest preț.';
+        if ($left < $combo['buy']) {
+            $text .= ' Dacă sunt mai puține decât cele '.$combo['buy'].' plătite, restul se plătesc la prețul curent.';
+        }
+
+        return $text;
+    }
+
     /** Prețul de listă al biletului cu numărul $soldBefore+1 (fără cod): prețul curent, coborât de treapta deschisă. */
     public static function unitPrice(Party $party, array $type, int $soldBefore, ?Carbon $at = null): float
     {
@@ -138,14 +188,36 @@ class TicketOrders
     }
 
     /**
+     * DXA: adaugat (runda 26). Combo-urile unui tip de bilet („3+1”: plătești 3, primești 4). Fiecare = buy (plătite) + free (oferite),
+     * toate de același tip. Cheia = „3+1”. Intrările invalide sau duplicate se ignoră.
+     *
+     * @return array<string, array{key: string, buy: int, free: int, size: int}>
+     */
+    public static function combos(array $type): array
+    {
+        $out = [];
+        foreach ($type['combos'] ?? [] as $c) {
+            $buy = (int) ($c['buy'] ?? 0);
+            $free = (int) ($c['free'] ?? 0);
+            if ($buy < 1 || $free < 1) {
+                continue;
+            }
+            $key = $buy.'+'.$free;
+            $out[$key] ??= ['key' => $key, 'buy' => $buy, 'free' => $free, 'size' => $buy + $free];
+        }
+
+        return $out;
+    }
+
+    /**
      * Calculează o comandă fără să scrie nimic (folosit și de previzualizarea din aplicație).
      *
      * @param  array<int, int>  $holderIds  participanții cu nume din comandă (pentru limita per participant a codului)
-     * @return object{lines: array<int, array{list: float, discount: float, price: float, valid_until: ?string}>, subtotal: float, discount: float, total: float, code: ?PartyDiscountCode}
+     * @return object{lines: array<int, array{list: float, discount: float, price: float, valid_until: ?string, free: bool, combo: ?string}>, subtotal: float, discount: float, total: float, code: ?PartyDiscountCode}
      *
      * @throws DomainException
      */
-    public static function quote(Party $party, string $ticketName, int $count, ?string $codeInput = null, array $holderIds = [], ?Carbon $at = null): object
+    public static function quote(Party $party, string $ticketName, int $count, ?string $codeInput = null, array $holderIds = [], ?Carbon $at = null, ?string $combo = null): object
     {
         $at ??= now();
 
@@ -156,6 +228,13 @@ class TicketOrders
 
         if ($count < 1) {
             throw new DomainException('Alege cel puțin un bilet.');
+        }
+        $comboDef = null;
+        if ($combo !== null && $combo !== '') {
+            $comboDef = self::combos($ticket['type'])[$combo] ?? throw new DomainException('Combo-ul ales nu mai este disponibil.');
+            if ($count % $comboDef['size'] !== 0) {
+                throw new DomainException('Combo-ul '.$combo.' se cumpără în seturi de '.$comboDef['size'].' bilete.');
+            }
         }
         $available = self::available($party, $ticketName);
         if ($available !== null && $available <= 0) {
@@ -171,14 +250,25 @@ class TicketOrders
             throw new DomainException('Mai sunt doar '.$available.' '.($available === 1 ? 'bilet disponibil' : 'bilete disponibile').'.');
         }
 
-        $sold = self::soldCount($party, $ticketName);
+        // Treptele „primele N” se numără doar pe biletele cu preț ≠ 0: un bilet gratuit din comandă nu avansează numărătoarea.
+        $paid = self::tierSoldCount($party, $ticketName);
         $lines = [];
         for ($i = 0; $i < $count; $i++) {
-            $list = self::unitPrice($party, $ticket['type'], $sold + $i, $at);
-            $lines[] = ['list' => $list, 'discount' => 0.0, 'price' => $list, 'valid_until' => self::unitValidUntil($party, $ticket['type'], $sold + $i, $at)];
+            // Într-un set de combo, ultimele `free` bilete sunt oferite: 0 lei, fără termen, nu avansează treptele.
+            if ($comboDef && ($i % $comboDef['size']) >= $comboDef['buy']) {
+                $lines[] = ['list' => 0.0, 'discount' => 0.0, 'price' => 0.0, 'valid_until' => null, 'free' => true, 'combo' => $combo];
+
+                continue;
+            }
+            $list = self::unitPrice($party, $ticket['type'], $paid, $at);
+            $lines[] = ['list' => $list, 'discount' => 0.0, 'price' => $list, 'valid_until' => self::unitValidUntil($party, $ticket['type'], $paid, $at), 'free' => false, 'combo' => $comboDef ? $combo : null];
+            if ($list > 0) {
+                $paid++;
+            }
         }
 
         $code = null;
+        $codeApplied = 0;
         $codeInput = trim((string) $codeInput);
         if ($codeInput !== '') {
             $found = DiscountCodes::find($party, $codeInput)
@@ -188,6 +278,9 @@ class TicketOrders
             $discounted = 0;
             $lastError = null;
             foreach ($lines as $i => $line) {
+                if ($line['free']) {
+                    continue; // biletul oferit în combo nu primește cod
+                }
                 try {
                     $applied = DiscountCodes::apply($party, $ticketName, $line['list'], $codeInput, [], $at, 1);
                 } catch (DomainException $e) {
@@ -195,7 +288,7 @@ class TicketOrders
 
                     continue;
                 }
-                $lines[$i] = ['list' => $line['list'], 'discount' => $applied->discount, 'price' => $applied->price, 'valid_until' => $line['valid_until']];
+                $lines[$i] = ['list' => $line['list'], 'discount' => $applied->discount, 'price' => $applied->price, 'valid_until' => $line['valid_until'], 'free' => false, 'combo' => $line['combo']];
                 $discounted++;
             }
 
@@ -203,14 +296,30 @@ class TicketOrders
                 throw $lastError ?? new DomainException('Codul nu aduce nicio reducere.');
             }
 
+            // Limita totală a codului (runda 28): dacă mai sunt utilizări doar pentru unele bilete, reducerea se dă primelor, restul se plătesc întreg.
+            if ($found->max_uses !== null) {
+                $left = $found->max_uses - $found->usesCount();
+                if ($left <= 0) {
+                    throw new DomainException('Codul de reducere a fost folosit de numărul maxim de ori.');
+                }
+                for ($i = count($lines) - 1; $i >= 0 && $discounted > $left; $i--) {
+                    if ($lines[$i]['discount'] > 0) {
+                        $lines[$i]['discount'] = 0.0;
+                        $lines[$i]['price'] = $lines[$i]['list'];
+                        $discounted--;
+                    }
+                }
+            }
+
             DiscountCodes::assertLimits($found, array_values(array_unique($holderIds)), $discounted);
             $code = $found;
+            $codeApplied = $discounted;
         }
 
         $subtotal = round(array_sum(array_column($lines, 'list')), 2);
         $total = round(array_sum(array_column($lines, 'price')), 2);
 
-        return (object) ['lines' => $lines, 'subtotal' => $subtotal, 'discount' => round($subtotal - $total, 2), 'total' => $total, 'code' => $code];
+        return (object) ['lines' => $lines, 'subtotal' => $subtotal, 'discount' => round($subtotal - $total, 2), 'total' => $total, 'code' => $code, 'code_applied' => $codeApplied];
     }
 
     /**
@@ -221,7 +330,7 @@ class TicketOrders
      *
      * @throws DomainException cu motivul în română
      */
-    public static function place(Participant $buyer, Party $party, string $ticketName, int $count, array $phones = [], ?string $codeInput = null, ?Carbon $at = null): Order
+    public static function place(Participant $buyer, Party $party, string $ticketName, int $count, array $phones = [], ?string $codeInput = null, ?Carbon $at = null, ?string $combo = null): Order
     {
         if (! $buyer->hasAccount()) {
             throw new DomainException('Ai nevoie de un cont activ ca să cumperi bilete.');
@@ -229,7 +338,7 @@ class TicketOrders
 
         $others = self::resolveOthers($buyer, $count, $phones);
 
-        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $others, $codeInput, $at) {
+        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $others, $codeInput, $at, $combo) {
             // Blochează petrecerea (stocul) și codul (utilizările) înainte de a recalcula.
             $party = Party::query()->whereKey($party->id)->lockForUpdate()->firstOrFail();
             $code = $codeInput !== null && trim($codeInput) !== '' ? DiscountCodes::find($party, $codeInput) : null;
@@ -238,7 +347,7 @@ class TicketOrders
             }
 
             $holderIds = array_values(array_filter(array_merge([$buyer->id], array_column($others, 'holder_id'))));
-            $quote = self::quote($party, $ticketName, $count, $codeInput, $holderIds, $at);
+            $quote = self::quote($party, $ticketName, $count, $codeInput, $holderIds, $at, $combo);
 
             $order = Order::create([
                 'uuid' => (string) Str::uuid(),
@@ -267,14 +376,16 @@ class TicketOrders
                     'price' => $line['price'],
                     'discount_code_id' => $line['discount'] > 0 ? $quote->code?->id : null,
                     'valid_until' => Party::enterUntilAt($line['valid_until']),
+                    'combo_label' => $line['combo'],
+                    'combo_free' => $line['free'],
                     'status' => Ticket::VALID,
                 ]);
             }
 
             ActivityLogger::log('tickets.ordered', sprintf(
-                '%s a cumpărat %d %s „%s” la „%s” (total %s lei%s).',
+                '%s a cumpărat %d %s „%s” la „%s” (total %s lei%s%s).',
                 $buyer->name, $count, $count === 1 ? 'bilet' : 'bilete', $ticketName, $party->name,
-                number_format($quote->total, 2, ',', '.'), $quote->code ? ', cod '.$quote->code->code : ''
+                number_format($quote->total, 2, ',', '.'), $quote->code ? ', cod '.$quote->code->code : '', $combo ? ', combo '.$combo : ''
             ), actor: null);
 
             return $order->load('tickets');

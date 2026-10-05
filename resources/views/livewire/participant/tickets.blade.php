@@ -33,10 +33,13 @@
         @endif
     </section>
 
-    @if ($recent->isNotEmpty())
+    @if ($recent->isNotEmpty() || $past->isNotEmpty())
         <section class="pa-section">
             <div class="pa-glass pa-pad pa-stack">
                 <div class="pa-label" style="margin: 0">Ultimele bilete</div>
+                @foreach ($past as $t)
+                    <div wire:key="pt-{{ $t->id }}">@include('livewire.participant._ticket-row', ['t' => $t])</div>
+                @endforeach
                 @foreach ($recent as $t)
                     <div wire:key="rt-{{ $t->id }}">@include('livewire.participant._ticket-row', ['t' => $t])</div>
                 @endforeach

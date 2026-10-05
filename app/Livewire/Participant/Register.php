@@ -4,6 +4,7 @@ namespace App\Livewire\Participant;
 
 use App\Contracts\SmsSender;
 use App\Services\ParticipantAccounts;
+use App\Support\ParticipantAppSettings;
 use DomainException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -26,6 +27,13 @@ class Register extends Component
     public string $password_confirmation = '';
 
     public string $error = '';
+
+    public function mount(): void
+    {
+        if (! ParticipantAppSettings::registrationOpen()) {
+            $this->error = 'Înregistrarea conturilor noi este închisă momentan.';
+        }
+    }
 
     public function register(SmsSender $sms): void
     {

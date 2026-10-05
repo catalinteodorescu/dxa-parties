@@ -20,10 +20,13 @@
 
         {{-- Text scurt --}}
         <div>
-            <label for="body" class="block text-sm font-medium text-ink">Text scurt <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
-            <textarea id="body" wire:model="body" rows="3"
+            <div x-data="{ n: {{ mb_strlen((string) $body) }} }">
+            <label for="body" class="block text-sm font-medium text-ink">Text <span class="text-ink-soft/60 font-normal">(opțional — în app apare o previzualizare, iar textul întreg se citește pe pagina anunțului)</span></label>
+            <textarea id="body" wire:model="body" rows="8" @input="n = $el.value.length"
                       class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"></textarea>
+            <p class="mt-1 text-xs" :class="n > {{ \App\Livewire\Admin\Announcements\Form::BODY_MAX }} ? 'text-danger font-medium' : 'text-ink-soft'"><span x-text="n.toLocaleString('ro-RO')">{{ mb_strlen((string) $body) }}</span> / {{ number_format(\App\Livewire\Admin\Announcements\Form::BODY_MAX, 0, ',', '.') }} caractere</p>
             @error('body') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
+            </div>
         </div>
 
         {{-- Imagine --}}

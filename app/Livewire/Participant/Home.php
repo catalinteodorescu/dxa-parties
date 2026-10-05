@@ -4,6 +4,7 @@ namespace App\Livewire\Participant;
 
 use App\Models\Announcement;
 use App\Models\Party;
+use App\Support\ParticipantAppSettings;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -24,8 +25,12 @@ class Home extends Component
 
         return view('livewire.participant.home', [
             'carousel' => $carousel->values(),
-            'announcements' => Announcement::query()->visible($audience)->where('in_list', true)->limit(5)->get(),
-            'parties' => Party::query()->visible($audience)->limit(6)->get(),
+            'announcements' => ParticipantAppSettings::homeAnnouncements() > 0
+                ? Announcement::query()->visible($audience)->where('in_list', true)->limit(ParticipantAppSettings::homeAnnouncements())->get()
+                : collect(),
+            'eyebrow' => ParticipantAppSettings::homeEyebrow(),
+            'title' => ParticipantAppSettings::homeTitle(),
+            'parties' => Party::query()->visible($audience)->limit(ParticipantAppSettings::homeParties())->get(),
         ]);
     }
 }

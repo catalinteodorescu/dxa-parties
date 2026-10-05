@@ -73,21 +73,56 @@ class PartyPublic
         return rtrim(rtrim(number_format($n, 2, ',', '.'), '0'), ',').' lei';
     }
 
-    /** „de la 25 lei” / „25 lei” / „Intrare gratuită” / null când nu are preț. */
+    /**
+     * DXA: adaugat (runda 33). Cel mai mic preț la care se poate cumpăra acum un bilet: minimul dintre tipurile de bilet, cu reducerile
+     * pe dată/oră și treptele „primele N” (la vânzarea online) deja aplicate; tipurile epuizate online se sar (dacă toate sunt epuizate,
+     * se iau toate). Null când niciun tip n-are preț.
+     */
+    public static function fromPrice(Party $party): ?float
+    {
+        $all = [];
+        $open = [];
+        foreach ($party->entryTicketTypes() as $entry) {
+            $type = $entry['type'];
+            $tiers = $party->online_sales && ! empty($type['qty_tiers']);
+            $price = $tiers
+                ? TicketOrders::unitPrice($party, $type, TicketOrders::tierSoldCount($party, $entry['name']))
+                : $party->priceForTypeAt($type);
+            if ($price === null) {
+                continue;
+            }
+            $all[] = (float) $price;
+            if (! $party->online_sales || TicketOrders::available($party, $entry['name']) !== 0) {
+                $open[] = (float) $price;
+            }
+        }
+        $pool = $open ?: $all;
+
+        return $pool ? min($pool) : null;
+    }
+
+    /** Are petrecerea mai multe tipuri de bilet definite (cu nume sau preț), chiar dacă unul nu are acum un preț valabil? */
+    public static function hasMultipleTypes(Party $party): bool
+    {
+        return collect($party->ticket_types ?? [])
+            ->filter(fn ($t) => trim((string) ($t['name'] ?? '')) !== '' || (isset($t['price']) && is_numeric($t['price'])) || ! empty($t['discounts']))
+            ->count() > 1;
+    }
+
+    /** „de la 25 lei” / „Gratuit” / „Intrare gratuită” / null când nu are preț. */
     public static function priceLabel(Party $party): ?string
     {
         if ($party->is_free) {
             return 'Intrare gratuită';
         }
 
-        $price = $party->currentPrice();
+        $price = self::fromPrice($party);
         if ($price === null) {
             return null;
         }
 
-        $label = $price <= 0 ? 'Gratuit' : self::lei($price);
-
-        return $party->hasMultipleTicketTypes() && $price > 0 ? 'de la '.$label : $label;
+        // „de la” doar când sunt mai multe tipuri de bilet (cu un singur tip nu există mai multe prețuri de comparat).
+        return $price <= 0 ? 'Gratuit' : (self::hasMultipleTypes($party) ? 'de la ' : '').self::lei($price);
     }
 
     /**
@@ -147,7 +182,7 @@ class PartyPublic
             // DXA: adaugat (runda 14). Trepte „primele N bilete” (doar cu vânzare online): rândurile încă deschise, cu câte mai sunt;
             // treapta activă devine „ACUM” (dacă e la fel de ieftină ca prețul curent), iar prețul curent afișat o reflectă.
             if ($party->online_sales && ! empty($type['qty_tiers'])) {
-                $sold = TicketOrders::soldCount($party, $entry['name']);
+                $sold = TicketOrders::tierSoldCount($party, $entry['name']);   // runda 25: doar biletele cu preț ≠ 0 ocupă locuri din treaptă
                 $activeTier = TicketOrders::tierPrice($type, $sold);
                 $tierActive = $activeTier !== null && $activeTier <= $current + 0.005;
 
@@ -202,7 +237,9 @@ class PartyPublic
             }
             unset($r);
 
-            $out[] = ['name' => $entry['name'], 'current' => $current, 'base' => $base, 'rows' => $rows];
+            $combos = $party->online_sales ? array_map(fn ($c) => $c + ['note' => TicketOrders::comboNote($party, $type, $entry['name'], $c)], array_values(TicketOrders::combos($type))) : [];
+
+            $out[] = ['name' => $entry['name'], 'current' => $current, 'base' => $base, 'rows' => $rows, 'combos' => $combos];
         }
 
         return $out;

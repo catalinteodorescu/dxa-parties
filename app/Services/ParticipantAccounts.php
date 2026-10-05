@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\SmsSender;
 use App\Models\Participant;
 use App\Models\ParticipantVerification;
+use App\Support\ParticipantAppSettings;
 use App\Support\Phone;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
@@ -55,6 +56,10 @@ class ParticipantAccounts
      */
     public static function startRegistration(string $name, string $phone, string $password, SmsSender $sms): string
     {
+        if (! ParticipantAppSettings::registrationOpen()) {
+            throw new DomainException('Înregistrarea conturilor noi este închisă momentan.');
+        }
+
         $name = trim($name);
         if (mb_strlen($name) < 2 || mb_strlen($name) > 120) {
             throw new DomainException('Scrie numele tău (între 2 și 120 de caractere).');
@@ -117,14 +122,14 @@ class ParticipantAccounts
         if ($verification->expires_at->isPast()) {
             throw new DomainException('Codul a expirat. Cere un cod nou.');
         }
-        if ($verification->attempts >= self::MAX_ATTEMPTS) {
+        if ($verification->attempts >= ParticipantAppSettings::codeMaxAttempts()) {
             throw new DomainException('Prea multe încercări greșite. Cere un cod nou.');
         }
 
         $digits = preg_replace('/\D+/', '', $code) ?? '';
         if (! hash_equals($verification->code_hash, self::hashCode($verification->phone, $digits))) {
             $verification->increment('attempts');
-            $left = self::MAX_ATTEMPTS - $verification->attempts;
+            $left = ParticipantAppSettings::codeMaxAttempts() - $verification->attempts;
 
             throw new DomainException($left > 0
                 ? 'Cod greșit. Mai ai '.$left.' '.($left === 1 ? 'încercare' : 'încercări').'.'
@@ -220,7 +225,7 @@ class ParticipantAccounts
             'v' => self::resetStamp($participant),
         ]);
 
-        $sms->send($participant->phone, 'DXA: resetează-ți parola aici: '.$url);
+        $sms->send($participant->phone, ParticipantAppSettings::smsReset($url));
 
         ActivityLogger::log('participants.password_reset_requested', 'Participantul „'.$participant->name.'” a cerut resetarea parolei prin SMS.', actor: null);
     }
@@ -340,13 +345,13 @@ class ParticipantAccounts
 
         $verification->fill([
             'code_hash' => self::hashCode($verification->phone, $code),
-            'expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES),
+            'expires_at' => now()->addMinutes(ParticipantAppSettings::codeTtlMinutes()),
             'attempts' => 0,
             'last_sent_at' => now(),
             'send_count' => $verification->send_count + 1,
         ])->save();
 
-        $sms->send($verification->phone, 'DXA: codul tău de activare este '.$code.'. Expiră în '.self::CODE_TTL_MINUTES.' minute.');
+        $sms->send($verification->phone, ParticipantAppSettings::smsActivation($code));
     }
 
     private static function hashCode(string $phone, string $code): string

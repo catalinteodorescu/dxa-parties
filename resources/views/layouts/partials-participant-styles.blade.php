@@ -9,6 +9,8 @@
     .pa-top { display: flex; align-items: center; justify-content: space-between; padding: calc(1rem + env(safe-area-inset-top)) 0 .5rem; }
     .pa-top img { height: 2.4rem; width: auto; display: block; }
     .pa-a { color: inherit; text-decoration: none; }
+    /* Placeholder pentru anunțurile fără imagine (runda 29) */
+    .pa-ph { display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.55); background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.04)); }
     .pa-h1 { margin: 0; font-size: 1.9rem; line-height: 1.1; font-weight: 800; }
     .pa-h2 { margin: 0; font-size: 1.15rem; font-weight: 800; }
     .pa-eyebrow { font-size: .78rem; font-weight: 800; letter-spacing: .14em; color: var(--pa-amber); text-transform: uppercase; }
@@ -74,6 +76,11 @@
     .pa-alert-ok { background: rgba(21,128,61,.28); color: #86efac; }
     .pa-alert-err { background: rgba(220,38,38,.25); color: #ffb4a8; }
     .pa-chip { display: inline-flex; align-items: center; gap: .35rem; height: 1.9rem; padding: 0 .8rem; border-radius: 1rem; font-size: .72rem; font-weight: 800; letter-spacing: .04em; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); color: #fff; }
+    .pa-chip-link { text-decoration: none; }
+    /* DXA: adaugat (runda 23). Subsolul cu contact și linkuri legale. */
+    .pa-foot { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--pa-line); font-size: .85rem; }
+    .pa-foot-items { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .pa-foot-legal { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; margin-top: .9rem; font-size: .8rem; }
     .pa-chip-amber { background: var(--pa-amber); border-color: var(--pa-amber); color: #2a1208; }
     .pa-hero { position: relative; overflow: hidden; border-radius: 1.9rem; min-height: 22rem; display: flex; flex-direction: column; justify-content: flex-end; color: #fff; text-decoration: none;
         background: radial-gradient(60% 50% at 25% 30%, #FFB36B, transparent 62%), radial-gradient(70% 60% at 85% 20%, #E0489A, transparent 64%), radial-gradient(80% 70% at 55% 95%, #7C4DBC, transparent 68%), linear-gradient(160deg, #DD6441, #4a1740); }
@@ -105,5 +112,6 @@
     .pa-guest .logo { display: flex; justify-content: center; }
     .pa-guest .logo img { height: 3.4rem; width: auto; }
     .pa-prose { white-space: pre-line; line-height: 1.55; }
+    .pa-clamp10 { display: -webkit-box; -webkit-line-clamp: 10; -webkit-box-orient: vertical; overflow: hidden; }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>

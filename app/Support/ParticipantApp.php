@@ -4,8 +4,8 @@ namespace App\Support;
 
 /**
  * DXA: adaugat (Aplicația participanților - runda 1). Identitatea PWA-ului participanților, în rădăcina domeniului.
- * Logica (iconița, tema) e în App\Support\PwaApp. Nu are încă pagină de setări proprie: numele, tema și logo-ul vin din
- * valorile implicite (logo-ul școlii, tema panoului); cheile de mai jos sunt pregătite pentru o pagină de setări ulterioară.
+ * Logica (iconița, tema) e în App\Support\PwaApp. Se editează în Setări › Aplicație participanți (admin): nume, logo și temă
+ * (tema colorează doar iconița de pe ecranul telefonului); fără alegere, se folosesc logo-ul școlii și tema panoului.
  */
 class ParticipantApp extends PwaApp
 {

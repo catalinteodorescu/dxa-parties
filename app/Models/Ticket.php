@@ -24,12 +24,12 @@ class Ticket extends Model
 
     protected $fillable = [
         'uuid', 'order_id', 'party_id', 'ticket_type', 'owner_participant_id', 'holder_participant_id', 'holder_phone',
-        'list_price', 'discount_amount', 'price', 'discount_code_id', 'valid_until', 'status', 'party_entry_id', 'used_at',
+        'list_price', 'discount_amount', 'price', 'discount_code_id', 'valid_until', 'combo_label', 'combo_free', 'status', 'party_entry_id', 'used_at',
     ];
 
     protected function casts(): array
     {
-        return ['list_price' => 'decimal:2', 'discount_amount' => 'decimal:2', 'price' => 'decimal:2', 'used_at' => 'datetime', 'valid_until' => 'datetime'];
+        return ['list_price' => 'decimal:2', 'discount_amount' => 'decimal:2', 'price' => 'decimal:2', 'used_at' => 'datetime', 'valid_until' => 'datetime', 'combo_free' => 'boolean'];
     }
 
     protected static function booted(): void
@@ -57,6 +57,13 @@ class Ticket extends Model
     public function holder(): BelongsTo
     {
         return $this->belongsTo(Participant::class, 'holder_participant_id');
+    }
+
+    /** DXA: adaugat (runda 34). Biletele „ale mele”: cele din contul meu SAU cumpărate de mine (și trimise în alt cont). */
+    public function scopeVisibleTo(Builder $query, int $participantId): Builder
+    {
+        return $query->where(fn ($q) => $q->where('owner_participant_id', $participantId)
+            ->orWhereHas('order', fn ($o) => $o->where('participant_id', $participantId)));
     }
 
     /** Biletele care încă ocupă un loc (valabile sau deja folosite); cele anulate nu. */

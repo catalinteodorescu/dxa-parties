@@ -11,6 +11,7 @@ use App\Services\DiscountCodes;
 use App\Services\LoyaltyLedger;
 use App\Support\Branding;
 use App\Support\HandlesImageUploads;
+use App\Support\PartyDescriptionTexts;
 use App\Support\PaymentMethods;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -81,10 +82,10 @@ class Form extends Component
 
     // DXA: adaugat (Card de fidelitate). Acordă ștampile la intrare ȘI acceptă plata „Beneficiu" (bonusul de
     // fidelitate); vezi App\Services\LoyaltyLedger::partyEligible().
-    public bool $loyalty_eligible = false;
+    public bool $loyalty_eligible = true;
 
     // DXA: adaugat (runda 13). Vânzare bilete și capacitate (vezi migrarea 2024_07_25). Câmpurile numerice sunt șiruri (input-uri goale = nelimitat).
-    public bool $online_sales = false;
+    public bool $online_sales = true;
 
     public string $max_tickets_per_order = '';
 
@@ -106,7 +107,7 @@ class Form extends Component
     // Plasare / stare
     public string $audience = 'all';
 
-    public bool $in_carousel = false;
+    public bool $in_carousel = true;
 
     public bool $is_active = true;
 
@@ -232,7 +233,7 @@ class Form extends Component
 
     private function emptyTicketType(): array
     {
-        return ['name' => '', 'price' => '', 'limit' => '', 'discounts' => [], 'qty_tiers' => []];
+        return ['name' => '', 'price' => '', 'limit' => '', 'discounts' => [], 'qty_tiers' => [], 'combos' => []];
     }
 
     private function emptyDiscountCode(): array
@@ -440,6 +441,9 @@ class Form extends Component
             'ticket_types.*.qty_tiers.*.label' => ['nullable', 'string', 'max:60'],
             'ticket_types.*.qty_tiers.*.price' => ['nullable', 'numeric', 'min:0'],
             'ticket_types.*.qty_tiers.*.first' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'ticket_types.*.combos' => ['nullable', 'array'],
+            'ticket_types.*.combos.*.buy' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'ticket_types.*.combos.*.free' => ['nullable', 'integer', 'min:1', 'max:50'],
 
             'payment_methods' => ['array'],
             'payment_methods.*' => ['string', 'max:60'],
@@ -488,6 +492,10 @@ class Form extends Component
             'ticket_types.*.limit.min' => 'Limita de bilete trebuie să fie cel puțin 1.',
             'ticket_types.*.qty_tiers.*.first.integer' => 'Numărul de bilete al treptei trebuie să fie un număr întreg.',
             'ticket_types.*.qty_tiers.*.first.min' => 'Numărul de bilete al treptei trebuie să fie cel puțin 1.',
+            'ticket_types.*.combos.*.buy.integer' => 'La combo, numărul de bilete plătite trebuie să fie un număr întreg.',
+            'ticket_types.*.combos.*.buy.min' => 'La combo, trebuie plătit cel puțin un bilet.',
+            'ticket_types.*.combos.*.free.integer' => 'La combo, numărul de bilete gratuite trebuie să fie un număr întreg.',
+            'ticket_types.*.combos.*.free.min' => 'La combo, trebuie oferit cel puțin un bilet.',
             'ticket_types.*.qty_tiers.*.price.numeric' => 'Prețul treptei trebuie să fie un număr.',
             'max_tickets_per_order.integer' => 'Biletele per comandă trebuie să fie un număr întreg.',
             'max_tickets_per_order.min' => 'Biletele per comandă: cel puțin 1 (sau lasă gol = oricâte).',
@@ -551,6 +559,28 @@ class Form extends Component
     public function addQtyTier(int $ti): void
     {
         $this->ticket_types[$ti]['qty_tiers'][] = ['label' => '', 'price' => '', 'first' => ''];
+    }
+
+    /** DXA: adaugat (runda 26). Combo „plătești N, primești M gratis”, per tip de bilet. */
+    public function addCombo(int $ti): void
+    {
+        $this->ticket_types[$ti]['combos'][] = ['buy' => '', 'free' => ''];
+    }
+
+    public function removeCombo(int $ti, int $ci): void
+    {
+        unset($this->ticket_types[$ti]['combos'][$ci]);
+        $this->ticket_types[$ti]['combos'] = array_values($this->ticket_types[$ti]['combos'] ?? []);
+    }
+
+    /** Copiază combo-urile unui tip pe toate celelalte tipuri de bilet (înlocuiește ce aveau). */
+    public function copyCombosToAll(int $ti): void
+    {
+        $combos = array_values($this->ticket_types[$ti]['combos'] ?? []);
+        foreach (array_keys($this->ticket_types) as $i) {
+            $this->ticket_types[$i]['combos'] = $combos;
+        }
+        $this->dispatch('toast', message: 'Combo-urile au fost copiate pe toate tipurile de bilet.', type: 'ok');
     }
 
     public function removeQtyTier(int $ti, int $qi): void
@@ -930,12 +960,13 @@ class Form extends Component
     }
 
     /** Etichetele metodelor active alese (pentru textul generat al anuntului). */
-    private function paymentLabels(): array
+    /** @param  array<string, string>  $names  traduceri pentru metodele predefinite (gol = etichetele din Setări) */
+    private function paymentLabels(array $names = []): array
     {
         $enabled = PaymentMethods::enabled();
 
         return array_values(array_map(
-            fn ($k) => $enabled[$k],
+            fn ($k) => $names[$k] ?? $enabled[$k],
             array_filter($this->paymentMethodsList(), fn ($k) => isset($enabled[$k])),
         ));
     }
@@ -986,6 +1017,15 @@ class Form extends Component
             }
             usort($tiers, fn ($a, $b) => $a['first'] <=> $b['first']);
 
+            // Combo-uri „plătești N, primești M gratis”; fără dubluri.
+            $combos = [];
+            foreach ($t['combos'] ?? [] as $c) {
+                if (! isset($c['buy'], $c['free']) || ! is_numeric($c['buy']) || ! is_numeric($c['free']) || (int) $c['buy'] < 1 || (int) $c['free'] < 1) {
+                    continue;
+                }
+                $combos[(int) $c['buy'].'+'.(int) $c['free']] = ['buy' => (int) $c['buy'], 'free' => (int) $c['free']];
+            }
+
             $limit = isset($t['limit']) && $t['limit'] !== '' && is_numeric($t['limit']) ? (int) $t['limit'] : null;
 
             $types[] = [
@@ -994,6 +1034,7 @@ class Form extends Component
                 'limit' => $limit,
                 'discounts' => $discounts,
                 'qty_tiers' => $tiers,
+                'combos' => array_values($combos),
             ];
         }
 
@@ -1150,12 +1191,40 @@ class Form extends Component
 
     // ---- Generare descriere ---------------------------------------------
 
+    /** DXA: adaugat (runda 29). Bifa de lângă „Generează descriere”: adaugă disclaimerul „INFORMAȚII IMPORTANTE” la finalul fiecărei limbi. */
+    public bool $add_disclaimer = true;
+
+    /** Bifa „Și în engleză și spaniolă” (implicit nebifată): doar atunci descrierea are și blocurile EN/ES, iar fiecare bloc poartă steagul. */
+    public bool $other_langs = false;
+
+    /** Implicit doar în română (fără marcaj). Cu „Și în EN/ES” bifat: câte un bloc pe limbă, marcat cu steag + [RO] / [EN] / [ES]. */
     public function generateDescription(): void
     {
-        $zile = ['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'];
-        $lines = [];
+        $blocks = [];
+        $langs = $this->other_langs ? PartyDescriptionTexts::LANGS : ['ro'];
+        foreach ($langs as $lang) {
+            $t = PartyDescriptionTexts::labels($lang);
+            $title = $this->name ?: $t['default_party'].' '.Branding::name();
+            $tag = $this->other_langs ? PartyDescriptionTexts::FLAGS[$lang].' ['.strtoupper($lang).'] ' : '';
+            $block = $tag.$title."\n\n".implode("\n", $this->descriptionLines($lang, $t));
+            if ($this->add_disclaimer) {
+                $block .= "\n\n".PartyDescriptionTexts::disclaimer($lang);
+            }
+            $blocks[] = rtrim($block);
+        }
 
-        $title = $this->name ?: 'Petrecere '.Branding::name();
+        $this->description = implode("\n\n———\n\n", $blocks);
+    }
+
+    /** @return array<int, string> */
+    private function descriptionLines(string $lang, array $t): array
+    {
+        $lines = [];
+        $money = function ($value) use ($t): string {
+            $v = (float) $value;
+
+            return ($v == floor($v) ? number_format($v, 0, ',', '.') : number_format($v, 2, ',', '.')).' '.$t['currency'];
+        };
 
         // Când
         if ($this->kind === 'festival') {
@@ -1166,18 +1235,18 @@ class Form extends Component
                 $when = count($days) > 1
                     ? $d1->format('d.m.Y').' – '.$d2->format('d.m.Y')
                     : $d1->format('d.m.Y');
-                $lines[] = '🗓️ Când: '.$when;
+                $lines[] = '🗓️ '.$t['when'].': '.$when;
             }
         } elseif ($this->start_date) {
             $d = Carbon::parse($this->start_date);
-            $when = $zile[$d->dayOfWeek].', '.$d->format('d.m.Y');
+            $when = $t['days'][$d->dayOfWeek].', '.$d->format('d.m.Y');
             if ($this->start_time) {
                 $when .= ', '.$this->start_time;
                 if ($this->end_time) {
                     $when .= '–'.$this->end_time;
                 }
             }
-            $lines[] = '🗓️ Când: '.$when;
+            $lines[] = '🗓️ '.$t['when'].': '.$when;
         }
 
         // Locație
@@ -1186,12 +1255,12 @@ class Form extends Component
             if ($this->location_address) {
                 $loc .= ' ('.$this->location_address.')';
             }
-            $lines[] = '📍 Locație: '.$loc;
+            $lines[] = '📍 '.$t['where'].': '.$loc;
         }
 
         // Dresscode (la simpla)
         if ($this->kind !== 'festival' && $this->dresscode) {
-            $lines[] = '👗 Dresscode: '.$this->dresscode;
+            $lines[] = '👗 '.$t['dress'].': '.$this->dresscode;
         }
 
         // Invitați (la festival)
@@ -1201,28 +1270,28 @@ class Form extends Component
                 fn ($n) => $n !== '',
             ));
             if ($guests) {
-                $lines[] = '🎤 Invitați: '.implode(', ', $guests);
+                $lines[] = '🎤 '.$t['guests'].': '.implode(', ', $guests);
             }
         }
 
         // Prețuri
         if ($this->is_free) {
-            $lines[] = '💰 Intrare: gratuită';
+            $lines[] = '💰 '.$t['entry'].': '.$t['free'];
         } else {
             $typeTexts = [];
-            foreach ($this->cleanTicketTypes() as $t) {
-                if ($t['price'] === null) {
+            foreach ($this->cleanTicketTypes() as $tt) {
+                if ($tt['price'] === null) {
                     continue;
                 }
-                $txt = ($t['name'] ?: 'Intrare').' '.$this->fmtPrice($t['price']);
+                $txt = ($tt['name'] ?: $t['default_type']).' '.$money($tt['price']);
                 $disc = [];
-                foreach ($t['discounts'] as $d) {
-                    $dt = ($d['label'] ?: 'ofertă').' '.$this->fmtPrice($d['price']);
+                foreach ($tt['discounts'] as $d) {
+                    $dt = ($d['label'] ?: $t['offer']).' '.$money($d['price']);
                     if ($d['until']) {
-                        $dt .= ' cumperi până la '.Party::formatUntil($d['until']);
+                        $dt .= ' '.$t['buy_until'].' '.Party::formatUntil($d['until']);
                     }
                     if (! empty($d['enter_until'])) {
-                        $dt .= ' intri până la '.Party::formatUntil($d['enter_until']);
+                        $dt .= ' '.$t['enter_until'].' '.Party::formatUntil($d['enter_until']);
                     }
                     $disc[] = $dt;
                 }
@@ -1232,30 +1301,29 @@ class Form extends Component
                 $typeTexts[] = $txt;
             }
             if ($typeTexts) {
-                $lines[] = '💰 Prețuri: '.implode(' · ', $typeTexts);
+                $lines[] = '💰 '.$t['price'].': '.implode(' · ', $typeTexts);
             }
         }
 
         // Plată
-        $pm = $this->paymentLabels();
+        $pm = $this->paymentLabels($t['pay_names']);
         if ($pm) {
-            $lines[] = '💳 Plată: '.implode(', ', $pm);
+            $lines[] = '💳 '.$t['pay'].': '.implode(', ', $pm);
         }
 
         // Contact
         $contactTexts = [];
         foreach ($this->cleanContacts() as $c) {
-            $t = trim(($c['name'] ?? '').' '.($c['phone'] ? '– '.$c['phone'] : ''));
-            $t = rtrim($t, ' –');
-            if ($t !== '') {
-                $contactTexts[] = $t;
+            $ct = rtrim(trim(($c['name'] ?? '').' '.($c['phone'] ? '– '.$c['phone'] : '')), ' –');
+            if ($ct !== '') {
+                $contactTexts[] = $ct;
             }
         }
         if ($contactTexts) {
-            $lines[] = '☎️ Contact: '.implode('; ', $contactTexts);
+            $lines[] = '☎️ '.$t['contact'].': '.implode('; ', $contactTexts);
         }
 
-        $this->description = $title."\n\n".implode("\n", $lines);
+        return $lines;
     }
 
     // ---- Salvare --------------------------------------------------------
@@ -1290,6 +1358,24 @@ class Form extends Component
                 }
                 if (count($firsts) !== count(array_unique($firsts))) {
                     $this->addError('ticket_types.'.$ti.'.qty_tiers', 'Două trepte au același număr de bilete. Fiecare „primele N” trebuie să fie diferit.');
+                    $this->dispatch('scroll-to-error');
+
+                    return;
+                }
+            }
+        }
+
+        // DXA: adaugat (runda 26). Combo-urile: același „N+M” nu se repetă în același tip.
+        if (! $this->is_free) {
+            foreach ($this->ticket_types as $ti => $type) {
+                $keys = [];
+                foreach ($type['combos'] ?? [] as $c) {
+                    if (isset($c['buy'], $c['free']) && is_numeric($c['buy']) && is_numeric($c['free'])) {
+                        $keys[] = (int) $c['buy'].'+'.(int) $c['free'];
+                    }
+                }
+                if (count($keys) !== count(array_unique($keys))) {
+                    $this->addError('ticket_types.'.$ti.'.combos', 'Același combo apare de două ori la acest tip de bilet.');
                     $this->dispatch('scroll-to-error');
 
                     return;

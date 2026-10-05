@@ -3,6 +3,7 @@
 namespace App\Livewire\Participant;
 
 use App\Models\Party;
+use App\Support\ParticipantAppSettings;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -32,7 +33,9 @@ class Parties extends Component
         $audience = auth('participant')->check() ? 'auth' : 'all';
 
         $upcoming = Party::query()->visible($audience)->limit($this->limit + 1)->get();
-        $past = Party::query()->visiblePast($audience)->limit($this->pastLimit + 1)->get();
+        $past = ParticipantAppSettings::showPastParties()
+            ? Party::query()->visiblePast($audience)->limit($this->pastLimit + 1)->get()
+            : collect();
 
         return view('livewire.participant.parties', [
             'parties' => $upcoming->take($this->limit),

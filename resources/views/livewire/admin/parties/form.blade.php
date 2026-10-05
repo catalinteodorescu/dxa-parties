@@ -290,6 +290,37 @@
                                 Adaugă treaptă
                             </button>
                         </div>
+
+                        {{-- DXA: adaugat (runda 26). Combo-uri de bilete: plătești N, primești M gratis (același tip de bilet) --}}
+                        <div class="pl-1">
+                            <span class="text-xs font-medium text-ink-soft">Combo-uri la acest tip de bilet (ex. 3+1: cumperi 3, primești al 4-lea gratis; doar la vânzarea online)</span>
+                            <div class="mt-2 space-y-2">
+                                @foreach ($type['combos'] ?? [] as $ci => $c)
+                                    <div wire:key="tt-{{ $ti }}-c-{{ $ci }}" class="flex flex-wrap items-center gap-2">
+                                        <span class="text-sm text-ink-soft">Cumperi</span>
+                                        <input type="number" step="1" min="1" max="50" wire:model="ticket_types.{{ $ti }}.combos.{{ $ci }}.buy" placeholder="3" class="{{ $in }} max-w-[5rem]">
+                                        <span class="text-sm text-ink-soft">+ primești gratis</span>
+                                        <input type="number" step="1" min="1" max="50" wire:model="ticket_types.{{ $ti }}.combos.{{ $ci }}.free" placeholder="1" class="{{ $in }} max-w-[5rem]">
+                                        <button type="button" wire:click="removeCombo({{ $ti }}, {{ $ci }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
+                                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                                        </button>
+                                    </div>
+                                    @error('ticket_types.'.$ti.'.combos.'.$ci.'.buy') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                                    @error('ticket_types.'.$ti.'.combos.'.$ci.'.free') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                                @endforeach
+                            </div>
+                            @error('ticket_types.'.$ti.'.combos') <p class="{{ $err }}">{{ $message }}</p> @enderror
+                            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                                <button type="button" wire:click="addCombo({{ $ti }})" class="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                                    Adaugă combo
+                                </button>
+                                @if (count($ticket_types) > 1 && ! empty($type['combos']))
+                                    <button type="button" wire:click="copyCombosToAll({{ $ti }})" class="text-xs font-medium text-primary hover:underline">Copiază pe toate tipurile de bilet</button>
+                                @endif
+                            </div>
+                            <p class="mt-1 text-xs text-ink-soft">Biletul oferit e un bilet real (loc, cod QR, 0 lei), nu expiră la ușă și nu consumă locuri din treptele „primele N”. Codurile de reducere se aplică doar biletelor plătite. Nu se cer nume.</p>
+                        </div>
                     </div>
                 @endforeach
 
@@ -706,14 +737,24 @@
 
         {{-- ============ Descriere (ultima) ============ --}}
         <div class="{{ $card }}">
-            <div class="flex items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <h3 class="text-sm font-semibold text-ink">Descriere</h3>
+                <div class="flex flex-wrap items-center gap-3">
+                <label class="flex items-center gap-2 text-xs text-ink">
+                    <input type="checkbox" wire:model="add_disclaimer" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                    Adaugă disclaimer
+                </label>
+                <label class="flex items-center gap-2 text-xs text-ink">
+                    <input type="checkbox" wire:model="other_langs" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
+                    Și în engleză și spaniolă
+                </label>
                 <x-btn variant="info" size="sm" outline wire:click="generateDescription" wire:loading.attr="disabled" wire:target="generateDescription">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
                     Generează descriere
                 </x-btn>
+                </div>
             </div>
-            <p class="text-xs text-ink-soft/80">Compune un text din câmpurile completate mai sus. Îl poți edita apoi liber.</p>
+            <p class="text-xs text-ink-soft/80">Compune un text în română din câmpurile completate mai sus (cu „Și în engleză și spaniolă” bifat, adaugă și blocurile EN/ES, fiecare cu steagul ei); cu „Adaugă disclaimer” bifat, pune la final informațiile importante (acces, foto/video, răspundere) în limbile generate. Îl poți edita apoi liber.</p>
             <textarea id="description" wire:model="description" rows="5" class="mt-1 {{ $in }}"></textarea>
             @error('description') <p class="{{ $err }}">{{ $message }}</p> @enderror
         </div>

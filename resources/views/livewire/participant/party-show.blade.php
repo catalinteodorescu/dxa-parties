@@ -48,7 +48,11 @@
     @if ($party->description)
         <section class="pa-section">
             <h2 class="pa-h2">Despre petrecere</h2>
-            <div class="pa-prose pa-soft">{{ $party->description }}</div>
+            {{-- Descrierea e restrânsă la ~10 rânduri; butonul apare doar dacă textul e mai lung (runda 30). --}}
+            <div x-data="{ open: false, long: false }" x-init="$nextTick(() => { long = $refs.d.scrollHeight > $refs.d.clientHeight + 2 })">
+                <div x-ref="d" class="pa-prose pa-soft pa-clamp10" :class="{ 'pa-clamp10': ! open }">{{ $party->description }}</div>
+                <button type="button" x-show="long || open" x-cloak class="pa-link" style="margin-top: .5rem; font-size: .9rem; font-weight: 800" @click="open = ! open" x-text="open ? 'Arată mai puțin' : 'Arată toată descrierea'">Arată toată descrierea</button>
+            </div>
         </section>
     @endif
 
@@ -115,7 +119,7 @@
 
     <section class="pa-section">
         <div class="pa-between">
-            <h2 class="pa-h2">Prețul biletului</h2>
+            <h2 class="pa-h2">Tipuri de bilete</h2>
             @if ($tickets && ! $ended) <span class="pa-soft" style="font-size: .75rem; font-weight: 700">se actualizează în timp real</span> @endif
         </div>
 
@@ -142,13 +146,23 @@
                             </span>
                         </div>
                     @endforeach
+                    @foreach ($t['combos'] ?? [] as $c)
+                        <div class="pa-tier" wire:key="ticket-{{ $loop->parent->index }}-combo-{{ $c['key'] }}">
+                            <div style="flex: 1; min-width: 0">
+                                <div style="font-weight: 800">Combo {{ $c['key'] }}</div>
+                                <div class="pa-soft" style="font-size: .8rem">Plătești {{ $c['buy'] }}, primești {{ $c['size'] }} bilete{{ $c['free'] === 1 ? ' (1 gratis)' : ' ('.$c['free'].' gratis)' }}</div>
+                                @if ($c['note'] ?? null) <div style="font-size: .78rem; font-weight: 700">{{ $c['note'] }}</div> @endif
+                            </div>
+                            <span class="pa-chip pa-chip-amber">{{ $c['size'] }} bilete</span>
+                        </div>
+                    @endforeach
                 </div>
             @endforeach
         @endif
 
         @if (! $ended)
             @if ($saleBlock === null)
-                @include('livewire.participant._buy', ['party' => $party, 'me' => $me, 'options' => $options, 'maxQty' => $maxQty, 'quote' => $quote, 'quoteError' => $quoteError])
+                @include('livewire.participant._buy', ['party' => $party, 'me' => $me, 'options' => $options, 'maxQty' => $maxQty, 'quote' => $quote, 'quoteError' => $quoteError, 'combos' => $combos, 'count' => $count])
             @else
                 <div class="pa-glass pa-pad pa-soft" style="font-size: .92rem">{{ $party->online_sales ? $saleBlock : 'Biletele se cumpără la intrare.' }}</div>
             @endif

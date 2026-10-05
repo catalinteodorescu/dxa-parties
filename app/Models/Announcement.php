@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 class Announcement extends Model
 {
@@ -49,6 +50,12 @@ class Announcement extends Model
         // asset() folosește host-ul din request (merge pe localhost, .test și
         // în producție), spre deosebire de Storage::url() care depinde de APP_URL.
         return $this->image_path ? asset('storage/'.$this->image_path) : null;
+    }
+
+    /** Data publicării arătată în aplicație: începutul programat (dacă există), altfel crearea. */
+    public function publishedAt(): ?Carbon
+    {
+        return $this->starts_at ?? $this->created_at;
     }
 
     public function isDraft(): bool

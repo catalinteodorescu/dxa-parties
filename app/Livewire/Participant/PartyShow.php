@@ -35,6 +35,9 @@ class PartyShow extends Component
 
     public string $buyError = '';
 
+    /** Combo ales („3+1”) sau gol = bilete individuale (runda 26). În combo, `qty` = numărul de seturi. */
+    public string $combo = '';
+
     public function mount(Party $party): void
     {
         abort_if($party->isDraft() || ! $party->is_active, 404);
@@ -54,15 +57,43 @@ class PartyShow extends Component
     public function selectTicket(string $name): void
     {
         $this->ticketName = $name;
+        $this->combo = '';
         $this->qty = max(1, min($this->qty, TicketOrders::maxPerOrder(Party::findOrFail($this->partyId), $name)));
         $this->codeError = $this->buyError = '';
         // Codul aplicat poate să nu meargă pe noul tip: se reverifică la calcul (mesajul apare în sumar).
     }
 
+    /** Alege un combo („3+1”) sau revine la bilete individuale (''). */
+    public function selectCombo(string $key): void
+    {
+        $party = Party::findOrFail($this->partyId);
+        $this->combo = $key !== '' && isset(TicketOrders::combos(TicketOrders::ticketType($party, $this->ticketName)['type'] ?? [])[$key]) ? $key : '';
+        $this->qty = 1;
+        $this->phones = [];
+        $this->codeError = $this->buyError = '';
+    }
+
+    /** Câte bilete intră în comandă: seturi × mărimea combo-ului, sau `qty`. */
+    private function ticketCount(Party $party): int
+    {
+        $def = $this->combo !== '' ? (TicketOrders::combos(TicketOrders::ticketType($party, $this->ticketName)['type'] ?? [])[$this->combo] ?? null) : null;
+
+        return $def ? max(1, $this->qty) * $def['size'] : max(1, $this->qty);
+    }
+
+    /** Cât poate crește `qty` (bilete sau seturi). */
+    private function maxQtyFor(Party $party): int
+    {
+        $max = TicketOrders::maxPerOrder($party, $this->ticketName);
+        $def = $this->combo !== '' ? (TicketOrders::combos(TicketOrders::ticketType($party, $this->ticketName)['type'] ?? [])[$this->combo] ?? null) : null;
+
+        return $def ? intdiv($max, $def['size']) : $max;
+    }
+
     public function inc(): void
     {
         $party = Party::findOrFail($this->partyId);
-        $this->qty = min($this->qty + 1, max(1, TicketOrders::maxPerOrder($party, $this->ticketName)));
+        $this->qty = min($this->qty + 1, max(1, $this->maxQtyFor($party)));
     }
 
     public function dec(): void
@@ -77,7 +108,7 @@ class PartyShow extends Component
         $me = auth('participant')->user();
 
         try {
-            TicketOrders::quote($party, $this->ticketName, max(1, $this->qty), $this->code, $me ? [$me->id] : []);
+            TicketOrders::quote($party, $this->ticketName, $this->ticketCount($party), $this->code, $me ? [$me->id] : [], null, $this->combo ?: null);
         } catch (DomainException $e) {
             $this->codeError = $e->getMessage();
 
@@ -117,9 +148,11 @@ class PartyShow extends Component
         }
 
         try {
+            $party = Party::findOrFail($this->partyId);
+            $count = $this->ticketCount($party);
             $order = TicketOrders::place(
-                $me, Party::findOrFail($this->partyId), $this->ticketName, $this->qty,
-                array_slice($this->phones, 0, max(0, $this->qty - 1)), $this->appliedCode ?: null
+                $me, $party, $this->ticketName, $count,
+                array_slice($this->phones, 0, max(0, $count - 1)), $this->appliedCode ?: null, null, $this->combo ?: null
             );
         } catch (DomainException $e) {
             $this->buyError = $e->getMessage();
@@ -127,8 +160,26 @@ class PartyShow extends Component
             return;
         }
 
-        session()->flash('status', $order->tickets_count === 1 ? 'Biletul tău e gata! Îl găsești la Bilete.' : 'Cele '.$order->tickets_count.' bilete sunt gata! Le găsești la Bilete.');
+        session()->flash('status', self::orderMessage($order, $me->id));
         $this->redirectRoute('app.tickets', navigate: true);
+    }
+
+    /** Mesajul după comandă: biletele pe alte conturi (telefon cu cont) NU apar la Bilete ale cumpărătorului, așa că se spune clar (runda 33). */
+    private static function orderMessage($order, int $buyerId): string
+    {
+        $tickets = $order->tickets;
+        $total = $tickets->count();
+        $others = $tickets->where('owner_participant_id', '!=', $buyerId);
+        $mine = $total - $others->count();
+
+        if ($others->isEmpty()) {
+            return $total === 1 ? 'Biletul tău e gata! Îl găsești la Bilete.' : 'Cele '.$total.' bilete sunt gata! Le găsești la Bilete.';
+        }
+
+        $names = $others->map(fn ($t) => $t->owner?->name)->filter()->unique()->implode(', ');
+
+        return 'Comanda are '.$total.' bilete: '.$mine.' în contul tău'
+            .' și '.$others->count().' '.($others->count() === 1 ? 'trimis' : 'trimise').' în '.($others->count() === 1 ? 'contul' : 'conturile').' '.$names.' (le vezi și tu la Bilete).';
     }
 
     public function render()
@@ -141,10 +192,12 @@ class PartyShow extends Component
         $quote = null;
         $quoteError = '';
         $options = [];
+        $combos = [];
+        $count = 0;
 
         if (! $saleBlock) {
             foreach ($party->entryTicketTypes() as $t) {
-                $unit = TicketOrders::unitPrice($party, $t['type'], TicketOrders::soldCount($party, $t['name']));
+                $unit = TicketOrders::unitPrice($party, $t['type'], TicketOrders::tierSoldCount($party, $t['name']));
                 $base = isset($t['type']['price']) && is_numeric($t['type']['price']) ? (float) $t['type']['price'] : null;
                 $options[] = [
                     'name' => $t['name'],
@@ -154,11 +207,25 @@ class PartyShow extends Component
                 ];
             }
 
-            $maxQty = TicketOrders::maxPerOrder($party, $this->ticketName);
+            // Combo-urile tipului ales care încap acum (stoc, limită per comandă).
+            $perOrder = TicketOrders::maxPerOrder($party, $this->ticketName);
+            $combos = array_values(array_filter(
+                TicketOrders::combos(TicketOrders::ticketType($party, $this->ticketName)['type'] ?? []),
+                fn ($c) => $c['size'] <= $perOrder
+            ));
+            $ticketType = TicketOrders::ticketType($party, $this->ticketName)['type'] ?? [];
+            $combos = array_map(fn ($c) => $c + ['note' => TicketOrders::comboNote($party, $ticketType, $this->ticketName, $c)], $combos);
+            if ($this->combo !== '' && ! collect($combos)->contains('key', $this->combo)) {
+                $this->combo = '';
+            }
+
+            $maxQty = $this->maxQtyFor($party);
+            $count = 0;
             if ($maxQty > 0) {
                 $this->qty = max(1, min($this->qty, $maxQty));
+                $count = $this->ticketCount($party);
                 try {
-                    $quote = TicketOrders::quote($party, $this->ticketName, $this->qty, $this->appliedCode ?: null, $me ? [$me->id] : []);
+                    $quote = TicketOrders::quote($party, $this->ticketName, $count, $this->appliedCode ?: null, $me ? [$me->id] : [], null, $this->combo ?: null);
                 } catch (DomainException $e) {
                     $quoteError = $e->getMessage();
                 }
@@ -173,6 +240,8 @@ class PartyShow extends Component
             'saleBlock' => $saleBlock,
             'options' => $options,
             'maxQty' => $maxQty,
+            'combos' => $combos,
+            'count' => $count,
             'quote' => $quote,
             'quoteError' => $quoteError,
         ])->title($party->name);

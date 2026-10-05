@@ -22,20 +22,35 @@ class Form extends Component
 
     // Campuri
     public string $title = '';
+
+    /** Coloana `body` e TEXT (65.535 octeți); 15.000 de caractere încap mereu, chiar și cu diacritice/emoji. */
+    public const BODY_MAX = 15000;
+
     public ?string $body = null;
+
     public ?string $url = null;
+
     public ?string $url_label = null;
+
     public string $audience = 'all';
+
     public bool $in_carousel = false;
+
     public bool $in_list = true;
+
     public bool $is_active = true;
+
     public string $status = 'published';
+
     public ?string $starts_at = null;
+
     public ?string $ends_at = null;
 
     // Imagine
     public $image = null;                 // upload temporar nou
+
     public ?string $existingImage = null; // path-ul imaginii deja salvate (la editare)
+
     public bool $removeImage = false;
 
     public function mount(?Announcement $announcement = null): void
@@ -66,7 +81,7 @@ class Form extends Component
     {
         return [
             'title' => ['required', 'string', 'max:120'],
-            'body' => ['nullable', 'string', 'max:500'],
+            'body' => ['nullable', 'string', 'max:'.self::BODY_MAX],
             'url' => ['nullable', 'url', 'max:2048'],
             'url_label' => ['nullable', 'string', 'max:40'],
             'audience' => ['required', 'in:all,auth'],

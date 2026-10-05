@@ -193,6 +193,27 @@ class SettingsRegistry
             'uses_tokens' => ['key' => 'uses_tokens', 'type' => 'bool', 'default' => true],
             'token_rate' => ['key' => 'token_rate', 'type' => 'number', 'default' => 5],
             'credits_purchasable' => ['key' => 'credits_purchasable', 'type' => 'bool', 'default' => false],
+            // DXA: adaugat (runda 22/23). Aplicația participanților — gestionate de pagina Setări › Aplicație participanți
+            // (Livewire\Admin\ParticipantApp\AppSettings), citite prin App\Support\ParticipantAppSettings.
+            // DXA: adaugat (runda 25). Marcaj intern (ultimul id de bilet la prima folosire): vezi TicketOrders::tierSoldCount().
+            'tickets_tier_marker' => ['key' => 'tickets_tier_marker', 'type' => 'number', 'default' => null],
+            'app_home_eyebrow' => ['key' => 'app_home_eyebrow', 'type' => 'text', 'default' => 'Hai în comunitate'],
+            'app_home_title' => ['key' => 'app_home_title', 'type' => 'text', 'default' => 'Dansează și distrează-te alături de noi'],
+            'app_home_parties' => ['key' => 'app_home_parties', 'type' => 'number', 'default' => 6],
+            'app_home_announcements' => ['key' => 'app_home_announcements', 'type' => 'number', 'default' => 5],
+            'app_show_past_parties' => ['key' => 'app_show_past_parties', 'type' => 'bool', 'default' => true],
+            'app_registration_open' => ['key' => 'app_registration_open', 'type' => 'bool', 'default' => true],
+            'app_code_ttl_minutes' => ['key' => 'app_code_ttl_minutes', 'type' => 'number', 'default' => 10],
+            'app_code_max_attempts' => ['key' => 'app_code_max_attempts', 'type' => 'number', 'default' => 5],
+            'app_contact_phone' => ['key' => 'app_contact_phone', 'type' => 'text', 'default' => ''],
+            'app_contact_email' => ['key' => 'app_contact_email', 'type' => 'text', 'default' => ''],
+            'app_contact_instagram' => ['key' => 'app_contact_instagram', 'type' => 'text', 'default' => ''],
+            'app_contact_facebook' => ['key' => 'app_contact_facebook', 'type' => 'text', 'default' => ''],
+            'app_contact_website' => ['key' => 'app_contact_website', 'type' => 'text', 'default' => ''],
+            'app_terms_url' => ['key' => 'app_terms_url', 'type' => 'text', 'default' => ''],
+            'app_privacy_url' => ['key' => 'app_privacy_url', 'type' => 'text', 'default' => ''],
+            'app_sms_activation' => ['key' => 'app_sms_activation', 'type' => 'text', 'default' => 'DXA: codul tău de activare este {cod}. Expiră în {minute} minute.'],
+            'app_sms_reset' => ['key' => 'app_sms_reset', 'type' => 'text', 'default' => 'DXA: resetează-ți parola aici: {link}'],
         ];
     }
 }

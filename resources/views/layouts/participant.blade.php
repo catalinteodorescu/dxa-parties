@@ -17,8 +17,8 @@
     @endphp
     <div class="pa-shell">
         <header class="pa-top">
-            <a href="{{ route('app.home') }}" wire:navigate class="pa-a" aria-label="{{ \App\Support\Branding::name() }}">
-                <img src="{{ \App\Support\Branding::logoUrl('on_color') }}" alt="{{ \App\Support\Branding::name() }}">
+            <a href="{{ route('app.home') }}" wire:navigate class="pa-a" aria-label="{{ \App\Support\ParticipantApp::name() }}">
+                <img src="{{ \App\Support\ParticipantApp::logoUrl() }}" alt="{{ \App\Support\ParticipantApp::name() }}">
             </a>
             @if ($me)
                 <a href="{{ route('app.account') }}" wire:navigate class="pa-a" aria-label="Contul meu ({{ $me->name }})">
@@ -32,6 +32,8 @@
         <main>
             {{ $slot }}
         </main>
+
+        @include('layouts.partials-participant-footer')
     </div>
 
     <nav class="pa-nav" aria-label="Navigare principală">

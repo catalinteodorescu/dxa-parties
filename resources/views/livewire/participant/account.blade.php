@@ -109,6 +109,11 @@
                 </div>
             @endif
 
+            {{-- Telefonul, imediat sub cardul de fidelitate --}}
+            <div class="pa-glass pa-pad pa-stack">
+                <div><div class="pa-label" style="margin: 0">Telefon</div><div style="font-weight: 800">{{ $me->phone }}</div></div>
+            </div>
+
             {{-- Intrările mele: ultimele 5 --}}
             <div class="pa-glass pa-pad pa-stack">
                 <div class="pa-label" style="margin: 0">Intrările mele</div>
@@ -135,9 +140,6 @@
                 @endif
             </div>
 
-            <div class="pa-glass pa-pad pa-stack">
-                <div><div class="pa-label" style="margin: 0">Telefon</div><div style="font-weight: 800">{{ $me->phone }}</div></div>
-            </div>
             <form action="{{ route('app.logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="pa-btn pa-btn-ghost pa-btn-block">Deconectare</button>

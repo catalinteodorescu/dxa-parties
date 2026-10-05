@@ -1,6 +1,7 @@
 <?php
 
 use App\Contracts\SmsSender;
+use App\Livewire\Admin\ParticipantApp\AppSettings as AdminParticipantAppSettings;
 use App\Livewire\Participant\Account;
 use App\Livewire\Participant\Announcements;
 use App\Livewire\Participant\ForgotPassword;
@@ -29,6 +30,7 @@ use App\Services\ParticipantAvatar;
 use App\Services\ParticipantRegistry;
 use App\Services\TicketOrders;
 use App\Support\ParticipantApp;
+use App\Support\ParticipantAppSettings;
 use App\Support\Settings\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -643,7 +645,7 @@ it('bilete: mai multe bilete valabile într-un carusel cu puncte; ultimele 5 fol
     $this->get('/bilete/toate')->assertOk()->assertSee('Toate biletele');
 });
 
-it('Acasă: petreceri următoare înaintea anunțurilor; anunț cu imagine în stânga, fără imagine fără placeholder; texte noi', function () {
+it('Acasă: petreceri următoare înaintea anunțurilor; anunț cu imagine în stânga, fără imagine cu placeholder; texte noi', function () {
     paParty(['name' => 'Seara viitoare']);
     Announcement::create(['title' => 'Cu poză', 'body' => 'Detalii', 'image_path' => 'announcements/x.jpg', 'audience' => 'all', 'in_list' => true, 'is_active' => true, 'status' => 'published']);
     Announcement::create(['title' => 'Fără poză', 'audience' => 'all', 'in_list' => true, 'is_active' => true, 'status' => 'published']);
@@ -654,7 +656,8 @@ it('Acasă: petreceri următoare înaintea anunțurilor; anunț cu imagine în s
         ->assertSeeInOrder(['Petreceri următoare', 'Anunțuri'])->assertSee('Vezi toate')->getContent();
 
     expect(substr_count($html, 'storage/announcements/x.jpg'))->toBe(1)          // doar anunțul cu imagine are <img>
-        ->and($html)->toContain('Fără poză');
+        ->and($html)->toContain('Fără poză')
+        ->and(substr_count($html, 'class="pa-ph"'))->toBe(1);          // placeholder doar la anunțul fără imagine (runda 29)
     $this->get('/anunturi')->assertOk()->assertSee('Cu poză')->assertSee('Fără poză');
 });
 
@@ -692,4 +695,141 @@ it('cardul de fidelitate nu mai spune „Mai ai … ștampile”, iar numărul e
     $this->actingAs($p, 'participant')->get('/cont')->assertOk()
         ->assertDontSee('Mai ai')->assertDontSee('până la intrarea gratis')
         ->assertSee('#'.str_pad((string) $card->id, 4, '0', STR_PAD_LEFT));
+});
+
+/** DXA: teste (runda 22). Setările „Aplicația participanților”. */
+function paSuperAdmin(): Admin
+{
+    return Admin::create(['name' => 'Sa', 'phone' => '0700000077', 'role' => 'superadmin', 'is_active' => true, 'password' => 'secret-pass']);
+}
+
+it('setări: pagina Aplicație participanți are implicite corecte, salvează și respinge valorile greșite', function () {
+    $this->actingAs(paSuperAdmin(), 'admin');
+
+    expect(ParticipantAppSettings::homeEyebrow())->toBe('Hai în comunitate')
+        ->and(ParticipantAppSettings::homeParties())->toBe(6)
+        ->and(ParticipantAppSettings::homeAnnouncements())->toBe(5)
+        ->and(ParticipantAppSettings::showPastParties())->toBeTrue()
+        ->and(ParticipantAppSettings::registrationOpen())->toBeTrue()
+        ->and(ParticipantAppSettings::codeTtlMinutes())->toBe(10)
+        ->and(ParticipantAppSettings::codeMaxAttempts())->toBe(5)
+        ->and(ParticipantAppSettings::contacts())->toBe([])
+        ->and(ParticipantAppSettings::legalLinks())->toBe([]);
+
+    $this->get(route('admin.settings.participant-app'))->assertOk()->assertSee('Participanți · Aplicație')->assertSee('Texte SMS')->assertSee('Legal');
+
+    Livewire::test(AdminParticipantAppSettings::class)
+        ->set('values.app_home_title', 'Dansăm împreună')
+        ->set('values.app_home_parties', '2')
+        ->set('values.app_code_max_attempts', '3')
+        ->set('values.app_registration_open', false)
+        ->set('values.app_contact_phone', '0722 111 222')
+        ->set('values.app_terms_url', 'https://exemplu.ro/termeni')
+        ->call('save')->assertHasNoErrors();
+
+    expect(ParticipantAppSettings::homeTitle())->toBe('Dansăm împreună')
+        ->and(ParticipantAppSettings::homeParties())->toBe(2)
+        ->and(ParticipantAppSettings::codeMaxAttempts())->toBe(3)
+        ->and(ParticipantAppSettings::registrationOpen())->toBeFalse()
+        ->and(ParticipantAppSettings::contacts()[0])->toMatchArray(['label' => 'Telefon', 'text' => '0722 111 222', 'href' => 'tel:0722111222'])
+        ->and(ParticipantAppSettings::legalLinks()[0])->toMatchArray(['label' => 'Termeni și condiții', 'href' => 'https://exemplu.ro/termeni']);
+
+    Livewire::test(AdminParticipantAppSettings::class)
+        ->set('values.app_home_parties', '99')->set('values.app_contact_email', 'nu-e-email')->set('values.app_privacy_url', 'nu-e-link')
+        ->set('values.app_sms_activation', 'Codul tău e gata')->set('values.app_sms_reset', 'Resetează parola')
+        ->call('save')->assertHasErrors(['values.app_home_parties', 'values.app_contact_email', 'values.app_privacy_url', 'values.app_sms_activation', 'values.app_sms_reset']);
+});
+
+it('setări: numele și logo-ul aplicației se salvează și apar în antet și în manifest', function () {
+    Storage::fake('public');
+    $this->actingAs(paSuperAdmin(), 'admin');
+
+    Livewire::test(AdminParticipantAppSettings::class)
+        ->set('name', 'Dance Parties')
+        ->set('logoUpload', UploadedFile::fake()->image('logo.png', 200, 80))
+        ->call('save')->assertHasNoErrors();
+
+    expect(ParticipantApp::name())->toBe('Dance Parties')->and(ParticipantApp::uploadedLogoPath())->not->toBeNull();
+    $this->get('/')->assertOk()->assertSee('storage/'.ParticipantApp::uploadedLogoPath(), false)->assertSee('Dance Parties');
+    expect($this->get(route('app.manifest'))->json('name'))->toBe('Dance Parties');
+});
+
+it('setări: contactul și linkurile legale apar în subsolul aplicației, iar fără ele nu apare nimic', function () {
+    $this->get('/')->assertOk()->assertDontSee('data-app-footer', false);
+
+    Settings::set('app_contact_phone', '0722 111 222');
+    Settings::set('app_contact_email', 'salut@exemplu.ro');
+    Settings::set('app_contact_instagram', 'https://instagram.com/dxa');
+    Settings::set('app_terms_url', 'https://exemplu.ro/termeni');
+    Settings::set('app_privacy_url', 'https://exemplu.ro/confidentialitate');
+
+    $this->get('/')->assertOk()->assertSee('data-app-footer', false)->assertSee('href="tel:0722111222"', false)->assertSee('mailto:salut@exemplu.ro', false)
+        ->assertSee('Instagram')->assertSee('Termeni și condiții')->assertSee('Politica de confidențialitate');
+
+    // Pe login / înregistrare apar doar linkurile legale, nu și contactul.
+    $this->get('/inregistrare')->assertOk()->assertSee('Termeni și condiții')->assertDontSee('salut@exemplu.ro');
+});
+
+it('setări: SMS-urile folosesc șabloanele editate (cu {cod}, {minute}, {aplicatie}, {link}); un șablon invalid revine la cel implicit', function () {
+    Settings::set('app_code_ttl_minutes', 7);
+    Settings::set('app_sms_activation', '{aplicatie}: cod {cod}, valabil {minute} min.');
+    paRegister();
+    expect(end(FakeSms::$sent)[1])->toBe('DXA Parties: cod '.paLastCode().', valabil 7 min.');
+
+    // Fără {cod} șablonul ar face codul inutil: se folosește cel implicit.
+    Settings::set('app_sms_activation', 'Bună!');
+    expect(ParticipantAppSettings::smsActivation('123456'))->toContain('123456')->toContain('DXA');
+
+    Settings::set('app_sms_reset', 'Parola ta: {link}');
+    expect(ParticipantAppSettings::smsReset('https://x.ro/r'))->toBe('Parola ta: https://x.ro/r');
+});
+
+it('setări: titlul, numărul de petreceri și de anunțuri din Acasă și petrecerile trecute urmează setările', function () {
+    foreach (range(1, 4) as $i) {
+        paParty(['name' => 'Urmează '.$i, 'start_date' => now()->addDays($i)->toDateString()]);
+    }
+    Announcement::create(['title' => 'Anunț unic', 'audience' => 'all', 'in_list' => true, 'is_active' => true, 'status' => 'published']);
+    $past = paParty(['name' => 'A trecut', 'start_date' => now()->subDays(5)->toDateString()]);
+    $past->update(['ends_at' => now()->subDays(4)]);
+
+    Settings::set('app_home_eyebrow', 'Bun venit');
+    Settings::set('app_home_title', 'Titlu nou');
+    Settings::set('app_home_parties', 2);
+    Settings::set('app_home_announcements', 0);
+
+    $html = $this->get('/')->assertOk()->assertSee('Bun venit')->assertSee('Titlu nou')->assertDontSee('Hai în comunitate')
+        ->assertDontSee('Anunț unic')->getContent();
+    expect(substr_count($html, 'Urmează '))->toBe(2);
+
+    $this->get('/petreceri')->assertOk()->assertSee('A trecut');
+    Settings::set('app_show_past_parties', false);
+    $this->get('/petreceri')->assertOk()->assertDontSee('A trecut')->assertDontSee('Trecute');
+});
+
+it('setări: înregistrarea închisă oprește conturile noi, dar nu și intrarea în conturile existente', function () {
+    $existing = paAccount();
+    Settings::set('app_registration_open', false);
+
+    Livewire::test(Register::class)->assertSee('închisă momentan');
+    expect(fn () => ParticipantAccounts::startRegistration('Nou Venit', '0744123123', 'parola-sigura', app(SmsSender::class)))
+        ->toThrow(DomainException::class, 'închisă');
+    expect(Participant::where('phone', '+40744123123')->exists())->toBeFalse();
+
+    Livewire::test(Login::class)->set('phone', $existing->phone)->set('password', 'parola-sigura')->call('login')->assertRedirect();
+});
+
+it('setări: valabilitatea codului SMS și numărul de încercări urmează setările', function () {
+    Settings::set('app_code_ttl_minutes', 3);
+    Settings::set('app_code_max_attempts', 3);
+    paRegister();
+
+    $v = ParticipantVerification::first();
+    expect((int) round(now()->diffInMinutes($v->expires_at, false)))->toBe(3);
+
+    $code = paLastCode();
+    $wrong = $code === '000000' ? '111111' : '000000';
+    for ($i = 0; $i < 3; $i++) {
+        expect(fn () => ParticipantAccounts::verifyRegistration('0722123456', $wrong))->toThrow(DomainException::class);
+    }
+    expect(fn () => ParticipantAccounts::verifyRegistration('0722123456', $code))->toThrow(DomainException::class, 'Prea multe');
 });
