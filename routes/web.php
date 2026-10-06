@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BarReportPdfController;
 use App\Http\Controllers\ContentMetricsController;
+use App\Http\Controllers\PartyCalendarController;
 use App\Http\Controllers\PwaController;
 use App\Livewire\Admin\Account\Edit as AccountEdit; // DXA: adaugat (Bar - statistici agregate)
 use App\Livewire\Admin\Announcements\Form as AnnouncementForm;
@@ -276,6 +277,7 @@ Route::name('app.')->group(function () {
     Route::get('/anunturi', ParticipantAnnouncements::class)->name('announcements');
     Route::get('/anunturi/{announcement}', ParticipantAnnouncementShow::class)->name('announcement');
     Route::get('/petreceri/{party}', ParticipantPartyShow::class)->name('party');
+    Route::get('/petreceri/{party}/calendar.ics', [PartyCalendarController::class, 'show'])->name('party.calendar'); // DXA: adaugat (runda 41)
 
     Route::middleware('guest:participant')->group(function () {
         Route::get('/intra', ParticipantLogin::class)->name('login');

@@ -32,14 +32,29 @@
         <div class="pa-glass pa-pad pa-stack" style="gap: .9rem">
             <div><div class="pa-label" style="margin: 0">Data</div><div style="font-weight: 800">{{ PartyPublic::dateLabel($party) }}</div></div>
             @if (PartyPublic::timeLabel($party) !== '')
-                <div><div class="pa-label" style="margin: 0">{{ $party->isFestival() ? 'Durată' : 'Program' }}</div><div style="font-weight: 800">{{ PartyPublic::timeLabel($party) }}</div></div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: .75rem">
+                    <div style="min-width: 0"><div class="pa-label" style="margin: 0">{{ $party->isFestival() ? 'Durată' : 'Program' }}</div><div style="font-weight: 800">{{ PartyPublic::timeLabel($party) }}</div></div>
+                    {{-- Adaugă în calendar (runda 41): fișier .ics; nu apare după ce petrecerea s-a încheiat. --}}
+                    @unless ($ended)
+                        <a href="{{ route('app.party.calendar', $party) }}" target="_blank" rel="noopener" class="pa-iconbtn" aria-label="Adaugă în calendar" title="Adaugă în calendar" data-add-calendar>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M12 14v4M10 16h4"/></svg>
+                        </a>
+                    @endunless
+                </div>
             @endif
             @if ($party->location_name || $party->location_address)
-                <div>
-                    <div class="pa-label" style="margin: 0">Locație</div>
-                    <div style="font-weight: 800">{{ $party->location_name }}</div>
-                    @if ($party->location_address) <div class="pa-soft" style="font-size: .9rem">{{ $party->location_address }}</div> @endif
-                    @if ($party->location_url) <a href="{{ $party->location_url }}" target="_blank" rel="noopener" class="pa-link" style="font-size: .9rem; display: inline-flex; align-items: center; gap: .3rem">Vezi pe hartă <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></a> @endif
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: .75rem">
+                    <div style="min-width: 0">
+                        <div class="pa-label" style="margin: 0">Locație</div>
+                        <div style="font-weight: 800">{{ $party->location_name }}</div>
+                        @if ($party->location_address) <div class="pa-soft" style="font-size: .9rem">{{ $party->location_address }}</div> @endif
+                    </div>
+                    {{-- Navigare (runda 41): buton cu săgeată în locul linkului „Vezi pe hartă”, doar dacă există link de hartă. --}}
+                    @if ($party->location_url)
+                        <a href="{{ $party->location_url }}" target="_blank" rel="noopener" class="pa-iconbtn" aria-label="Navighează la locație" title="Navighează la locație" data-open-maps>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="2.5 11.5 21.5 2.5 12.5 21.5 10.5 13.5 2.5 11.5"/></svg>
+                        </a>
+                    @endif
                 </div>
             @endif
             @if ($dresscode)

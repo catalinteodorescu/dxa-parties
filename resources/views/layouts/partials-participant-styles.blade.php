@@ -92,6 +92,10 @@
     .pa-heart svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .pa-heart.on { color: #ff6b8b; }
     .pa-heart.on svg { fill: currentColor; }
+    /* DXA: adaugat (runda 41). Buton rotund cu iconiță (navigare, calendar) în dreptul unui rând din detaliile petrecerii. */
+    .pa-iconbtn { width: 2.75rem; height: 2.75rem; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: 0; background: rgba(255,179,107,.14); color: var(--pa-amber); text-decoration: none; cursor: pointer; padding: 0; }
+    .pa-iconbtn:active { background: rgba(255,179,107,.28); }
+    .pa-iconbtn svg { width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .pa-tabs { display: flex; gap: .4rem; margin-top: .9rem; }
     .pa-tabs button { flex: 1; min-height: 2.6rem; border-radius: 1.3rem; border: 1px solid var(--pa-line); background: transparent; color: var(--pa-soft); font: inherit; font-weight: 800; font-size: .9rem; cursor: pointer; }
     .pa-tabs button.on { background: rgba(255,179,107,.14); color: var(--pa-amber); border-color: rgba(255,179,107,.5); }

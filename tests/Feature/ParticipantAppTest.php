@@ -607,7 +607,7 @@ it('textul de fidelitate din aplicație folosește numărul de ștampile setat',
     $this->actingAs($p, 'participant')->get('/cont')->assertSee('după ce strângi 7 ștampile');
 });
 
-it('pagina petrecerii: frecvența stilurilor, contactele grupate sub un singur label, link cu iconiță, „Vezi pe hartă” cu pin', function () {
+it('pagina petrecerii: frecvența stilurilor, contactele grupate sub un singur label, link cu iconiță, buton de navigare', function () {
     $party = paParty([
         'music_styles' => [['style' => 'Bachata', 'frequency' => 3], ['style' => 'Salsa', 'frequency' => 2], ['style' => 'Kizomba', 'frequency' => '']],
         'contacts' => [['name' => 'Diana', 'phone' => '0748995202', 'note' => 'WhatsApp'], ['name' => 'Catalin', 'phone' => '0748960817']],
@@ -618,11 +618,10 @@ it('pagina petrecerii: frecvența stilurilor, contactele grupate sub un singur l
     $html = $this->get('/petreceri/'.$party->id)->assertOk()
         ->assertSee('3× Bachata')->assertSee('2× Salsa')->assertSee('Kizomba')->assertDontSee('×Kizomba')
         ->assertSee('Diana')->assertSee('Catalin')->assertSee('· WhatsApp')
-        ->assertSee('Vezi pe hartă')->getContent();
+        ->assertSee('Navighează la locație')->assertDontSee('Vezi pe hartă')->getContent();
 
     expect(substr_count($html, '>Contact</div>'))->toBe(1)                       // label o singură dată
-        ->and($html)->toMatch('~<svg[^>]*>\s*<path d="M10 13a5 5 0 0 0 7\.07 0l3-3[^>]*>.*?</svg>\s*insta~s')   // iconița de link înaintea textului
-        ->and($html)->toMatch('~Vezi pe hartă\s*<svg[^>]*>\s*<path d="M20 10c0 6-8 12-8 12~');                // pinul după text
+        ->and($html)->toMatch('~<svg[^>]*>\s*<path d="M10 13a5 5 0 0 0 7\.07 0l3-3[^>]*>.*?</svg>\s*insta~s');   // iconița de link înaintea textului
 });
 
 it('bilete: mai multe bilete valabile într-un carusel cu puncte; ultimele 5 folosite + „Vezi mai mult” spre lista completă', function () {
