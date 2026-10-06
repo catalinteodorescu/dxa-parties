@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Parties;
 
 use App\Models\Party;
 use App\Services\DiscountCodeStats;
+use App\Services\OnlineSalesReport;
 use App\Services\PartyStats;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -170,6 +171,8 @@ class Stats extends Component
             'entryAxis' => PartyStats::hourAxis($stats->attendance?->hours ?? [], $cmp?->attendance?->hours ?? []),
             'unreported' => PartyStats::unreported($this->party),
             'codeStats' => DiscountCodeStats::forParty($this->party), // DXA: adaugat (Coduri de reducere)
+            'onlineSales' => OnlineSalesReport::forParty($this->party), // DXA: adaugat (runda 36, vanzari online)
+            'compareOnline' => $compareParty ? OnlineSalesReport::forParty($compareParty) : null, // comparatia include si vanzarile online
         ]);
     }
 }

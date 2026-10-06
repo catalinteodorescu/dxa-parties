@@ -89,7 +89,7 @@
     </div>
 
     @if (! $stats->has_data)
-        <div class="rounded-2xl border border-border bg-surface px-5 py-10 text-center text-ink-soft">
+        <div class="rounded-2xl border border-border bg-surface px-5 py-6 mb-4 text-center text-sm text-ink-soft">
             Nicio raportare finalizată pentru această petrecere. Statisticile apar după ce o
             <a href="{{ route('admin.stock-reports.index') }}" wire:navigate class="text-primary hover:underline">Raportare</a>
             legată de petrecere este finalizată.
@@ -109,6 +109,9 @@
         @endif
         @if ($stats->participants)
             @include('livewire.admin.parties._stats-participants')
+        @endif
+        @if ($onlineSales->has_data || $party->online_sales)
+            @include('livewire.admin.parties._stats-online-sales')
         @endif
         @if ($codeStats->has_data)
             @include('livewire.admin.parties._stats-codes')
@@ -401,6 +404,9 @@
         @endif
         @if ($stats->participants)
             @include('livewire.admin.parties._stats-participants')
+        @endif
+        @if ($onlineSales->has_data || $party->online_sales)
+            @include('livewire.admin.parties._stats-online-sales')
         @endif
         @if ($codeStats->has_data)
             @include('livewire.admin.parties._stats-codes')
