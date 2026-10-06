@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyEntry;
+use App\Models\PartyInterest;
 use App\Models\ReceptionSession;
 use App\Support\Phone;
 use DomainException;
@@ -83,6 +84,7 @@ class ParticipantRegistry
         }
 
         $label = $participant->label();
+        PartyInterest::query()->where('participant_id', $participant->id)->delete();   // runda 40: petrecerile salvate
         $participant->delete();
 
         ActivityLogger::log('participants.deleted', 'A șters participantul „'.$label.'”.');
@@ -105,6 +107,7 @@ class ParticipantRegistry
             'anonymized_at' => now(),
         ])->save();
         ParticipantAvatar::delete($participant);
+        PartyInterest::query()->where('participant_id', $participant->id)->delete();   // runda 40: petrecerile salvate
 
         ActivityLogger::log('participants.anonymized', 'A anonimizat participantul „'.$label.'”.');
     }

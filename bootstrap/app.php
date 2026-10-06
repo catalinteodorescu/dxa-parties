@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
             default => route('app.home'),
         });
 
+        // DXA: adaugat (runda 40). Contoarele din aplicație (sendBeacon, fără token): doar numără, nu citesc nimic.
+        $middleware->validateCsrfTokens(except: ['m']);
+
         $middleware->alias([
             'admin.phone_setup' => EnsureAdminPhoneIsSetUp::class,
             'admin.active' => EnsureAdminIsActive::class,

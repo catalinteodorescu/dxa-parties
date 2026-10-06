@@ -16,7 +16,7 @@
                     <div class="pa-prose">{{ $announcement->body }}</div>
                 @endif
                 @if ($announcement->url)
-                    <div><a href="{{ $announcement->url }}" target="_blank" rel="noopener" class="pa-btn pa-btn-sm">{{ $announcement->url_label ?: 'Vezi mai mult' }}</a></div>
+                    <div><a href="{{ $announcement->url }}" target="_blank" rel="noopener" class="pa-btn pa-btn-sm" data-track-action="a:{{ $announcement->id }}">{{ $announcement->url_label ?: 'Vezi mai mult' }}</a></div>
                 @endif
             </div>
         </div>

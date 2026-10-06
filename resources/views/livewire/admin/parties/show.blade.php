@@ -92,22 +92,29 @@
         @endif
     </div>
 
-    {{-- Statistici (demo) --}}
+    {{-- Contoare reale (runda 40) --}}
     <div class="{{ $card }} mb-4">
-        <h3 class="text-sm font-semibold text-ink mb-2">Statistici <span class="text-ink-soft/60 font-normal">(demo)</span></h3>
+        <h3 class="text-sm font-semibold text-ink mb-2">Interes în aplicație</h3>
         <div class="flex flex-wrap gap-6">
             <div class="flex items-center gap-2">
                 <svg class="w-5 h-5 text-ink-soft/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
                 <div>
-                    <div class="text-lg font-semibold text-ink leading-tight">{{ number_format($p->demoViews(), 0, ',', '.') }}</div>
+                    <div class="text-lg font-semibold text-ink leading-tight">{{ number_format($p->statViews(), 0, ',', '.') }}</div>
                     <div class="text-xs text-ink-soft">Afișări</div>
                 </div>
             </div>
             <div class="flex items-center gap-2">
                 <svg class="w-5 h-5 text-ink-soft/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.1 12 6"/><path d="m5.1 8-2.9-.8"/><path d="m6 12-1.9 2"/><path d="M7.2 2.2 8 5.1"/><path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"/></svg>
                 <div>
-                    <div class="text-lg font-semibold text-ink leading-tight">{{ number_format($p->demoClicks(), 0, ',', '.') }}</div>
-                    <div class="text-xs text-ink-soft">Click-uri</div>
+                    <div class="text-lg font-semibold text-ink leading-tight">{{ number_format($p->statOpens(), 0, ',', '.') }}</div>
+                    <div class="text-xs text-ink-soft">Deschideri</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2" data-interested-count>
+                <svg class="w-5 h-5 text-ink-soft/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                <div>
+                    <div class="text-lg font-semibold text-ink leading-tight">{{ number_format($p->interests()->count(), 0, ',', '.') }}</div>
+                    <div class="text-xs text-ink-soft">Interesați</div>
                 </div>
             </div>
         </div>

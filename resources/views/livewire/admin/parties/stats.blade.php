@@ -111,6 +111,7 @@
             @include('livewire.admin.parties._stats-participants')
         @endif
         @if ($onlineSales->has_data || $party->online_sales)
+            @include('livewire.admin.parties._stats-app-interest')
             @include('livewire.admin.parties._stats-online-sales')
         @endif
         @if ($codeStats->has_data)
@@ -406,6 +407,7 @@
             @include('livewire.admin.parties._stats-participants')
         @endif
         @if ($onlineSales->has_data || $party->online_sales)
+            @include('livewire.admin.parties._stats-app-interest')
             @include('livewire.admin.parties._stats-online-sales')
         @endif
         @if ($codeStats->has_data)

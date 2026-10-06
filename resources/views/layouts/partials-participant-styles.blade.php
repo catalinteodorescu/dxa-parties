@@ -87,6 +87,14 @@
     /* DXA: modificat (runda 20). Fără box-shadow pe cardul hero: caruselul defilează (overflow), iar umbra era tăiată în dreptunghi = „fundal diferit” sub carusel. */
     .pa-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .pa-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(18,8,16,0) 30%, rgba(18,8,16,.9) 100%); }
+    /* DXA: adaugat (runda 40, ajustat 40d). Inima „la favorite”: fără bordură, înaltă cât un chip (1.9rem + bordura lui de 2px) ca să se alinieze cu el. */
+    .pa-heart { width: calc(1.9rem + 2px); height: calc(1.9rem + 2px); flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: 0; background: rgba(18,8,16,.55); backdrop-filter: blur(6px); color: #fff; cursor: pointer; padding: 0; }
+    .pa-heart svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .pa-heart.on { color: #ff6b8b; }
+    .pa-heart.on svg { fill: currentColor; }
+    .pa-tabs { display: flex; gap: .4rem; margin-top: .9rem; }
+    .pa-tabs button { flex: 1; min-height: 2.6rem; border-radius: 1.3rem; border: 1px solid var(--pa-line); background: transparent; color: var(--pa-soft); font: inherit; font-weight: 800; font-size: .9rem; cursor: pointer; }
+    .pa-tabs button.on { background: rgba(255,179,107,.14); color: var(--pa-amber); border-color: rgba(255,179,107,.5); }
     .pa-hero-in { position: relative; z-index: 1; padding: 1.25rem; display: flex; flex-direction: column; gap: .6rem; }
     .pa-hero-top { position: absolute; z-index: 1; top: 1rem; left: 1rem; right: 1rem; display: flex; justify-content: space-between; }
     .pa-carousel { display: flex; gap: .9rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 -1.25rem; padding: 0 1.25rem; }

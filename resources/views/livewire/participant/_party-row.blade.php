@@ -1,15 +1,18 @@
-{{-- DXA: adaugat (Aplicația participanților). Rând de petrecere: data, nume, ora/locul și prețul „de la”. Variabilă: $party. --}}
+{{-- DXA: adaugat (Aplicația participanților). Rând de petrecere: data, nume, ora/locul și prețul „de la”, cu inima de salvare (runda 40). Variabile: $party, $savedIds. --}}
 @php
     use App\Support\PartyPublic;
     $price = PartyPublic::priceLabel($party);
 @endphp
-<a href="{{ route('app.party', $party) }}" wire:navigate class="pa-a pa-glass" style="display: flex; align-items: center; gap: .85rem; padding: .75rem .9rem .75rem .75rem">
+<div style="position: relative" x-data x-track="'p:{{ $party->id }}'">
+<a href="{{ route('app.party', $party) }}" wire:navigate class="pa-a pa-glass" style="display: flex; align-items: center; gap: .85rem; padding: .75rem 3rem .75rem .75rem">
     <div class="pa-date"><b>{{ PartyPublic::dayNumber($party) }}</b><small>{{ PartyPublic::monthShort($party) }}</small></div>
     <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .15rem">
-        <span style="font-weight: 800; font-size: 1rem">{{ $party->name }}</span>
+        <span style="font-weight: 800; font-size: 1rem; line-height: 1.35rem">{{ $party->name }}</span>
         <span class="pa-soft" style="font-size: .85rem">{{ trim(PartyPublic::timeLabel($party).($party->location_name ? ' · '.$party->location_name : ''), ' ·') }}</span>
     </div>
     @if ($price)
         <span class="pa-price" style="font-size: .95rem; text-align: right">{{ $price }}</span>
     @endif
 </a>
+@include('livewire.participant._heart', ['party' => $party, 'style' => 'position: absolute; right: .7rem; top: calc(1px + .75rem + (1.35rem - 1.9rem - 2px) / 2)'])
+</div>

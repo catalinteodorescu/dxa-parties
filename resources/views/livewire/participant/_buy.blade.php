@@ -12,7 +12,7 @@
     @if ($soldOut)
         <div class="pa-glass pa-pad" style="text-align: center; font-weight: 800">Biletele online au fost epuizate.</div>
     @else
-        <button type="button" class="pa-btn pa-btn-block" @click="{{ $me ? 'buy = true' : 'auth = true' }}">Cumpără bilete</button>
+        <button type="button" class="pa-btn pa-btn-block" data-track-action="p:{{ $party->id }}" @click="{{ $me ? 'buy = true' : 'auth = true' }}">Cumpără bilete</button>
     @endif
 
     @guest('participant')

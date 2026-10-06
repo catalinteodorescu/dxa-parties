@@ -17,7 +17,10 @@
         @if ($image) <img src="{{ $image }}" alt=""> @endif
         <div class="pa-hero-top">
             <a href="{{ route('app.parties') }}" wire:navigate class="pa-btn pa-btn-sm" style="background: rgba(18,8,16,.55); border: 1px solid rgba(255,255,255,.25); box-shadow: none" aria-label="Înapoi la petreceri">←</a>
-            @if ($state === 'live') <span class="pa-chip pa-chip-amber">ACUM</span> @elseif ($ended) <span class="pa-chip">ÎNCHEIATĂ</span> @endif
+            <div style="display: flex; align-items: center; gap: .5rem">
+                @if ($state === 'live') <span class="pa-chip pa-chip-amber">ACUM</span> @elseif ($ended) <span class="pa-chip">ÎNCHEIATĂ</span> @endif
+                @include('livewire.participant._heart', ['party' => $party, 'savedIds' => $this->savedIds()])
+            </div>
         </div>
         <div class="pa-hero-in">
             <div><span class="pa-chip">{{ $party->isFestival() ? 'FESTIVAL' : 'PETRECERE' }}</span></div>

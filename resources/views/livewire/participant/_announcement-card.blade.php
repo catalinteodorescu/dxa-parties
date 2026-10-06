@@ -1,5 +1,5 @@
 {{-- DXA: adaugat (Aplicația participanților). Un anunț (în carusel sau în listă). Variabilă: $announcement. --}}
-<div class="pa-glass pa-stack" style="overflow: hidden; gap: 0">
+<div class="pa-glass pa-stack" style="overflow: hidden; gap: 0" x-data x-track="'a:{{ $announcement->id }}'">
     @if ($announcement->imageUrl())
         <img src="{{ $announcement->imageUrl() }}" alt="" loading="lazy" style="width: 100%; max-height: 12rem; object-fit: cover; display: block">
     @else

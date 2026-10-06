@@ -1,5 +1,5 @@
 {{-- DXA: adaugat (runda 16b). Rând de anunț (duce la pagina anunțului) ca rândul de petrecere: imaginea în stânga; fără imagine, un placeholder (runda 29). Variabilă: $announcement. --}}
-<a href="{{ route('app.announcement', $announcement) }}" wire:navigate class="pa-a pa-glass" style="display: flex; align-items: center; gap: .85rem; padding: .75rem .9rem .75rem .75rem">
+<a href="{{ route('app.announcement', $announcement) }}" wire:navigate class="pa-a pa-glass" x-data x-track="'a:{{ $announcement->id }}'" style="display: flex; align-items: center; gap: .85rem; padding: .75rem .9rem .75rem .75rem">
     @if ($announcement->imageUrl())
         <img src="{{ $announcement->imageUrl() }}" alt="" loading="lazy" style="width: 3.5rem; height: 4rem; flex: none; border-radius: 1rem; object-fit: cover; display: block">
     @else

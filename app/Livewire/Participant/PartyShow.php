@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Participant;
 
+use App\Livewire\Concerns\TogglesPartyInterest;
 use App\Models\Party;
+use App\Services\ContentStats;
 use App\Services\TicketOrders;
 use App\Support\PartyPublic;
 use DomainException;
@@ -17,6 +19,8 @@ use Livewire\Component;
 #[Layout('layouts.participant')]
 class PartyShow extends Component
 {
+    use TogglesPartyInterest;
+
     public int $partyId;
 
     // Cumpărare bilete (runda 14)
@@ -51,6 +55,7 @@ class PartyShow extends Component
         }
 
         $this->partyId = $party->id;
+        ContentStats::record('party', $party->id, 'open', request());   // runda 40: deschiderea paginii
         $this->ticketName = (string) ($party->entryTicketTypes()[0]['name'] ?? '');
     }
 

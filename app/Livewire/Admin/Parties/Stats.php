@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Parties;
 
 use App\Models\Party;
+use App\Services\ContentStats;
 use App\Services\DiscountCodeStats;
 use App\Services\OnlineSalesReport;
 use App\Services\PartyStats;
@@ -172,6 +173,7 @@ class Stats extends Component
             'unreported' => PartyStats::unreported($this->party),
             'codeStats' => DiscountCodeStats::forParty($this->party), // DXA: adaugat (Coduri de reducere)
             'onlineSales' => OnlineSalesReport::forParty($this->party), // DXA: adaugat (runda 36, vanzari online)
+            'appInterest' => ContentStats::partyFunnel($this->party), // DXA: adaugat (runda 40, contoare + interesati)
             'compareOnline' => $compareParty ? OnlineSalesReport::forParty($compareParty) : null, // comparatia include si vanzarile online
         ]);
     }

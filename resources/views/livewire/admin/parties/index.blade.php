@@ -115,8 +115,8 @@
                 }
 
                 $guestCount = count($p->guests ?? []);
-                $demoViews = $p->demoViews();
-                $demoClicks = $p->demoClicks();
+                $statViews = $p->statViews();
+                $statOpens = $p->statOpens();
             @endphp
             <div wire:key="party-{{ $p->id }}"
                  class="rounded-2xl border border-border bg-surface p-3 md:p-4 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
@@ -178,15 +178,19 @@
                         @endif
                     </div>
 
-                    {{-- Stats demo --}}
+                    {{-- Contoare reale (runda 40) --}}
                     <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-soft/70">
-                        <span class="inline-flex items-center gap-1" title="Afișări (demo)">
+                        <span class="inline-flex items-center gap-1" title="Afișări în aplicație">
                             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
-                            {{ number_format($demoViews, 0, ',', '.') }}
+                            {{ number_format($statViews, 0, ',', '.') }}
                         </span>
-                        <span class="inline-flex items-center gap-1" title="Click-uri (demo)">
+                        <span class="inline-flex items-center gap-1" title="Deschideri ale paginii petrecerii">
                             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.1 12 6"/><path d="m5.1 8-2.9-.8"/><path d="m6 12-1.9 2"/><path d="M7.2 2.2 8 5.1"/><path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"/></svg>
-                            {{ number_format($demoClicks, 0, ',', '.') }}
+                            {{ number_format($statOpens, 0, ',', '.') }}
+                        </span>
+                        <span class="inline-flex items-center gap-1" title="Interesați (au adăugat petrecerea la favorite)" data-interested-count>
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                            {{ number_format($p->interests_count, 0, ',', '.') }}
                         </span>
                     </div>
                 </div>

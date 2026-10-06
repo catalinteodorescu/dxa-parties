@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ContentStats;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -306,6 +307,12 @@ class Party extends Model
     }
 
     /** DXA: adaugat (Coduri de reducere): codurile petrecerii (câte unul pe promotor etc.). */
+    /** DXA: adaugat (runda 40). Participanții care au salvat petrecerea (inima). */
+    public function interests(): HasMany
+    {
+        return $this->hasMany(PartyInterest::class);
+    }
+
     public function discountCodes(): HasMany
     {
         return $this->hasMany(PartyDiscountCode::class)->orderBy('id');
@@ -352,17 +359,22 @@ class Party extends Model
             ->count() > 1;
     }
 
-    /**
-     * Statistici DEMO (stabile per petrecere) — până la tracking-ul real din PWA.
-     */
-    public function demoViews(): int
+    /** DXA: runda 40 — contoare reale (vezi App\Services\ContentStats). Afișări = card vizibil în aplicație. */
+    public function statViews(): int
     {
-        return ($this->id * 137 + 89) % 900 + 100;
+        return ContentStats::totals('party', $this->id)['impression'];
     }
 
-    public function demoClicks(): int
+    /** Deschideri ale paginii. */
+    public function statOpens(): int
     {
-        return intdiv($this->demoViews(), ($this->id % 5) + 4);
+        return ContentStats::totals('party', $this->id)['open'];
+    }
+
+    /** Click-uri pe acțiune („Cumpără bilete”). */
+    public function statActions(): int
+    {
+        return ContentStats::totals('party', $this->id)['action'];
     }
 
     public static function dayInterval(string $date, ?string $startTime, ?string $endTime): array

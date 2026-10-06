@@ -53,11 +53,11 @@
             </x-stat-card>
 
             @if ($latest)
-                <x-stat-card :value="number_format($latest->demoViews(), 0, ',', '.')" label="Afișări (demo)" :hint="$latest->title" accent="purple" :href="route('admin.announcements.edit', $latest)">
+                <x-stat-card :value="number_format($latest->statViews(), 0, ',', '.')" label="Afișări" :hint="$latest->title" accent="purple" :href="route('admin.announcements.edit', $latest)">
                     <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg></x-slot:icon>
                 </x-stat-card>
             @else
-                <x-stat-card value="—" label="Afișări (demo)" hint="niciun anunț" accent="purple">
+                <x-stat-card value="—" label="Afișări" hint="niciun anunț" accent="purple">
                     <x-slot:icon><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg></x-slot:icon>
                 </x-stat-card>
             @endif

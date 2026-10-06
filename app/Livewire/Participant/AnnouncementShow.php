@@ -3,6 +3,7 @@
 namespace App\Livewire\Participant;
 
 use App\Models\Announcement;
+use App\Services\ContentStats;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -21,6 +22,7 @@ class AnnouncementShow extends Component
         abort_unless(Announcement::query()->visible($audience)->whereKey($announcement->id)->exists(), 404);
 
         $this->announcementId = $announcement->id;
+        ContentStats::record('announcement', $announcement->id, 'open', request());   // runda 40: deschiderea paginii
     }
 
     public function render()

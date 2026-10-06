@@ -4,9 +4,10 @@
     $price = PartyPublic::priceLabel($party);
     $image = PartyPublic::imageUrl($party);
 @endphp
-<a href="{{ route('app.party', $party) }}" wire:navigate class="pa-hero">
+<div class="pa-hero-wrap" style="position: relative; flex: 0 0 100%; scroll-snap-align: center; display: flex" x-data x-track="'p:{{ $party->id }}'">
+<a href="{{ route('app.party', $party) }}" wire:navigate class="pa-hero" style="flex: 1">
     @if ($image) <img src="{{ $image }}" alt="" loading="lazy"> @endif
-    <div class="pa-hero-top">
+    <div class="pa-hero-top" style="right: 3.2rem">
         <span class="pa-chip" style="background: rgba(18,8,16,.55)">{{ PartyPublic::dateLabel($party) }}</span>
         @if ($party->state() === 'live') <span class="pa-chip pa-chip-amber">ACUM</span> @endif
     </div>
@@ -21,3 +22,5 @@
         @endif
     </div>
 </a>
+@include('livewire.participant._heart', ['party' => $party, 'style' => 'position: absolute; right: 1rem; top: 1rem; z-index: 2'])
+</div>

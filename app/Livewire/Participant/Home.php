@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Participant;
 
+use App\Livewire\Concerns\TogglesPartyInterest;
 use App\Models\Announcement;
 use App\Models\Party;
 use App\Support\ParticipantAppSettings;
@@ -15,6 +16,8 @@ use Livewire\Component;
 #[Layout('layouts.participant', ['title' => 'Acasă'])]
 class Home extends Component
 {
+    use TogglesPartyInterest;
+
     public function render()
     {
         $audience = auth('participant')->check() ? 'auth' : 'all';
@@ -24,6 +27,7 @@ class Home extends Component
             ->concat(Announcement::query()->visible($audience)->where('in_carousel', true)->limit(5)->get()->map(fn (Announcement $a) => ['kind' => 'announcement', 'model' => $a]));
 
         return view('livewire.participant.home', [
+            'savedIds' => $this->savedIds(),
             'carousel' => $carousel->values(),
             'announcements' => ParticipantAppSettings::homeAnnouncements() > 0
                 ? Announcement::query()->visible($audience)->where('in_list', true)->limit(ParticipantAppSettings::homeAnnouncements())->get()

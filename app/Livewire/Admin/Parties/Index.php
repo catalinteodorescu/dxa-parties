@@ -116,7 +116,7 @@ class Index extends Component
     {
         $now = now();
 
-        $query = Party::query()
+        $query = Party::query()->withCount('interests')
             ->when($this->search !== '', fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'))
             ->when($this->kind !== 'all', fn ($q) => $q->where('kind', $this->kind))
             ->when($this->audience === 'public', fn ($q) => $q->where('audience', 'all'))

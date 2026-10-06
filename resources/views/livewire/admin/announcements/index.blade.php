@@ -80,8 +80,9 @@
         @forelse ($announcements as $a)
             @php
                 [$stateLabel, $stateClasses] = $states[$a->state()];
-                $demoViews = $a->demoViews();
-                $demoClicks = $a->demoClicks();
+                $statViews = $a->statViews();
+                $statOpens = $a->statOpens();
+                $statActions = $a->statActions();
             @endphp
             <div wire:key="ann-{{ $a->id }}"
                  class="rounded-2xl border border-border bg-surface p-3 md:p-4 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
@@ -124,15 +125,18 @@
                                 fără interval
                             @endif
                         </span>
-                        {{-- Stats demo --}}
-                        <span class="inline-flex items-center gap-1" title="Afișări (demo)">
+                        {{-- Contoare reale (runda 40) --}}
+                        <span class="inline-flex items-center gap-1" title="Afișări în aplicație">
                             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
-                            {{ number_format($demoViews, 0, ',', '.') }}
+                            {{ number_format($statViews, 0, ',', '.') }}
                         </span>
-                        <span class="inline-flex items-center gap-1" title="Click-uri pe buton (demo)">
+                        <span class="inline-flex items-center gap-1" title="Deschideri ale paginii anunțului">
                             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.1 12 6"/><path d="m5.1 8-2.9-.8"/><path d="m6 12-1.9 2"/><path d="M7.2 2.2 8 5.1"/><path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"/></svg>
-                            {{ number_format($demoClicks, 0, ',', '.') }}
+                            {{ number_format($statOpens, 0, ',', '.') }}
                         </span>
+                        @if ($a->url)
+                            <span class="inline-flex items-center gap-1" title="Click-uri pe butonul cu link">↗ {{ number_format($statActions, 0, ',', '.') }}</span>
+                        @endif
                     </div>
                 </div>
 
