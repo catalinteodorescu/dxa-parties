@@ -24,6 +24,7 @@ use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;
 use App\Livewire\Admin\Participants\Index as ParticipantsIndex;     // DXA: adaugat (Petreceri)
 use App\Livewire\Admin\Participants\Show as ParticipantsShow;   // DXA: adaugat (Participanți - statistici)
 use App\Livewire\Admin\Participants\Stats as ParticipantsStats;       // DXA: adaugat (Petreceri - view single)
+use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;
 use App\Livewire\Admin\Parties\Form as PartyForm;     // DXA: adaugat (Petreceri - statistici)
 use App\Livewire\Admin\Parties\Index as PartiesIndex; // DXA: adaugat (Petreceri - statistici agregate)
 use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage;
@@ -122,6 +123,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/parties/{party}/edit', PartyForm::class)->name('parties.edit');
             Route::get('/parties/{party}', PartiesShow::class)->name('parties.show'); // DXA: adaugat
             Route::get('/parties/{party}/stats', PartiesStats::class)->name('parties.stats'); // DXA: adaugat (statistici)
+            Route::get('/parties/{party}/participanti', PartyAttendeesPage::class)->name('parties.attendees'); // DXA: adaugat (runda 43)
             Route::get('/promoters', PromotersIndex::class)->name('promoters.index'); // DXA: adaugat (Coduri de reducere - promotori)
 
             // DXA: adaugat (Meniu bar - produse)

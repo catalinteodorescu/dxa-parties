@@ -8,6 +8,31 @@
         <p class="mt-1 text-sm text-ink-soft">Acțiunile importante din panoul de administrare, cele mai recente primele.</p>
     </div>
 
+    {{-- Filtre: pe ecrane mici sunt într-un toggle (deschis automat dacă există filtre active), de la md în sus mereu vizibile. --}}
+    <div x-data="{ filtersOpen: {{ $hasFilters ? 'true' : 'false' }} }" class="mb-4" data-log-filters>
+        <button type="button" @click="filtersOpen = !filtersOpen"
+                class="md:hidden inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></svg>
+            Filtre
+            @if ($hasFilters)
+                <span class="inline-flex items-center rounded-full bg-primary-soft text-primary text-[10px] font-semibold px-1.5 py-0.5">active</span>
+            @endif
+        </button>
+
+        <div class="hidden md:block mt-2 md:mt-0" :class="filtersOpen ? 'max-md:block' : ''">
+            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Caută în jurnal…"
+                       class="rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary sm:w-56">
+                <x-select wire:model="category" live class="sm:w-48" :options="$categoryOptions" />
+                <x-select wire:model="actor" live class="sm:w-48" :options="$actorOptions" />
+                <x-date-range from="dateFrom" to="dateTo" class="sm:w-60" placeholder="Interval de date" />
+                @if ($hasFilters)
+                    <button type="button" wire:click="clearFilters" class="text-sm text-ink-soft hover:text-ink px-2 py-2 self-start">Resetează</button>
+                @endif
+            </div>
+        </div>
+    </div>
+
     {{-- Lista: antet de coloane slim (doar desktop) + fiecare eveniment = card propriu, spațiat --}}
     <div>
 
@@ -44,7 +69,7 @@
                 </div>
             @empty
                 <div class="rounded-2xl border border-border bg-surface px-5 py-8 text-center text-ink-soft">
-                    Niciun eveniment înregistrat încă.
+                    {{ $hasFilters ? 'Niciun eveniment pentru filtrele alese.' : 'Niciun eveniment înregistrat încă.' }}
                 </div>
             @endforelse
         </div>
