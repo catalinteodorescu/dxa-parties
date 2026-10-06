@@ -95,6 +95,7 @@ class AppSettings extends PwaAppSettings
                 'fields' => [
                     ['key' => 'app_sms_activation', 'type' => 'textarea', 'label' => 'SMS cu codul de activare', 'help' => 'Obligatoriu {cod}. Opțional: {minute} (valabilitatea), {aplicatie} (numele aplicației).', 'max' => 320, 'sample' => ['cod' => '123456', 'minute' => '10']],
                     ['key' => 'app_sms_reset', 'type' => 'textarea', 'label' => 'SMS de resetare a parolei', 'help' => 'Obligatoriu {link}. Opțional: {aplicatie}.', 'max' => 320, 'sample' => ['link' => 'https://exemplu.ro/r/abc123']],
+                    ['key' => 'app_sms_ticket', 'type' => 'textarea', 'label' => 'SMS pentru un bilet trimis cuiva fără cont', 'help' => 'Obligatoriu {link}. Opțional: {nume} (cine trimite), {petrecere}, {aplicatie}.', 'max' => 320, 'sample' => ['link' => 'https://exemplu.ro/bilet/abc123', 'nume' => 'Ana', 'petrecere' => 'Petrecere de sâmbătă']],
                 ],
             ],
         ];
@@ -152,6 +153,7 @@ class AppSettings extends PwaAppSettings
             'values.app_privacy_url' => $url,
             'values.app_sms_activation' => ['required', 'string', 'max:320', $needs('{cod}')],
             'values.app_sms_reset' => ['required', 'string', 'max:320', $needs('{link}')],
+            'values.app_sms_ticket' => ['required', 'string', 'max:320', $needs('{link}')],
         ];
     }
 

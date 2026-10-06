@@ -214,6 +214,7 @@ class SettingsRegistry
             'app_privacy_url' => ['key' => 'app_privacy_url', 'type' => 'text', 'default' => ''],
             'app_sms_activation' => ['key' => 'app_sms_activation', 'type' => 'text', 'default' => 'DXA: codul tău de activare este {cod}. Expiră în {minute} minute.'],
             'app_sms_reset' => ['key' => 'app_sms_reset', 'type' => 'text', 'default' => 'DXA: resetează-ți parola aici: {link}'],
+            'app_sms_ticket' => ['key' => 'app_sms_ticket', 'type' => 'text', 'default' => 'DXA: {nume} ți-a trimis un bilet la {petrecere}. Vezi-l aici: {link} Apoi instalează aplicația și fă-ți cont cu acest număr.'],
         ];
     }
 }

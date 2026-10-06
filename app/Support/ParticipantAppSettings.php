@@ -112,6 +112,12 @@ class ParticipantAppSettings
         return self::fill(self::template('app_sms_reset'), ['link' => $link]);
     }
 
+    /** Textul SMS-ului către cine primește un bilet fără să aibă cont ({link}, {nume} = cine l-a trimis, {petrecere}, {aplicatie}). */
+    public static function smsTicket(string $link, string $from, string $party): string
+    {
+        return self::fill(self::template('app_sms_ticket'), ['link' => $link, 'nume' => $from, 'petrecere' => $party]);
+    }
+
     /** Șablonul curent (sau cel implicit dacă a rămas gol / fără locul obligatoriu al codului sau al linkului). */
     public static function template(string $key): string
     {

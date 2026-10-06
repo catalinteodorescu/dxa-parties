@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Participants;
 use App\Models\CreditTransaction;
 use App\Models\Participant;
 use App\Models\PartyEntry;
+use App\Models\TicketTransfer;
 use App\Services\CreditLedger;
 use App\Services\LoyaltyLedger;
 use App\Services\ParticipantRegistry;
@@ -299,7 +300,14 @@ class Show extends Component
             $loyaltyHistory = $rows->sortByDesc(fn ($r) => $r->stamped_at)->take(30)->values();
         }
 
+        // DXA: adaugat (runda 39). Biletele trimise / primite prin „Trimite biletul” (doar istoric).
+        $transfers = TicketTransfer::query()
+            ->where(fn ($q) => $q->where('from_participant_id', $this->participant->id)->orWhere('to_participant_id', $this->participant->id))
+            ->with(['ticket.party:id,name', 'from:id,name', 'to:id,name'])
+            ->orderByDesc('id')->limit(30)->get();
+
         return view('livewire.admin.participants.show', [
+            'transfers' => $transfers,
             'spend' => ParticipantStats::for($this->participant),
             'entries' => $entries,
             'totalEntries' => $this->participant->entries()->count(),

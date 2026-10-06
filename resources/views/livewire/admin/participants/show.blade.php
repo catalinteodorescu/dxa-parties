@@ -379,6 +379,31 @@
         @endif
     </div>
 
+    {{-- DXA: adaugat (runda 39). Transferuri de bilete (doar istoric). --}}
+    @if ($transfers->isNotEmpty())
+        <div class="{{ $card }} mb-4" data-ticket-transfers>
+            <h3 class="text-sm font-semibold text-ink">Bilete trimise / primite</h3>
+            <div class="mt-3 space-y-2">
+                @foreach ($transfers as $tr)
+                    <div wire:key="tt-{{ $tr->id }}" class="rounded-xl border border-border px-3.5 py-2">
+                        <div class="text-sm font-medium text-ink">
+                            {{ $tr->ticket?->party?->name ?? 'Petrecere ștearsă' }} · {{ $tr->ticket?->ticket_type }}
+                        </div>
+                        <div class="mt-0.5 text-xs text-ink-soft">
+                            {{ $tr->created_at->format('d.m.Y H:i') }} ·
+                            @if ($tr->from_participant_id === $participant->id)
+                                trimis către {{ $tr->to?->name }} ({{ $tr->to_phone }})
+                            @else
+                                primit de la {{ $tr->from?->name }}
+                            @endif
+                            @if (! $tr->to_had_account) · fără cont la momentul trimiterii{{ $tr->sms_sent ? ', SMS trimis' : ', SMS netrimis' }} @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     {{-- Ștergere / anonimizare --}}
     <div class="{{ $card }}">
         <h3 class="text-sm font-semibold text-ink">Date personale</h3>

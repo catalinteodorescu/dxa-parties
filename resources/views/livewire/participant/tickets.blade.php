@@ -49,4 +49,39 @@
             </div>
         </section>
     @endif
+
+    {{-- DXA: adaugat (runda 39). „Trimite biletul”: dialog centrat în doi pași (telefon → confirmare). --}}
+    @if ($sendTicket)
+        <div class="pa-modal-bg" wire:key="send-dialog" wire:click.self="cancelSend" wire:keydown.escape.window="cancelSend" role="dialog" aria-modal="true" aria-label="Trimite biletul" data-send-dialog>
+            <div class="pa-modal pa-stack" style="gap: 1rem; text-align: center">
+                <h2 class="pa-h2" style="margin: 0">Trimite biletul</h2>
+                <p class="pa-soft" style="margin: 0; font-size: .92rem">{{ $sendTicket->party?->name }} · {{ $sendTicket->ticket_type }}</p>
+
+                @if ($sendError)
+                    <div class="pa-alert pa-alert-err" role="alert">{{ $sendError }}</div>
+                @endif
+
+                @if ($sendStep === 'form')
+                    <div style="text-align: left">
+                        <label for="send-phone" class="pa-label">Telefonul persoanei care primește biletul</label>
+                        <input type="tel" id="send-phone" wire:model="sendPhone" wire:keydown.enter="checkSend" inputmode="tel" autocomplete="off" placeholder="07XXXXXXXX" class="pa-input">
+                    </div>
+                    <button type="button" class="pa-btn pa-btn-block" wire:click="checkSend">Continuă</button>
+                @else
+                    <p style="margin: 0; font-size: .95rem">
+                        @if ($sendInfo['has_account'] ?? false)
+                            Biletul va ajunge în contul lui <strong>{{ $sendInfo['name'] }}</strong> ({{ $sendInfo['phone'] }}).
+                        @else
+                            Numărul <strong>{{ $sendInfo['phone'] ?? '' }}</strong> nu are cont. Îi trimitem un SMS cu un link către bilet și îl îndrumăm să-și facă cont.
+                        @endif
+                    </p>
+                    <p class="pa-soft" style="margin: 0; font-size: .85rem">Biletul va ieși din contul tău și nu poți anula trimiterea.</p>
+                    <button type="button" class="pa-btn pa-btn-block" wire:click="confirmSend" wire:loading.attr="disabled">Trimite biletul</button>
+                    <button type="button" class="pa-btn pa-btn-ghost pa-btn-block" wire:click="backSend">Înapoi</button>
+                @endif
+
+                <button type="button" class="pa-link" style="font-size: .85rem" wire:click="cancelSend">Renunț</button>
+            </div>
+        </div>
+    @endif
 </div>

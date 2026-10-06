@@ -61,10 +61,11 @@ use App\Livewire\Participant\ForgotPassword as ParticipantForgotPassword;
 use App\Livewire\Participant\History as ParticipantHistory;
 use App\Livewire\Participant\Home as ParticipantHome;
 use App\Livewire\Participant\Login as ParticipantLogin;
-use App\Livewire\Participant\Parties as ParticipantParties; // DXA: adaugat (PWA Recepție)
-use App\Livewire\Participant\PartyShow as ParticipantPartyShow;
+use App\Livewire\Participant\Parties as ParticipantParties;
+use App\Livewire\Participant\PartyShow as ParticipantPartyShow; // DXA: adaugat (PWA Recepție)
 use App\Livewire\Participant\Register as ParticipantRegister;
 use App\Livewire\Participant\ResetPassword as ParticipantResetPassword;
+use App\Livewire\Participant\TicketLink as ParticipantTicketLink;
 use App\Livewire\Participant\Tickets as ParticipantTickets;
 use App\Livewire\Participant\Verify as ParticipantVerify; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
 use App\Livewire\Participant\Wallet as ParticipantWallet;
@@ -282,6 +283,8 @@ Route::name('app.')->group(function () {
     });
 
     // Linkul din SMS: semnat + temporar; funcționează și cu un cont deja logat (nu cere guest).
+    // DXA: adaugat (runda 39). Linkul din SMS-ul „ți-a trimis un bilet” (pentru cine nu are încă cont): semnat, fără expirare în timp; se stinge când biletul își schimbă deținătorul.
+    Route::get('/bilet/{ticket:uuid}', ParticipantTicketLink::class)->middleware('signed')->name('ticket-link');
     Route::get('/resetare-parola/{participant}', ParticipantResetPassword::class)->middleware('signed')->name('reset');
 
     Route::middleware('auth:participant')->group(function () {

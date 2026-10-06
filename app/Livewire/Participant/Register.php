@@ -30,6 +30,8 @@ class Register extends Component
 
     public function mount(): void
     {
+        $this->phone = (string) request()->query('telefon', '');   // din linkul SMS „ți-a trimis un bilet” (runda 39)
+
         if (! ParticipantAppSettings::registrationOpen()) {
             $this->error = 'Înregistrarea conturilor noi este închisă momentan.';
         }

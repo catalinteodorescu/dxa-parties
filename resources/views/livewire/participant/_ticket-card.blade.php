@@ -1,4 +1,9 @@
-{{-- DXA: adaugat (runda 16). Card de bilet valabil, cu QR propriu (DXA:T:<uuid>). Variabilă: $t (Ticket cu party și holder). --}}
+{{-- DXA: adaugat (runda 16). Card de bilet valabil, cu QR propriu (DXA:T:<uuid>). Variabilă: $t (Ticket cu party și holder);
+     $public = true pe pagina din linkul SMS (fără „Trimis în contul…”, fără buton de trimitere). --}}
+@php
+    $public ??= false;
+    $me = auth('participant')->user();
+@endphp
 <div class="pa-glass pa-pad pa-stack" style="gap: .75rem; align-items: center; text-align: center; height: 100%; box-sizing: border-box">
     <div style="width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; text-align: left">
         <div style="min-width: 0">
@@ -27,8 +32,11 @@
         @endif
         <span class="pa-soft"> · {{ (float) $t->price > 0 ? number_format((float) $t->price, 2, ',', '.').' lei, de plătit la intrare' : 'gratuit' }}</span>
     </div>
-    @if ($t->owner_participant_id !== auth('participant')->id() && $t->owner)
+    @if (! $public && $t->owner_participant_id !== $me?->id && $t->owner)
         <div class="pa-soft" style="font-size: .85rem">Trimis în contul lui {{ $t->owner->name }}.</div>
+    @endif
+    @if (! $public && $me && \App\Services\TicketTransfers::canSend($t, $me))
+        <button type="button" class="pa-btn pa-btn-ghost pa-btn-sm" wire:click="startSend({{ $t->id }})" data-send-ticket="{{ $t->id }}">Trimite biletul</button>
     @endif
     @if ($t->valid_until)
         <div class="pa-soft" style="font-size: .85rem; {{ $t->isExpired() ? 'color: #ffb4a8; font-weight: 700' : '' }}">
