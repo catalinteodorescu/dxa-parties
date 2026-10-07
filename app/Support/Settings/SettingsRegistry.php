@@ -195,6 +195,11 @@ class SettingsRegistry
             'uses_tokens' => ['key' => 'uses_tokens', 'type' => 'bool', 'default' => true],
             'token_rate' => ['key' => 'token_rate', 'type' => 'number', 'default' => 5],
             'credits_purchasable' => ['key' => 'credits_purchasable', 'type' => 'bool', 'default' => false],
+            // DXA: adaugat (runda 51). Încărcarea de credite: praguri de bonus (JSON [{min, percent}]), sume rapide (text „20,50,100”), minim/maxim; vezi App\Services\CreditBonus.
+            'credit_bonus_tiers' => ['key' => 'credit_bonus_tiers', 'type' => 'text', 'default' => ''],
+            'credit_topup_presets' => ['key' => 'credit_topup_presets', 'type' => 'text', 'default' => '20,50,100,200'],
+            'credit_topup_min' => ['key' => 'credit_topup_min', 'type' => 'number', 'default' => 10],
+            'credit_topup_max' => ['key' => 'credit_topup_max', 'type' => 'number', 'default' => 500],
             // DXA: adaugat (runda 22/23). Aplicația participanților — gestionate de pagina Setări › Aplicație participanți
             // (Livewire\Admin\ParticipantApp\AppSettings), citite prin App\Support\ParticipantAppSettings.
             // DXA: adaugat (runda 25). Marcaj intern (ultimul id de bilet la prima folosire): vezi TicketOrders::tierSoldCount().

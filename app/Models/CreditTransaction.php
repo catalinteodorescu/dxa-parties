@@ -34,6 +34,9 @@ class CreditTransaction extends Model
 
     public const SOURCE_MANUAL = 'manual';
 
+    /** DXA: adaugat (runda 52). Mișcări făcute de sistem (ex. creditele pierdute la ștergerea contului). */
+    public const SOURCE_SYSTEM = 'system';
+
     public const TYPE_LABELS = [
         self::LOAD => 'Încărcare',
         self::PAYMENT => 'Plată',
@@ -46,10 +49,11 @@ class CreditTransaction extends Model
         self::SOURCE_RECEPTION => 'Recepție',
         self::SOURCE_BAR => 'Bar',
         self::SOURCE_MANUAL => 'Manual (admin)',
+        self::SOURCE_SYSTEM => 'Sistem',
     ];
 
     protected $fillable = [
-        'participant_id', 'type', 'amount', 'source', 'party_id', 'reception_session_id',
+        'participant_id', 'type', 'amount', 'bonus', 'source', 'party_id', 'reception_session_id',
         'reference_type', 'reference_id', 'note', 'occurred_at', 'created_by',
         'cancelled_at', 'cancelled_by', 'cancel_reason',
     ];
@@ -58,6 +62,7 @@ class CreditTransaction extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'bonus' => 'decimal:2',
             'occurred_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];

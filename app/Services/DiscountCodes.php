@@ -20,8 +20,8 @@ use Illuminate\Support\Collection;
  *    niciodată mai mare decât prețul curent;
  *  - un cod care n-ar da nicio reducere (bilet deja gratuit / deja mai ieftin) se respinge, ca să nu consume o utilizare;
  *  - o utilizare = un BILET (o reducere acordată): o comandă de 3 bilete consumă 3 utilizări. Limita totală numără bilete
- *    (comanda se respinge dacă nu mai sunt destule utilizări pentru toate biletele ei); limita per participant numără
- *    biletele fiecărui participant identificat (un participant = un bilet; intrările anonime: doar limita totală);
+ *    (comanda se respinge dacă nu mai sunt destule utilizări pentru toate biletele ei); limita per participant (runda 53) numără
+ *    FOLOSIRI, nu bilete: o comandă online cu codul = o folosire pe cumpărător, oricâte bilete; la Recepție, o intrare = o folosire;
  *  - anularea unei intrări eliberează utilizarea (se numără doar intrări valabile).
  */
 class DiscountCodes

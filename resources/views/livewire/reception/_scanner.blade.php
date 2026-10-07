@@ -6,7 +6,7 @@
     Nu înregistrează nimic.
 --}}
 <div x-data="{
-        open: false, ready: false, camErr: '', busy: false, scanner: null, fb: null, last: '', lastAt: 0, timer: null,
+        open: false, ready: false, camErr: '', busy: false, scanner: null, fb: null, prog: 0, held: false, fbTimer: null, last: '', lastAt: 0, timer: null,
         lib: '{{ asset('vendor/html5-qrcode.min.js') }}',
         async load() {
             if (window.Html5Qrcode) return;
@@ -38,18 +38,22 @@
                 this.timer = setTimeout(() => this.stop(), 1100);
                 return;
             }
-            this.fb = { ok: false, msg: r.message };
+            this.fb = { ok: false, msg: r.message }; this.fbStart();
+        },
+        fbStart() {
+            clearInterval(this.fbTimer); this.prog = 0;
+            this.fbTimer = setInterval(() => { if (this.held) return; this.prog += 1; if (this.prog >= 100) this.dismiss(); }, 100);
         },
         dismiss() {
-            this.fb = null;
+            clearInterval(this.fbTimer); this.fb = null; this.prog = 0;
         },
         async stop() {
             clearTimeout(this.timer);
-            this.open = false; this.fb = null;
+            clearInterval(this.fbTimer); this.open = false; this.fb = null;
             try { if (this.scanner) { await this.scanner.stop(); this.scanner.clear(); } } catch (e) {}
             this.scanner = null; this.ready = false;
         }
-    }" class="shrink-0">
+    }" x-on:pointerdown.window="held = true" x-on:pointerup.window="held = false" x-on:pointercancel.window="held = false" class="shrink-0">
     <x-btn variant="neutral" size="icon" outline tooltip="Scanează cod QR" x-on:click="start()" data-scan-button>
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
     </x-btn>
@@ -80,6 +84,10 @@
                     <svg x-show="fb && ! fb.ok" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
                 <p class="text-base font-semibold leading-snug text-white" x-text="fb ? fb.msg : ''"></p>
+                <div class="flex flex-col items-center gap-3 pt-3">
+                    <button type="button" x-on:click="dismiss()" data-scan-close class="rounded-lg bg-white/90 px-6 py-2 text-sm font-semibold text-ink shadow-sm">Am înțeles</button>
+                    <div class="h-1.5 w-40 overflow-hidden rounded-full bg-white/30" data-scan-progress><div class="h-full rounded-full bg-white" :style="'width:' + prog + '%'"></div></div>
+                </div>
             </div>
         </div>
     </div>

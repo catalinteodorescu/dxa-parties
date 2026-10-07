@@ -199,13 +199,13 @@ it('cere curs valid pentru tokeni si respecta gardul la oprire', function () {
     expect(PaymentMethods::tokenMode())->toBe('collect_only');
 });
 
-it('calculeaza metodele unei petreceri: subset din cele active, tokeni doar la bar, cash mereu la bar (la intrare doar daca e bifat)', function () {
+it('calculeaza metodele unei petreceri: subset din cele active, tokeni doar la bar, cash doar daca e bifat, si la bar, si la intrare', function () {
     $this->actingAs(payAdmin(), 'admin');
     PaymentMethods::setActive('credit', true);
 
     $party = payParty(['card', 'token', 'credit']);
 
-    expect(array_keys(PaymentMethods::forBar($party)))->toBe(['cash', 'card', 'token', 'credit'])
+    expect(array_keys(PaymentMethods::forBar($party)))->toBe(['card', 'token', 'credit'])
         ->and(array_keys(PaymentMethods::forEntry($party)))->toBe(['card', 'credit']); // fara tokeni; cash nu e fortat la intrare
 
     // Lista goala / fara petrecere = toate cele active.
@@ -214,7 +214,7 @@ it('calculeaza metodele unei petreceri: subset din cele active, tokeni doar la b
 
     // O metoda dezactivata dispare din petrecere fara sa fie stearsa din lista ei.
     PaymentMethods::setActive('card', false);
-    expect(array_keys(PaymentMethods::forBar($party)))->toBe(['cash', 'token', 'credit'])
+    expect(array_keys(PaymentMethods::forBar($party)))->toBe(['token', 'credit'])
         ->and($party->fresh()->payment_methods)->toContain('card')
         ->and(PaymentMethods::describe($party->payment_methods))->toContain('Card (dezactivată)');
 });
@@ -231,8 +231,9 @@ it('inregistreaza la bar orice metoda activa, respinge cele inactive sau neaccep
     $sale = SaleRecorder::record($group, payLine($cocktail), [['method' => 'card', 'amount' => 30]], adminId: $admin->id);
     expect($sale->payments->pluck('method')->all())->toBe(['card']);
 
-    // Cash e mereu acceptat; beneficiul (voucher) la fel; randurile goale nu conteaza.
-    SaleRecorder::record($group, payLine($cocktail), [['method' => 'cash', 'amount' => 20], ['method' => 'benefit', 'amount' => 10], ['method' => 'token', 'tokens' => '']], adminId: $admin->id);
+    // Cash nu e bifat pe petrecere: refuzat (runda 57); beneficiul (voucher) e mereu permis; randurile goale nu conteaza.
+    expect(fn () => SaleRecorder::record($group, payLine($cocktail), [['method' => 'cash', 'amount' => 30]], adminId: $admin->id))->toThrow(DomainException::class, 'nu este acceptată');
+    SaleRecorder::record($group, payLine($cocktail), [['method' => 'card', 'amount' => 20], ['method' => 'benefit', 'amount' => 10], ['method' => 'token', 'tokens' => '']], adminId: $admin->id);
 
     // Tokenii nu sunt in lista petrecerii; Revolut e activ dar nealeasa; creditele sunt dezactivate global.
     expect(fn () => SaleRecorder::record($group, payLine($cocktail), [['method' => 'token', 'tokens' => 6]]))->toThrow(DomainException::class, 'nu este acceptată');
@@ -269,15 +270,15 @@ it('formularul de vanzare din admin ofera doar metodele acceptate de petrecerea 
     // Sesiunea e deja deschisă: formularul o alege automat (implicit), fără să mai fie nevoie s-o cauți.
     $component = Livewire::test(Form::class);
     $component->assertSet('party_id', (string) $party->id);
-    expect(array_keys($component->instance()->methods()))->toBe(['cash', 'transfer', 'credit']);
+    expect(array_keys($component->instance()->methods()))->toBe(['transfer', 'credit']);
 
     // "Fără petrecere": toate metodele.
     $component->set('party_id', '')->set('payments.0.method', 'card');
     expect(array_keys($component->instance()->methods()))->toBe(['cash', 'card', 'transfer', 'revolut', 'token', 'credit']);
 
-    // Revii la petrecere: randul cu o metoda neacceptata acolo (card) revine pe cash.
-    $component->set('party_id', (string) $party->id)->assertSet('payments.0.method', 'cash');
-    expect(array_keys($component->instance()->methods()))->toBe(['cash', 'transfer', 'credit']);
+    // Revii la petrecere: randul cu o metoda neacceptata acolo (card) revine pe prima metoda acceptata.
+    $component->set('party_id', (string) $party->id)->assertSet('payments.0.method', 'transfer');
+    expect(array_keys($component->instance()->methods()))->toBe(['transfer', 'credit']);
 });
 
 it('precompleteaza o petrecere noua cu metodele active si salveaza cheile alese', function () {

@@ -28,9 +28,6 @@ class PartyShow extends Component
 
     public int $qty = 1;
 
-    /** Telefoanele participanților pentru biletele 2..N (opționale). */
-    public array $phones = [];
-
     public string $code = '';
 
     public string $appliedCode = '';
@@ -74,7 +71,6 @@ class PartyShow extends Component
         $party = Party::findOrFail($this->partyId);
         $this->combo = $key !== '' && isset(TicketOrders::combos(TicketOrders::ticketType($party, $this->ticketName)['type'] ?? [])[$key]) ? $key : '';
         $this->qty = 1;
-        $this->phones = [];
         $this->codeError = $this->buyError = '';
     }
 
@@ -168,7 +164,7 @@ class PartyShow extends Component
             $count = $this->ticketCount($party);
             $order = TicketOrders::place(
                 $me, $party, $this->ticketName, $count,
-                array_slice($this->phones, 0, max(0, $count - 1)), $this->appliedCode ?: null, null, $this->combo ?: null, $withCredits
+                $this->appliedCode ?: null, null, $this->combo ?: null, $withCredits
             );
         } catch (DomainException $e) {
             $this->buyError = $e->getMessage();
@@ -176,26 +172,16 @@ class PartyShow extends Component
             return;
         }
 
-        session()->flash('status', ($withCredits ? 'Plătit cu credite. ' : '').self::orderMessage($order, $me->id));
+        session()->flash('status', ($withCredits ? 'Plătit cu credite. ' : '').self::orderMessage($order));
         $this->redirectRoute('app.tickets', navigate: true);
     }
 
-    /** Mesajul după comandă: biletele pe alte conturi (telefon cu cont) NU apar la Bilete ale cumpărătorului, așa că se spune clar (runda 33). */
-    private static function orderMessage($order, int $buyerId): string
+    /** Mesajul după comandă (runda 53): toate biletele sunt în contul cumpărătorului; cele libere se pot trimite din Bilete. */
+    private static function orderMessage($order): string
     {
-        $tickets = $order->tickets;
-        $total = $tickets->count();
-        $others = $tickets->where('owner_participant_id', '!=', $buyerId);
-        $mine = $total - $others->count();
+        $total = $order->tickets->count();
 
-        if ($others->isEmpty()) {
-            return $total === 1 ? 'Biletul tău e gata! Îl găsești la Bilete.' : 'Cele '.$total.' bilete sunt gata! Le găsești la Bilete.';
-        }
-
-        $names = $others->map(fn ($t) => $t->owner?->name)->filter()->unique()->implode(', ');
-
-        return 'Comanda are '.$total.' bilete: '.$mine.' în contul tău'
-            .' și '.$others->count().' '.($others->count() === 1 ? 'trimis' : 'trimise').' în '.($others->count() === 1 ? 'contul' : 'conturile').' '.$names.' (le vezi și tu la Bilete).';
+        return $total === 1 ? 'Biletul tău e gata! Îl găsești la Bilete.' : 'Cele '.$total.' bilete sunt gata! Le găsești la Bilete, iar pe cele libere le poți trimite altcuiva.';
     }
 
     public function render()
@@ -210,6 +196,7 @@ class PartyShow extends Component
         $options = [];
         $combos = [];
         $count = 0;
+        $capReason = null;
         $creditBalance = null;   // runda 50: soldul, doar dacă acoperă totalul (altfel opțiunea „Plătesc cu credite” nu apare)
 
         if (! $saleBlock) {
@@ -238,6 +225,7 @@ class PartyShow extends Component
 
             $maxQty = $this->maxQtyFor($party);
             $count = 0;
+            $capReason = TicketOrders::capReason($party, $this->ticketName);
             if ($maxQty > 0) {
                 $this->qty = max(1, min($this->qty, $maxQty));
                 $count = $this->ticketCount($party);
@@ -265,6 +253,7 @@ class PartyShow extends Component
             'quote' => $quote,
             'quoteError' => $quoteError,
             'creditBalance' => $creditBalance,
+            'capReason' => $capReason,
         ])->title($party->name);
     }
 }

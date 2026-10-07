@@ -172,9 +172,23 @@ class EntryRecorder
             : null;
 
         // Participanții biletelor primesc intrarea; ceilalți (aleși în plus) merg la persoanele fără bilet.
-        $holderIds = $tickets->pluck('holder_participant_id')->filter()->map(fn ($v) => (int) $v)->values()->all();
+        $holderIds = $tickets->pluck('holder_participant_id')->filter()->map(fn ($v) => (int) $v)->unique()->values()->all();
         $extraIds = array_values(array_diff(array_values(array_filter(array_map('intval', $participants))), $holderIds));
-        $participantIds = self::validatedParticipants($party, array_merge($holderIds, $extraIds), $count);
+        // Un titular care a intrat deja în sesiune (alt bilet al lui) nu blochează biletul: acesta intră fără nume.
+        $freeHolders = array_values(array_filter($holderIds, function (int $id) use ($party) {
+            $p = Participant::query()->find($id);
+
+            return $p && ! ParticipantRegistry::enteredInSession($p, $party);
+        }));
+        // Cu bilete online (scanare QR personal): persoana ale cărei alte bilete au intrat deja nu mai blochează intrarea; biletul intră fără nume.
+        if ($tickets->isNotEmpty()) {
+            $extraIds = array_values(array_filter($extraIds, function (int $id) use ($party) {
+                $p = Participant::query()->find($id);
+
+                return $p && ! ParticipantRegistry::enteredInSession($p, $party);
+            }));
+        }
+        $participantIds = self::validatedParticipants($party, array_merge($freeHolders, $extraIds), $count);
 
         // Codul de reducere (opțional) se aplică peste prețul curent al persoanelor FĂRĂ bilet; de aici „prețul sistemului" e cel cu cod.
         $applied = null;
@@ -216,7 +230,7 @@ class EntryRecorder
 
         $onlyExisting = $enforceState && $party->receptionOnlyExistingSession();
 
-        $entries = DB::transaction(function () use ($party, $quote, $applied, $count, $extras, $rowCents, $tickets, $extraIds, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents, $onlyExisting) {
+        $entries = DB::transaction(function () use ($freeHolders, $party, $quote, $applied, $count, $extras, $rowCents, $tickets, $extraIds, $queue, $reason, $overridden, $adminId, $at, $participantIds, $creditCents, $onlyExisting) {
             // Codul de reducere: reverificat pe rândul blocat, ca două comenzi simultane să nu depășească limitele.
             if ($applied) {
                 $locked = PartyDiscountCode::query()->whereKey($applied->code->id)->lockForUpdate()->first()
@@ -240,10 +254,19 @@ class EntryRecorder
             $rows = collect();
 
             $extraSlot = 0;
+            $seenHolders = [];
             $stampEntries = collect();
             for ($i = 0; $i < $count; $i++) {
                 $ticket = $tickets->get($i);   // primele rânduri = bilete online
                 $participantId = $ticket ? ($ticket->holder_participant_id ? (int) $ticket->holder_participant_id : null) : ($extraIds[$extraSlot++] ?? null);
+                // Mai multe bilete pe același participant: doar primul rând îl poartă (restul intră fără nume), ca să nu se blocheze singure.
+                if ($ticket && $participantId) {
+                    if (! in_array($participantId, $freeHolders, true) || isset($seenHolders[$participantId])) {
+                        $participantId = null;
+                    } else {
+                        $seenHolders[$participantId] = true;
+                    }
+                }
                 $rowUnit = $rowCents[$i] / 100;
 
                 $entry = PartyEntry::create([
@@ -445,7 +468,7 @@ class EntryRecorder
                 throw new DomainException('Un participant ales a fost anonimizat și nu mai poate fi folosit.');
             }
             if ($prev = ParticipantRegistry::enteredInSession($participant, $party)) {
-                throw new DomainException('„'.$participant->name.'” a intrat deja în această sesiune de recepție, la '.$prev->entered_at->format('H:i').'. Dacă e o seară nouă, închide mai întâi casa (Recepție › Raportări).');
+                throw new DomainException('„'.$participant->name.'” a intrat deja în această sesiune de recepție, la '.$prev->entered_at->format('H:i').'.');
             }
         }
 

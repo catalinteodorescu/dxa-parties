@@ -57,10 +57,10 @@ function qscAdmin(): Admin
 }
 
 /** Cumpără biletele la ora $at și revine la „acum” = 21:30. */
-function qscBuy(Participant $buyer, Party $party, string $at = '2026-10-03 21:30', int $count = 1, array $phones = []): Collection
+function qscBuy(Participant $buyer, Party $party, string $at = '2026-10-03 21:30', int $count = 1): Collection
 {
     Carbon::setTestNow(Carbon::parse($at));
-    $order = TicketOrders::place($buyer, $party, 'Bilet', $count, $phones, null, Carbon::parse($at));
+    $order = TicketOrders::place($buyer, $party, 'Bilet', $count, null, Carbon::parse($at));
     Carbon::setTestNow(Carbon::parse('2026-10-03 21:30:00'));
 
     return $order->tickets;
@@ -140,7 +140,7 @@ it('QR personal: fără bilete → formularul cu persoana aleasă; un bilet → 
 it('QR personal cu mai multe bilete: alegere; intră doar cele bifate', function () {
     $party = qscParty();
     $ana = qscUser();
-    $tickets = qscBuy($ana, $party, '2026-10-03 21:30', 3, ['0755000111', '0755000222']);
+    $tickets = qscBuy($ana, $party, '2026-10-03 21:30', 3);
 
     $this->actingAs(qscAdmin(), 'admin');
     session(['receptie.party_id' => $party->id]);
@@ -185,9 +185,9 @@ it('ecranul principal are butonul Scanează, iar formularul Intrare se pre-compl
 
     Livewire::test(Home::class)->assertSee('Scanează')->assertSeeHtml('data-quick-scan');
 
-    // Popup-ul: ecran plin, fără „Închide” jos, cu cerculețul care șterge rezultatul și checkbox custom la alegere.
+    // Popup-ul: ecran plin, cu buton „Închide” sub mesaj (runda 54), cu cerculețul care șterge rezultatul și checkbox custom la alegere.
     $html = Livewire::test(QuickScan::class)->html();
-    expect($html)->toContain('data-scan-dismiss')->toContain('fixed inset-0')->toContain('peer sr-only')->not->toContain('>Închide<');
+    expect($html)->toContain('data-scan-dismiss')->toContain('fixed inset-0')->toContain('peer sr-only')->toContain('data-scan-close')->toContain('>Am înțeles<')->toContain('data-scan-progress');
 
     Livewire::withQueryParams(['bilete' => (string) $ticket->id, 'participant' => (string) $ana->id])->test(Entry::class)
         ->assertSet('ticketIds', [$ticket->id])->assertSet('participantIds', [$ana->id])->assertSet('count', 1);
@@ -226,7 +226,7 @@ it('cu DXA_TICKETS_AUTO_PAID biletele cumpărate sunt achitate: intră direct ch
 it('aplicația participanților: în carusel, biletele ultimei comenzi sunt primele', function () {
     $party = qscParty();
     $ana = qscUser();
-    $first = qscBuy($ana, $party, '2026-10-03 21:30', 2, ['0755000111']);
+    $first = qscBuy($ana, $party, '2026-10-03 21:30', 2);
     $second = qscBuy($ana, $party, '2026-10-03 21:31');
 
     $ids = Livewire::actingAs($ana, 'participant')->test(ParticipantTickets::class)->viewData('valid')->pluck('id')->all();

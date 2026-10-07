@@ -269,6 +269,15 @@ class Form extends Component
      * La comutarea tipului, transfera datele de timp intre cele doua moduri,
      * ca sa nu se piarda ce a completat utilizatorul.
      */
+    /** Runda 57: petrecere gratuită = fără vânzare online și fără ștampile, implicit (se pot bifa la loc). */
+    public function updatedIsFree($value): void
+    {
+        if ($value) {
+            $this->online_sales = false;
+            $this->loyalty_eligible = false;
+        }
+    }
+
     public function updatedKind($value): void
     {
         if ($value === 'festival') {
@@ -1361,6 +1370,22 @@ class Form extends Component
                     $this->dispatch('scroll-to-error');
 
                     return;
+                }
+            }
+        }
+
+        // Runda 57: nu se poate intra cu un preț până la o oră anterioară celei până la care se poate cumpăra.
+        if (! $this->is_free) {
+            foreach ($this->ticket_types as $ti => $type) {
+                foreach ($type['discounts'] ?? [] as $di => $d) {
+                    $buy = trim((string) ($d['until'] ?? ''));
+                    $enter = trim((string) ($d['enter_until'] ?? ''));
+                    if ($buy !== '' && $enter !== '' && strtotime($enter) < strtotime($buy)) {
+                        $this->addError('ticket_types.'.$ti.'.discounts.'.$di.'.enter_until', 'Ora până la care se poate intra nu poate fi înaintea celei până la care se poate cumpăra acest bilet.');
+                        $this->dispatch('scroll-to-error');
+
+                        return;
+                    }
                 }
             }
         }

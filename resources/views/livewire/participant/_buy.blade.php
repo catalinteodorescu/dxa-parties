@@ -90,25 +90,11 @@
                     </div>
                 </div>
 
-                <div class="pa-soft" style="font-size: .82rem">Primul bilet e pe numele tău.@if ($count > 1) Celelalte rămân în contul tău, fără nume. @endif</div>
-
-                @if ($count > 1)
-                    {{-- Starea deschis/închis e în Alpine (nu în <details open>), ca să nu se reseteze la fiecare re-randare Livewire. --}}
-                    <div x-data="{ o: false }">
-                    <button type="button" class="pa-link" style="font-size: .85rem; margin-bottom: .5rem" @click="o = ! o" :aria-expanded="o">Pe numele altor participanți? (opțional) <span x-text="o ? '▲' : '▼'">▼</span></button>
-                    <div x-show="o" x-cloak>
-                    <div class="pa-soft" style="font-size: .8rem; margin-bottom: .5rem">Scrie telefonul participantului: dacă are cont, biletul apare și în contul lui. Poți lăsa gol.</div>
-                    <div class="pa-stack" style="gap: .6rem">
-                        @for ($i = 0; $i < $count - 1; $i++)
-                            <div wire:key="phone-{{ $i }}">
-                                <label for="ph-{{ $i }}" class="pa-label">Bilet {{ $i + 2 }} — telefon participant (opțional)</label>
-                                <input type="tel" id="ph-{{ $i }}" wire:model.blur="phones.{{ $i }}" inputmode="tel" placeholder="07XXXXXXXX" class="pa-input">
-                            </div>
-                        @endfor
-                    </div>
-                    </div>
-                    </div>
+                @if ($qty >= $maxQty && $capReason)
+                    <div class="pa-soft" style="font-size: .82rem; color: #ffd9a0" data-qty-cap>{{ $capReason }}</div>
                 @endif
+
+                <div class="pa-soft" style="font-size: .82rem">Primul bilet e pe numele tău.@if ($count > 1) Celelalte rămân în contul tău, libere: le poți trimite altcuiva din Bilete. @endif</div>
 
                 {{-- Cod de reducere: buton care deschide formularul (deschis din start dacă e aplicat sau are eroare) --}}
                 <div x-data="{ o: {{ $appliedCode || $codeError ? 'true' : 'false' }} }">
@@ -136,6 +122,20 @@
                         @foreach ($grouped as $g)
                             <div class="pa-between" style="font-size: .92rem"><span>{{ $g['n'] }} × {{ $ticketName }}@if ($g['free']) <span class="pa-chip pa-chip-amber" style="height: 1.4rem">gratis</span>@endif</span><span>{{ $g['free'] ? '0 lei' : PartyPublic::lei($g['price']) }}</span></div>
                         @endforeach
+                        @php
+                            $paidLines = collect($quote->lines)->reject(fn ($l) => $l['free'])->values();
+                            $segments = [];
+                            foreach ($paidLines as $l) {
+                                $k = number_format($l['list'], 2, '.', '');
+                                if ($segments && $segments[count($segments) - 1]['k'] === $k) { $segments[count($segments) - 1]['n']++; } else { $segments[] = ['k' => $k, 'n' => 1, 'price' => (float) $l['list']]; }
+                            }
+                        @endphp
+                        @if (count($segments) > 1)
+                            <div class="pa-soft" style="font-size: .8rem" data-price-steps>
+                                Prețul diferă în comandă: @foreach ($segments as $sg){{ $loop->first ? 'primele' : ($loop->last ? 'iar următoarele' : 'apoi') }} {{ $sg['n'] }} {{ $sg['n'] === 1 ? 'bilet' : 'bilete' }} {{ $loop->first ? 'sunt' : 'costă' }} {{ PartyPublic::lei($sg['price']) }}{{ $loop->last ? '' : ', ' }}@endforeach.
+                                Oferta la preț redus are un număr limitat de bilete; ce depășește limita se vinde la prețul următor.
+                            </div>
+                        @endif
                         @if ($quote->discount > 0)
                             @if ($count > ($quote->code_applied ?? $count) && $quote->code_applied > 0)
                                 <div class="pa-soft" style="font-size: .8rem">Codul se aplică la {{ $quote->code_applied }} din cele {{ $count }} bilete (limita codului); restul se plătesc la prețul întreg.</div>

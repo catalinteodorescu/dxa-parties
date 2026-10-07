@@ -24,6 +24,14 @@
     .pa-btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 3rem; padding: 0 1.4rem; border: 0; border-radius: 1.6rem; cursor: pointer; text-decoration: none;
         font: 800 .95rem 'Manrope', system-ui, sans-serif; color: #fff; background: linear-gradient(135deg, #C4512F, #B02E7C); box-shadow: 0 10px 28px rgba(221,100,65,.35); }
     .pa-btn[disabled], .pa-btn.is-off { opacity: .55; box-shadow: none; cursor: not-allowed; }
+    /* DXA: adaugat (runda 52b). Bifă proprie aplicației (în loc de cea nativă). */
+    .pa-check { display: flex; gap: .7rem; align-items: flex-start; cursor: pointer; font-size: .9rem; }
+    .pa-check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .pa-check .pa-check-box { flex: none; width: 1.5rem; height: 1.5rem; border-radius: .45rem; border: 1.5px solid var(--pa-line); background: var(--pa-glass); display: grid; place-items: center; transition: background .15s, border-color .15s; }
+    .pa-check .pa-check-box svg { width: .95rem; height: .95rem; opacity: 0; stroke: #1a0d12; }
+    .pa-check input:checked + .pa-check-box { background: var(--pa-amber); border-color: var(--pa-amber); }
+    .pa-check input:checked + .pa-check-box svg { opacity: 1; }
+    .pa-check input:focus-visible + .pa-check-box { outline: 2px solid var(--pa-amber); outline-offset: 2px; }
     .pa-btn-block { width: 100%; }
     .pa-btn-ghost { background: var(--pa-glass); border: 1px solid var(--pa-line); box-shadow: none; color: var(--pa-ink); }
     .pa-btn-sm { min-height: 2.75rem; padding: 0 1.1rem; font-size: .85rem; }

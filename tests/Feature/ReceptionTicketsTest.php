@@ -56,11 +56,11 @@ function rtAdmin(): Admin
 }
 
 /** Cumpără un bilet la ora $at (setează și „acum" la acea oră) și revine la „acum" = $back. */
-function rtBuy(Participant $buyer, Party $party, string $at, int $count = 1, array $phones = []): Order
+function rtBuy(Participant $buyer, Party $party, string $at, int $count = 1): Order
 {
     $prev = now();
     Carbon::setTestNow(Carbon::parse($at));
-    $order = TicketOrders::place($buyer, $party, 'Bilet', $count, $phones, null, Carbon::parse($at));
+    $order = TicketOrders::place($buyer, $party, 'Bilet', $count, null, Carbon::parse($at));
     Carbon::setTestNow($prev);
 
     return $order;
@@ -135,7 +135,7 @@ it('ticketDue: valabil = prețul (încă de plătit la intrare); expirat = difer
 it('intrare cu bilete online: se încasează suma, biletele devin folosite, persoanele în plus plătesc prețul curent', function () {
     $party = rtParty();
     $ana = rtUser();
-    $order = rtBuy($ana, $party, '2026-10-03 21:30', 2, ['0733222111']);   // 2 bilete gratis, până 22:00
+    $order = rtBuy($ana, $party, '2026-10-03 21:30', 2);   // 2 bilete gratis, până 22:00
     $ids = $order->tickets->pluck('id')->all();
 
     Carbon::setTestNow(Carbon::parse('2026-10-03 22:30:00'));    // au întârziat: prețul curent 20
@@ -170,7 +170,7 @@ it('bilet de alt party sau anulat nu se acceptă; mai puține persoane decât bi
     $party = rtParty();
     $other = rtParty(['name' => 'Alta']);
     $ana = rtUser();
-    $mine = rtBuy($ana, $party, '2026-10-03 21:30', 2, [])->tickets;
+    $mine = rtBuy($ana, $party, '2026-10-03 21:30', 2)->tickets;
     $foreign = rtBuy(rtUser('Bob', '0733222111'), $other, '2026-10-03 21:30')->tickets->first();
 
     expect(fn () => EntryRecorder::record($party, 'Bilet', 1, [], ticketIds: [$foreign->id]))->toThrow(DomainException::class)
@@ -200,7 +200,7 @@ it('scanare QR personal: precompletează participanții și toate biletele din c
     $party = rtParty();
     $ana = rtUser();
     $bob = rtUser('Bob Prieten', '0733222111');
-    $order = rtBuy($ana, $party, '2026-10-03 21:30', 2, ['0755000111']);        // Ana + un bilet fără nume (telefon fără cont)
+    $order = rtBuy($ana, $party, '2026-10-03 21:30', 2);        // Ana + un bilet fără nume (telefon fără cont)
     $bobTicket = rtBuy($bob, $party, '2026-10-03 21:30')->tickets->first();
 
     $this->actingAs(rtAdmin(), 'admin');
@@ -291,7 +291,8 @@ it('participant fără bilete: alegerea manuală îl adaugă fără bilete', fun
 it('bilet luat de un prieten pe telefonul lui (fără cont atunci) e găsit după telefon, prin căutare și prin QR personal', function () {
     $party = rtParty();
     $ana = rtUser();
-    $order = rtBuy($ana, $party, '2026-10-03 21:30', 2, ['0744333444']);
+    $order = rtBuy($ana, $party, '2026-10-03 21:30', 2);
+    $order->tickets[1]->update(['holder_phone' => '+40744333444']);   // bilet vechi, cu telefon notat (de dinainte de runda 53)
     $friendTicket = $order->tickets->firstWhere('holder_phone', '+40744333444');
     expect($friendTicket)->not->toBeNull()->and($friendTicket->holder_participant_id)->toBeNull();
 
@@ -306,7 +307,7 @@ it('bilet luat de un prieten pe telefonul lui (fără cont atunci) e găsit dup�
 it('QR-ul personal încarcă și biletele cumpărate de el pentru alții', function () {
     $party = rtParty();
     $ana = rtUser();
-    $order = rtBuy($ana, $party, '2026-10-03 21:30', 3, ['0755111000', '0755222000']);
+    $order = rtBuy($ana, $party, '2026-10-03 21:30', 3);
 
     $this->actingAs(rtAdmin(), 'admin');
     session(['receptie.party_id' => $party->id]);

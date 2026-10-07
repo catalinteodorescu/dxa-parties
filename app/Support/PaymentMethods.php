@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
  *    „acceptă credite la plată" (metoda credit activă) și „participanții pot cumpăra credite".
  *  - O petrecere alege un SUBSET din metodele active (`parties.payment_methods`, listă de chei; goală = toate
  *    cele active). La intrare tokenii nu se acceptă niciodată (se cumpără la recepție, se folosesc la bar);
- *    la bar cash e mereu acceptat, la intrare doar dacă e bifat pe petrecere.
+ *    cash se acceptă doar dacă e bifat pe petrecere, la bar ca și la intrare.
  *
  * Garduri la dezactivare: modulele care țin bani „în aer" își înregistrează un gard cu registerGuard()
  * (ex. Portofelul de credite: blochează cât suma soldurilor > 0; Recepția: tokeni în circulație).
@@ -128,7 +128,7 @@ class PaymentMethods
 
     /**
      * Metodele acceptate LA BAR pentru o petrecere (cheie => etichetă): subsetul ales pe petrecere din cele
-     * active, cu cash mereu acceptat. Fără petrecere sau cu lista goală = toate cele active.
+     * active (runda 57: cash nu mai e forțat). Fără petrecere sau cu lista goală = toate cele active.
      */
     public static function forBar(?Party $party): array
     {
@@ -139,11 +139,7 @@ class PaymentMethods
             return $enabled;
         }
 
-        return array_filter(
-            $enabled,
-            fn ($label, $key) => $key === self::CASH || in_array($key, $list, true),
-            ARRAY_FILTER_USE_BOTH,
-        );
+        return array_intersect_key($enabled, array_flip($list)) ?: $enabled;
     }
 
     /**

@@ -1,5 +1,6 @@
 <?php
 
+use App\Contracts\SmsSender;
 use App\Livewire\Admin\Announcements\Form;
 use App\Livewire\Admin\Parties\Form as PartyForm;
 use App\Livewire\Participant\PartyShow;
@@ -10,6 +11,7 @@ use App\Models\Party;
 use App\Models\Ticket;
 use App\Services\ParticipantRegistry;
 use App\Services\TicketOrders;
+use App\Services\TicketTransfers;
 use App\Support\PartyPublic;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -47,7 +49,7 @@ it('combo 3+1: 4 bilete reale, se plătesc 3, al 4-lea e gratuit, fără nume ce
     $party = tcParty();
     $ana = tcUser();
 
-    $order = TicketOrders::place($ana, $party, 'Bilet', 4, [], null, null, '3+1');
+    $order = TicketOrders::place($ana, $party, 'Bilet', 4, null, null, '3+1');
 
     expect((float) $order->total)->toBe(150.0)->and($order->tickets_count)->toBe(4);
     $free = $order->tickets->where('combo_free', true);
@@ -65,7 +67,7 @@ it('două seturi = 8 bilete, 6 plătite; cantitatea trebuie să fie multiplu al 
         ->and(fn () => TicketOrders::quote($party, 'Bilet', 4, null, [], null, '9+9'))->toThrow(DomainException::class, 'nu mai este disponibil')
         ->and(fn () => TicketOrders::quote($party, 'VIP', 4, null, [], null, '3+1'))->toThrow(DomainException::class, 'nu mai este disponibil');
 
-    $order = TicketOrders::place($ana, $party, 'Bilet', 8, [], null, null, '3+1');
+    $order = TicketOrders::place($ana, $party, 'Bilet', 8, null, null, '3+1');
     expect((float) $order->total)->toBe(300.0)->and($order->tickets->where('combo_free', true))->toHaveCount(2);
 });
 
@@ -79,7 +81,7 @@ it('biletul oferit nu primește cod și nu consumă locuri din treptele „prime
     $q = TicketOrders::quote($party, 'Bilet', 4, null, [], null, '3+1');
     expect(collect($q->lines)->pluck('price')->all())->toBe([30.0, 30.0, 30.0, 0.0]);
 
-    TicketOrders::place($ana, $party, 'Bilet', 4, [], null, null, '3+1');
+    TicketOrders::place($ana, $party, 'Bilet', 4, null, null, '3+1');
     expect(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(3)->and(TicketOrders::soldCount($party, 'Bilet'))->toBe(4)
         ->and(TicketOrders::available($party, 'Bilet'))->toBe(1);
     expect(fn () => TicketOrders::quote($party, 'Bilet', 4, null, [], null, '3+1'))->toThrow(DomainException::class, 'Mai sunt doar 1');
@@ -174,7 +176,7 @@ it('cod valabil pentru 10 bilete: la 11 bilete primele 10 au reducere, ultimul p
     $q = TicketOrders::quote($party, 'VIP', 11, 'LIM10');
     expect($q->code_applied)->toBe(10)->and(collect($q->lines)->pluck('price')->all())->toBe(array_merge(array_fill(0, 10, 72.0), [80.0]));
 
-    $order = TicketOrders::place($ana, $party, 'VIP', 11, [], 'LIM10');
+    $order = TicketOrders::place($ana, $party, 'VIP', 11, 'LIM10');
     expect($order->tickets->where('discount_code_id', '!=', null))->toHaveCount(10);
 
     // Limita s-a epuizat: codul nu mai poate fi folosit.
@@ -244,34 +246,36 @@ it('prețul din carusel/liste: „de la” cel mai mic preț cumpărabil acum (c
     expect(PartyPublic::priceLabel($single))->toBe('50 lei');   // un singur tip: fără „de la”
 });
 
-it('după comandă, mesajul spune câte bilete sunt în contul tău și câte au plecat în contul altcuiva', function () {
+it('după comandă, mesajul spune că toate biletele sunt la tine și că cele libere se pot trimite', function () {
     $party = tcParty();
     $ana = tcUser();
     $bob = ParticipantRegistry::create('Bob Prieten', '0733222333');
     $bob->forceFill(['password' => 'parola-sigura', 'phone_verified_at' => now()])->save();
-    ParticipantRegistry::create('Fără Cont', '0744333444');
     $this->actingAs($ana, 'participant');
 
     Livewire::test(PartyShow::class, ['party' => $party])
-        ->set('phones', ['0733222333', '0744333444'])->set('qty', 3)->call('buy')->assertRedirect(route('app.tickets'));
+        ->set('qty', 3)->call('buy')->assertRedirect(route('app.tickets'));
 
-    expect(session('status'))->toContain('3 bilete')->toContain('2 în contul tău')->toContain('1 trimis')->toContain('Bob Prieten');
+    expect(session('status'))->toContain('Cele 3 bilete')->toContain('le poți trimite altcuiva');
 });
 
-it('biletele trimise altui cont rămân și la cumpărător: în carusel și în istoric, marcate „trimis”', function () {
+it('biletul trimis altui cont iese din carusel și rămâne la cumpărător doar ca istoric („Trimise de mine”), fără QR', function () {
     $party = tcParty();
     $ana = tcUser();
     $bob = ParticipantRegistry::create('Bob Prieten', '0733222333');
     $bob->forceFill(['password' => 'parola-sigura', 'phone_verified_at' => now()])->save();
 
-    TicketOrders::place($ana, $party, 'Bilet', 2, ['0733222333']);
+    $order = TicketOrders::place($ana, $party, 'Bilet', 2);
+    TicketTransfers::send($order->tickets[1]->id, $ana, '0733222333', new class implements SmsSender
+    {
+        public function send(string $phone, string $message): void {}
+    });
 
-    $html = $this->actingAs($ana, 'participant')->get('/bilete')->assertOk()->assertSee('Trimis în contul lui Bob Prieten')->getContent();
-    expect(substr_count($html, 'data-ticket-qr='))->toBe(2);
-    $this->get('/bilete/toate')->assertOk()->assertSee('trimis');
+    $html = $this->actingAs($ana, 'participant')->get('/bilete')->assertOk()->assertSee('Trimise de mine')->assertSee('trimis lui Bob Prieten')->assertSee('+40733222333')->getContent();
+    expect(substr_count($html, 'data-ticket-qr='))->toBe(1);
 
     $htmlBob = $this->actingAs($bob, 'participant')->get('/bilete')->assertOk()->getContent();
-    expect(substr_count($htmlBob, 'data-ticket-qr='))->toBe(1)->and($htmlBob)->not->toContain('Trimis în contul');
+    expect(substr_count($htmlBob, 'data-ticket-qr='))->toBe(1)->and($htmlBob)->not->toContain('Trimise de mine')->and($htmlBob)->toContain('data-send-ticket');
 });
 
 it('anunț: pagina separată arată textul întreg; lista și caruselul arată data și o previzualizare; 404 când nu e vizibil', function () {

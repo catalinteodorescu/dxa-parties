@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * DXA: adaugat (Recepție - intrări). O persoană intrată la o petrecere, cu prețul înghețat.
@@ -88,9 +89,30 @@ class PartyEntry extends Model
         return $this->cancelled_at !== null;
     }
 
+    /** Biletul online folosit la această intrare (null dacă a intrat fără bilet sau intrarea a fost anulată: biletul se eliberează). */
+    public function ticket(): HasOne
+    {
+        return $this->hasOne(Ticket::class, 'party_entry_id');
+    }
+
+    /** Runda 58: intrarea s-a făcut cu un bilet cu preț, achitat online (card / credite) — deci e plătită, chiar dacă la intrare nu s-a încasat nimic. */
+    public function isPaidOnline(): bool
+    {
+        $t = $this->ticket;
+
+        return $t && (float) $t->price > 0 && $t->loadMissing('order')->order?->payment_status !== Order::PAY_AT_ENTRY;
+    }
+
     public function isFree(): bool
     {
-        return (float) $this->price_paid <= 0;
+        return (float) $this->price_paid <= 0 && ! $this->isPaidOnline();
+    }
+
+    /** Intrări cu bilet cu preț achitat online. */
+    public function scopePaidOnline(Builder $query): Builder
+    {
+        return $query->whereHas('ticket', fn ($t) => $t->where('price', '>', 0)
+            ->whereHas('order', fn ($o) => $o->where('payment_status', '!=', Order::PAY_AT_ENTRY)));
     }
 
     /** Prețul a fost schimbat manual de recepționer (față de ce calcula sistemul, cu toleranță inclusă). */

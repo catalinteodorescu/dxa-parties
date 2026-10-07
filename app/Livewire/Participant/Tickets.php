@@ -27,7 +27,7 @@ class Tickets extends Component
 
     public string $sendError = '';
 
-    /** @var array{phone?: string, name?: ?string, has_account?: bool} */
+    /** @var array{phone?: string, has_account?: bool} */
     public array $sendInfo = [];
 
     public function more(): void
@@ -63,7 +63,7 @@ class Tickets extends Component
         $this->sendError = '';
     }
 
-    /** Pasul 1: telefonul e valid? Arată cine primește biletul (nume dacă are cont) și cere confirmarea. */
+    /** Pasul 1: telefonul e valid? Arată numărul care primește biletul (fără numele, ca să nu poți afla cine are cont pe un număr) și cere confirmarea. */
     public function checkSend(): void
     {
         $this->sendError = '';
@@ -76,7 +76,7 @@ class Tickets extends Component
             return;
         }
 
-        $this->sendInfo = ['phone' => $info['phone'], 'name' => $info['participant']?->name, 'has_account' => $info['has_account']];
+        $this->sendInfo = ['phone' => $info['phone'], 'has_account' => $info['has_account']];
         $this->sendStep = 'confirm';
     }
 
@@ -108,21 +108,30 @@ class Tickets extends Component
     public function render()
     {
         $me = auth('participant')->user();
-        $base = fn () => Ticket::query()->visibleTo($me->id)->with(['party', 'holder']);
+        $base = fn () => Ticket::query()->visibleTo($me->id)->with(['party', 'holder', 'owner']);
 
         // Caruselul: ultima comandă cumpărată prima (biletele aceleiași comenzi rămân în ordinea lor).
         // Biletele „valabile” ale unei petreceri încheiate nu mai sunt valabile: trec în lista de jos, ca „expirate” (runda 32).
-        [$past, $valid] = $base()->where('status', Ticket::VALID)->orderByDesc('order_id')->orderBy('id')->get()
+        [$past, $current] = $base()->where('status', Ticket::VALID)->orderByDesc('order_id')->orderBy('id')->get()
             ->partition(fn (Ticket $t) => $t->party?->state() === 'past');
+        // Runda 53: biletele trimise (cumpărate de mine, ale altcuiva acum) rămân doar ca istoric, fără cod QR.
+        [$valid, $sent] = $current->partition(fn (Ticket $t) => (int) $t->owner_participant_id === (int) $me->id);
+
+        // Runda 54: biletul folosit al unei petreceri neîncheiate rămâne în carusel (după cele valabile), marcat „INTRAT”, fără cod.
+        $others = $base()->where('status', '!=', Ticket::VALID)->orderByDesc('id')->get();
+        [$usedCurrent, $rest] = $others->partition(fn (Ticket $t) => $t->status === Ticket::USED
+            && (int) $t->owner_participant_id === (int) $me->id && $t->party?->state() !== 'past');
 
         $sendTicket = $this->sendId ? $base()->find($this->sendId) : null;
 
         return view('livewire.participant.tickets', [
             'sendTicket' => $sendTicket && TicketTransfers::canSend($sendTicket, $me) ? $sendTicket : null,
             'valid' => $valid->values(),
+            'carousel' => $valid->values()->concat($usedCurrent->sortBy('id')->values()),
+            'sent' => $sent->values(),
             'past' => $past->sortByDesc('id')->values(),
-            'recent' => $base()->where('status', '!=', Ticket::VALID)->orderByDesc('id')->limit($this->limit)->get(),
-            'hasMore' => $base()->where('status', '!=', Ticket::VALID)->count() > $this->limit,
+            'recent' => $rest->take($this->limit)->values(),
+            'hasMore' => $rest->count() > $this->limit,
         ]);
     }
 }

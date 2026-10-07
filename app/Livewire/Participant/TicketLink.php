@@ -16,28 +16,10 @@ use Livewire\Component;
 #[Layout('layouts.participant-guest', ['title' => 'Bilet primit'])]
 class TicketLink extends Component
 {
-    public Ticket $ticket;
-
-    public string $state = 'gone';
+    use ShowsTicketLink;
 
     public function mount(Ticket $ticket, Request $request): void
     {
-        $this->ticket = $ticket->load(['party', 'holder']);
-
-        if (! TicketTransfers::linkValid($ticket, (string) $request->query('v', ''))) {
-            return;
-        }
-
-        $holder = $ticket->holder;
-        if ($holder?->hasAccount()) {
-            $this->state = 'account';
-        } elseif ($ticket->status === Ticket::VALID && $holder) {
-            $this->state = 'ok';
-        }
-    }
-
-    public function render()
-    {
-        return view('livewire.participant.ticket-link');
+        $this->show($ticket, TicketTransfers::linkValid($ticket, (string) $request->query('v', '')));
     }
 }

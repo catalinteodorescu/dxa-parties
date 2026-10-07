@@ -57,8 +57,8 @@ function osSeed(): array
     $party->discountCodes()->create(['code' => 'PROMO10', 'type' => 'percent', 'value' => 10, 'is_active' => true, 'max_uses' => 5, 'promoter_id' => $promoter->id]);
     $party->discountCodes()->create(['code' => 'NEFOLOSIT', 'type' => 'amount', 'value' => 5, 'is_active' => true]);
 
-    TicketOrders::place($ana, $party, 'Bilet', 4, [], null, null, '3+1');
-    TicketOrders::place($ana, $party, 'Bilet', 2, [], 'PROMO10');
+    TicketOrders::place($ana, $party, 'Bilet', 4, null, null, '3+1');
+    TicketOrders::place($ana, $party, 'Bilet', 2, 'PROMO10');
     $vip = TicketOrders::place($ana, $party, 'VIP', 2);
     $vip->tickets->last()->update(['status' => Ticket::VOID]);
 

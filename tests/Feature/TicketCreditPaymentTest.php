@@ -52,7 +52,7 @@ it('plata cu credite: comanda „credits”, biletele create, debit în ledger l
     $party = tcrParty();
     $ana = tcrUser(120);
 
-    $order = TicketOrders::place($ana, $party, 'Bilet', 2, [], null, null, null, true);
+    $order = TicketOrders::place($ana, $party, 'Bilet', 2, null, null, null, true);
 
     expect($order->payment_status)->toBe(Order::PAY_CREDITS)->and($order->isPaidWithCredits())->toBeTrue()
         ->and((float) $order->total)->toBe(100.0)->and($order->tickets)->toHaveCount(2);
@@ -67,7 +67,7 @@ it('plata cu credite: comanda „credits”, biletele create, debit în ledger l
 it('biletul plătit cu credite nu are nimic de încasat la intrare', function () {
     $party = tcrParty();
     $ana = tcrUser(50);
-    $order = TicketOrders::place($ana, $party, 'Bilet', 1, [], null, null, null, true);
+    $order = TicketOrders::place($ana, $party, 'Bilet', 1, null, null, null, true);
 
     $due = EntryRecorder::ticketDue($order->tickets->first());
 
@@ -78,7 +78,7 @@ it('sold insuficient: eroare, nicio comandă, niciun bilet, niciun debit', funct
     $party = tcrParty();
     $ana = tcrUser(40);
 
-    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, [], null, null, null, true))
+    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, null, null, null, true))
         ->toThrow(DomainException::class, 'nu ajunge');
 
     expect(Order::count())->toBe(0)->and(Ticket::count())->toBe(0)
@@ -92,7 +92,7 @@ it('soldul se verifică pe rândul din baza de date, nu pe modelul vechi din mem
     $stale = Participant::find($ana->id);                      // model cu sold 60
     CreditLedger::adjust($ana, -30, 'cheltuit în altă parte');  // soldul real: 30
 
-    expect(fn () => TicketOrders::place($stale, $party, 'Bilet', 1, [], null, null, null, true))->toThrow(DomainException::class, 'nu ajunge');
+    expect(fn () => TicketOrders::place($stale, $party, 'Bilet', 1, null, null, null, true))->toThrow(DomainException::class, 'nu ajunge');
     expect(Order::count())->toBe(0)->and((float) $ana->fresh()->credit_balance)->toBe(30.0);
 });
 
@@ -100,9 +100,9 @@ it('două comenzi pe același sold: a doua e refuzată', function () {
     $party = tcrParty();
     $ana = tcrUser(60);
 
-    TicketOrders::place($ana, $party, 'Bilet', 1, [], null, null, null, true);
+    TicketOrders::place($ana, $party, 'Bilet', 1, null, null, null, true);
 
-    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, [], null, null, null, true))->toThrow(DomainException::class);
+    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, null, null, null, true))->toThrow(DomainException::class);
     expect(Order::count())->toBe(1)->and((float) $ana->fresh()->credit_balance)->toBe(10.0);
 });
 
@@ -111,7 +111,7 @@ it('metoda Credite dezactivată sau neacceptată de petrecere: refuz, fără deb
 
     $noCredit = tcrParty(['payment_methods' => ['cash']]);
     expect(TicketOrders::creditsBlockReason($noCredit))->not->toBeNull();
-    expect(fn () => TicketOrders::place($ana, $noCredit, 'Bilet', 1, [], null, null, null, true))->toThrow(DomainException::class, 'credite');
+    expect(fn () => TicketOrders::place($ana, $noCredit, 'Bilet', 1, null, null, null, true))->toThrow(DomainException::class, 'credite');
 
     $ok = tcrParty();
     CreditLedger::refund($ana, 100, 'golire test');
@@ -124,7 +124,7 @@ it('comandă gratuită (total 0) nu se plătește cu credite', function () {
     $party = tcrParty(['ticket_types' => [['name' => 'Gratis', 'price' => 0, 'discounts' => [], 'qty_tiers' => []]]]);
     $ana = tcrUser(100);
 
-    expect(fn () => TicketOrders::place($ana, $party, 'Gratis', 1, [], null, null, null, true))->toThrow(DomainException::class, 'gratuită');
+    expect(fn () => TicketOrders::place($ana, $party, 'Gratis', 1, null, null, null, true))->toThrow(DomainException::class, 'gratuită');
     expect(Order::count())->toBe(0)->and((float) $ana->fresh()->credit_balance)->toBe(100.0);
 });
 
@@ -133,7 +133,7 @@ it('combo + cod de reducere: se debitează exact totalul comenzii', function () 
     PartyDiscountCode::create(['party_id' => $party->id, 'code' => 'PROMO10', 'type' => 'percent', 'value' => 10, 'is_active' => true, 'max_uses_per_participant' => null]);
     $ana = tcrUser(500);
 
-    $order = TicketOrders::place($ana, $party, 'Bilet', 4, [], 'PROMO10', null, '3+1', true);   // 3 plătite × 45 = 135; al 4-lea oferit
+    $order = TicketOrders::place($ana, $party, 'Bilet', 4, 'PROMO10', null, '3+1', true);   // 3 plătite × 45 = 135; al 4-lea oferit
 
     expect((float) $order->total)->toBe(135.0)->and((float) $ana->fresh()->credit_balance)->toBe(365.0)
         ->and((float) CreditTransaction::query()->where('type', CreditTransaction::PAYMENT)->value('amount'))->toBe(-135.0);
@@ -200,7 +200,7 @@ it('în aplicație: buyWithCredits cu sold insuficient arată eroarea și nu cre
 it('portofelul participantului arată plata ca „Bilete · petrecere”, cu suma negativă', function () {
     $party = tcrParty();
     $ana = tcrUser(80);
-    TicketOrders::place($ana, $party, 'Bilet', 1, [], null, null, null, true);
+    TicketOrders::place($ana, $party, 'Bilet', 1, null, null, null, true);
     $this->actingAs($ana->fresh(), 'participant');
 
     $this->get('/portofel')->assertOk()->assertSee('Bilete · Petrecere credite')->assertSee('-50,00');
@@ -209,7 +209,7 @@ it('portofelul participantului arată plata ca „Bilete · petrecere”, cu sum
 it('raportul de credite: „cheltuit” include biletele online, separat de bar și intrare; identitatea se păstrează', function () {
     $party = tcrParty();
     $ana = tcrUser(120);
-    TicketOrders::place($ana, $party, 'Bilet', 2, [], null, null, null, true);
+    TicketOrders::place($ana, $party, 'Bilet', 2, null, null, null, true);
 
     $s = CreditsOverview::summary();
 
@@ -221,7 +221,7 @@ it('Vânzări online: totalul plătit cu credite apare separat', function () {
     $party = tcrParty();
     $ana = tcrUser(100);
     $bob = tcrUser(0, 'Bob Fără Credite', '0744777888');
-    TicketOrders::place($ana, $party, 'Bilet', 2, [], null, null, null, true);
+    TicketOrders::place($ana, $party, 'Bilet', 2, null, null, null, true);
     TicketOrders::place($bob, $party, 'Bilet', 1);
 
     $r = OnlineSalesReport::forParty($party);
@@ -232,7 +232,7 @@ it('Vânzări online: totalul plătit cu credite apare separat', function () {
 it('jurnalul comenzii menționează plata cu credite', function () {
     $party = tcrParty();
     $ana = tcrUser(50);
-    TicketOrders::place($ana, $party, 'Bilet', 1, [], null, null, null, true);
+    TicketOrders::place($ana, $party, 'Bilet', 1, null, null, null, true);
 
     expect(AdminActivityLog::query()->where('action', 'tickets.ordered')->latest('id')->value('description'))->toContain('plătit cu credite');
 });

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Reception;
 use App\Livewire\Admin\Concerns\PicksParticipants;
 use App\Models\Party;
 use App\Models\ReceptionSession;
+use App\Services\CreditBonus;
 use App\Services\CreditLedger;
 use App\Services\EntryRecorder;
 use App\Services\ParticipantRegistry;
@@ -129,7 +130,7 @@ class CreditSale extends Component
                 Auth::guard('admin')->id(),
             );
 
-            $this->message = sprintf('Vândut: %s lei credite pentru %s.', number_format((float) $tx->amount, 2, ',', '.'), $participant->label());
+            $this->message = sprintf('Vândut: %s lei credite pentru %s%s.', number_format((float) $tx->amount, 2, ',', '.'), $participant->label(), (float) $tx->bonus > 0 ? ' (din care bonus '.number_format((float) $tx->bonus, 2, ',', '.').' lei)' : '');
             if (! $hadSession) {
                 $this->message .= ' '.ReceptionSession::openedNotice($party->id);
             }
@@ -169,6 +170,8 @@ class CreditSale extends Component
             'topMethods' => EntryRecorder::topMethods($this->methods()),
             'methodLabels' => PaymentMethods::labels(),
             'total' => $total / 100,
+            'bonus' => CreditBonus::bonusFor($this->amountValue()),   // runda 51
+            'amountSold' => $this->amountValue(),
             'rest' => ($total - $paid) / 100,
             'totals' => $party ? CreditLedger::partyTotals($party) : null,
         ]);

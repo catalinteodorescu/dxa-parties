@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Contracts\SmsSender;
 use App\Services\CreditLedger;
+use App\Services\Payments\PaymentGateway;
+use App\Services\Payments\PlaceholderGateway;
+use App\Services\Sms\AsciiSmsSender;
 use App\Services\Sms\LogSmsSender;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
@@ -19,7 +22,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Implementare de dezvoltare (loghează SMS-urile în loc să le trimită).
         // Se înlocuiește cu un provider real când e ales.
-        $this->app->bind(SmsSender::class, LogSmsSender::class);
+        $this->app->bind(SmsSender::class, fn () => new AsciiSmsSender(new LogSmsSender));
+        // DXA: adaugat (runda 51). Plata online: până la Stripe, pagina „plata cu cardul urmează”.
+        $this->app->bind(PaymentGateway::class, PlaceholderGateway::class);
     }
 
     public function boot(): void

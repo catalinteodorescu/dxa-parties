@@ -11,9 +11,10 @@
 @endphp
 
 @if ($status)
-    <x-alert type="success" wire:key="flash-status" :class="$attributes->get('class')">{{ $status }}</x-alert>
+    {{-- Se aduce în vizor: după „Salvează” de jos mesajul din capul paginii altfel nu se vede. --}}
+    <div wire:key="flash-status" x-data x-init="$el.scrollIntoView({ behavior: 'smooth', block: 'center' })"><x-alert type="success" :class="$attributes->get('class')">{{ $status }}</x-alert></div>
 @endif
 
 @if ($error)
-    <x-alert type="error" wire:key="flash-error" :class="$attributes->get('class')">{{ $error }}</x-alert>
+    <div wire:key="flash-error" x-data x-init="$el.scrollIntoView({ behavior: 'smooth', block: 'center' })"><x-alert type="error" :class="$attributes->get('class')">{{ $error }}</x-alert></div>
 @endif

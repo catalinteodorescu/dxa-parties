@@ -23,7 +23,7 @@ class ReceptionSummary
 {
     public static function for(ReceptionSession $session): object
     {
-        $entries = PartyEntry::query()->where('reception_session_id', $session->id)
+        $entries = PartyEntry::query()->where('reception_session_id', $session->id)->with('ticket.order')
             ->get(['id', 'ticket_type', 'price_paid', 'cancelled_at']);
         $active = $entries->whereNull('cancelled_at');
 
@@ -40,7 +40,7 @@ class ReceptionSummary
 
         $creditSales = CreditTransaction::query()->where('reception_session_id', $session->id)
             ->where('type', CreditTransaction::LOAD)->where('source', CreditTransaction::SOURCE_RECEPTION)
-            ->get(['id', 'amount', 'cancelled_at']);
+            ->get(['id', 'amount', 'bonus', 'cancelled_at']);
         $activeCreditSales = $creditSales->whereNull('cancelled_at');
 
         $entryPay = PartyEntryPayment::query()
@@ -81,7 +81,7 @@ class ReceptionSummary
 
         return (object) [
             'entries_count' => $active->count(),
-            'entries_free' => $active->filter(fn ($e) => (float) $e->price_paid <= 0)->count(),
+            'entries_free' => $active->filter(fn ($e) => $e->isFree())->count(),
             'entries_revenue' => round((float) $active->sum('price_paid'), 2),
             'entries_cancelled' => $entries->count() - $active->count(),
             'tickets' => $tickets,
@@ -89,7 +89,7 @@ class ReceptionSummary
             'tokens_amount' => round((float) $activeSales->sum('amount'), 2),
             'token_sales' => $activeSales->count(),
             'token_sales_cancelled' => $sales->count() - $activeSales->count(),
-            'credits_amount' => round((float) $activeCreditSales->sum('amount'), 2),
+            'credits_amount' => round((float) $activeCreditSales->sum('amount') - (float) $activeCreditSales->sum('bonus'), 2),   // runda 51: banii vânduți, fără bonus
             'credit_sales' => $activeCreditSales->count(),
             'credit_sales_cancelled' => $creditSales->count() - $activeCreditSales->count(),
             'methods' => $methods,

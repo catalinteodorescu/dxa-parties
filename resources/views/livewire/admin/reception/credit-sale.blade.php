@@ -41,6 +41,8 @@
             <span class="text-2xl font-semibold text-ink">{{ $money($total) }} <span class="text-sm font-normal text-ink-soft">lei</span></span>
         </div>
 
+        @include('livewire.reception._credit-bonus', ['bonus' => $bonus, 'amount' => $amountSold])
+
         {{-- Plata pe total --}}
         <div>
             <label class="block text-sm font-medium text-ink mb-1.5">Plată (pe total)</label>

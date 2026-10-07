@@ -57,11 +57,12 @@ function ttUser(string $name, string $phone): Participant
     return $p;
 }
 
-function ttTicket(Participant $buyer, ?Party $party = null, int $count = 1, array $phones = []): Ticket
+/** Runda 53: cumpără 2 bilete și întoarce al doilea (liber, fără nume): doar biletele libere se pot trimite. */
+function ttTicket(Participant $buyer, ?Party $party = null, int $count = 2): Ticket
 {
-    $order = TicketOrders::place($buyer, $party ?? ttParty(), 'Bilet', $count, $phones);
+    $order = TicketOrders::place($buyer, $party ?? ttParty(), 'Bilet', $count);
 
-    return $order->tickets->first();
+    return $order->tickets[1];
 }
 
 beforeEach(function () {
@@ -86,7 +87,7 @@ it('transferă biletul către un cont existent: dispare din contul expeditorului
         ->and(TicketTransfer::count())->toBe(1);
 
     $this->actingAs($bob, 'participant');
-    Livewire::test(Tickets::class)->assertSee('Petrecere transfer')->assertSee('data-send-ticket', false);
+    Livewire::test(Tickets::class)->assertSee('Petrecere transfer')->assertSee('data-send-ticket="'.$ticket->id.'"', false);   // runda 55: biletul primit se poate retrimite
 });
 
 it('către un telefon fără cont: creează participantul, trimite SMS cu link semnat către bilet', function () {
@@ -103,7 +104,7 @@ it('către un telefon fără cont: creează participantul, trimite SMS cu link s
 
     expect($this->sms->sent)->toHaveCount(1);
     [$phone, $text] = $this->sms->sent[0];
-    expect($phone)->toBe($to->phone)->and($text)->toContain('Ana')->toContain('Petrecere transfer')->toContain('/bilet/'.$ticket->uuid);
+    expect($phone)->toBe($to->phone)->and($text)->toContain('Ana')->toContain('Petrecere transfer')->toContain('/b/'.TicketTransfers::shortCode($ticket->fresh()));
     expect(TicketTransfer::first()->sms_sent)->toBeTrue();
 });
 
@@ -122,7 +123,7 @@ it('pagina din link arată biletul și îndrumă spre cont; linkul se stinge la 
     $ticket = ttTicket($ana);
     TicketTransfers::send($ticket->id, $ana, '0744555666', $this->sms);
     $ticket->refresh();
-    $url = TicketTransfers::linkFor($ticket);
+    $url = TicketTransfers::linkFor($ticket);   // runda 52d: link scurt
 
     $this->get($url)->assertOk()->assertSee('Ai primit un bilet')->assertSee($ticket->qrPayload(), false)->assertSee('Creează cont');
     $this->get(route('app.ticket-link', ['ticket' => $ticket->uuid, 'v' => 'x']))->assertForbidden();   // fără semnătură
@@ -158,7 +159,7 @@ it('formularul de cont nou se completează cu telefonul din link', function () {
     Livewire::withQueryParams(['telefon' => '+40744555666'])->test(Register::class)->assertSet('phone', '+40744555666');
 });
 
-it('deținătorul nou poate trimite mai departe, iar cel vechi nu mai poate', function () {
+it('cel care primește biletul îl poate trimite mai departe, iar cel vechi nu mai poate', function () {
     $ana = ttUser('Ana', '0722111222');
     $bob = ttUser('Bob', '0733111222');
     $cip = ttUser('Cip', '0766111222');
@@ -167,8 +168,12 @@ it('deținătorul nou poate trimite mai departe, iar cel vechi nu mai poate', fu
     TicketTransfers::send($ticket->id, $ana, $bob->phone, $this->sms);
     expect(fn () => TicketTransfers::send($ticket->id, $ana, $cip->phone, $this->sms))->toThrow(DomainException::class);
 
+    // Runda 55: biletul primit se poate trimite mai departe; cumpărătorul îl vede în istoric.
     TicketTransfers::send($ticket->id, $bob, $cip->phone, $this->sms);
-    expect($ticket->fresh()->owner_participant_id)->toBe($cip->id)->and(TicketTransfer::count())->toBe(2);
+    expect($ticket->fresh()->owner_participant_id)->toBe($cip->id)->and(TicketTransfer::count())->toBe(2)
+        ->and(fn () => TicketTransfers::send($ticket->id, $bob, $ana->phone, $this->sms))->toThrow(DomainException::class);
+    $this->actingAs($bob, 'participant');
+    Livewire::test(Tickets::class)->assertSee('Trimise de mine')->assertSee('trimis lui Cip');
 });
 
 it('refuză: bilet folosit sau anulat, petrecere încheiată, propriul număr, număr invalid, bilet trimis de altcineva', function () {
@@ -196,7 +201,7 @@ it('păstrează prețul, reducerea și combo-ul: nu recalculează nimic', functi
     $bob = ttUser('Bob', '0733111222');
     $party = ttParty();
     $party->update(['ticket_types' => [['name' => 'Bilet', 'price' => 50, 'discounts' => [], 'qty_tiers' => [], 'combos' => [['buy' => 1, 'free' => 1]]]]]);
-    $order = TicketOrders::place($ana, $party, 'Bilet', 2, [], null, null, '1+1');
+    $order = TicketOrders::place($ana, $party, 'Bilet', 2, null, null, '1+1');
     $free = $order->tickets->firstWhere('combo_free', true);
 
     TicketTransfers::send($free->id, $ana, $bob->phone, $this->sms);
@@ -213,13 +218,13 @@ it('cumpărătorul vede în continuare biletul trimis, fără butonul de trimite
     TicketTransfers::send($ticket->id, $ana, $bob->phone, $this->sms);
 
     $this->actingAs($ana, 'participant');
-    Livewire::test(Tickets::class)->assertSee('Trimis în contul lui Bob')->assertDontSee('data-send-ticket', false);
+    Livewire::test(Tickets::class)->assertSee('Trimise de mine')->assertSee('trimis lui Bob')->assertDontSee('data-send-ticket="'.$ticket->id.'"', false);
 });
 
 it('limitează la 10 trimiteri pe oră', function () {
     $ana = ttUser('Ana', '0722111222');
     RateLimiter::clear('ticket-transfer:'.$ana->id);
-    $ticket = ttTicket($ana, null, 1);
+    $ticket = ttTicket($ana);
     for ($i = 0; $i < TicketTransfers::MAX_PER_HOUR; $i++) {
         RateLimiter::hit('ticket-transfer:'.$ana->id, 3600);
     }
@@ -236,7 +241,7 @@ it('dialogul din aplicație: telefon → confirmare → trimis', function () {
     Livewire::test(Tickets::class)
         ->call('startSend', $ticket->id)->assertSee('Trimite biletul')->assertSet('sendStep', 'form')
         ->set('sendPhone', '0722111222')->call('checkSend')->assertSet('sendStep', 'form')->assertSee('numărul tău')
-        ->set('sendPhone', '0733111222')->call('checkSend')->assertSet('sendStep', 'confirm')->assertSee('Bob')->assertSee('nu poți anula')
+        ->set('sendPhone', '0733111222')->call('checkSend')->assertSet('sendStep', 'confirm')->assertSee('are cont în aplicație')->assertDontSee('Bob')->assertSee('nu se poate anula')
         ->call('confirmSend')->assertSet('sendId', null);
 
     expect($ticket->fresh()->owner_participant_id)->toBe($bob->id);

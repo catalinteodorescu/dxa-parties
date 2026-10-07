@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureAdminHasAccess;
 use App\Http\Middleware\EnsureAdminHasPermission;
 use App\Http\Middleware\EnsureAdminIsActive;
 use App\Http\Middleware\EnsureAdminPhoneIsSetUp;
+use App\Http\Middleware\TouchParticipantActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.active' => EnsureAdminIsActive::class,
             'admin.access' => EnsureAdminHasAccess::class, // DXA: adaugat (Utilizatori - acces pe aplicație)
             'admin.can' => EnsureAdminHasPermission::class, // DXA: adaugat (runda 46 - permisiuni)
+            'participant.active' => TouchParticipantActivity::class, // DXA: adaugat (runda 52)
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -257,6 +257,7 @@
                                                 <span class="block text-xs font-medium text-ink-soft mb-1">Se poate intra cu acest preț până la</span>
                                                 <input type="datetime-local" wire:model="ticket_types.{{ $ti }}.discounts.{{ $dii }}.enter_until" class="accent-primary [color-scheme:light] {{ $in }}">
                                                 <span class="block text-[11px] text-ink-soft/70 mt-1">Ora la Recepție; după, se plătește diferența. Gol = fără limită.</span>
+                                                @error('ticket_types.'.$ti.'.discounts.'.$dii.'.enter_until') <p class="{{ $err }}">{{ $message }}</p> @enderror
                                             </label>
                                         </div>
                                     </div>
@@ -429,7 +430,7 @@
                                 @error('discount_codes.'.$i.'.max_uses') <p class="{{ $err }}">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="text-xs font-medium text-ink-soft">Limită per participant (bilete) <span class="font-normal">— gol = nelimitat</span></label>
+                                <label class="text-xs font-medium text-ink-soft">Limită per participant (folosiri) <span class="font-normal">— o comandă online = o folosire, oricâte bilete; gol = nelimitat</span></label>
                                 <input type="text" inputmode="numeric" wire:model="discount_codes.{{ $i }}.max_uses_per_participant" placeholder="nelimitat" class="mt-1 {{ $in }}">
                                 @error('discount_codes.'.$i.'.max_uses_per_participant') <p class="{{ $err }}">{{ $message }}</p> @enderror
                             </div>
@@ -517,7 +518,7 @@
                 <p class="mt-1 text-xs text-ink-soft leading-relaxed">
                     Alege ce se acceptă la această petrecere. Lista vine din
                     <a href="{{ route('admin.settings.index') }}" wire:navigate class="text-primary hover:underline">Setări</a>,
-                    unde se adaugă și metodele noi. Tokenii se folosesc doar la bar; creditele plătesc și intrarea, și barul; la bar, cash se acceptă mereu.
+                    unde se adaugă și metodele noi. Tokenii se folosesc doar la bar; creditele plătesc și intrarea, și barul.
                 </p>
                 @if (empty($payment_methods))
                     <p class="mt-1 text-xs text-warning">Nicio metodă bifată — se acceptă toate metodele active din Setări.</p>

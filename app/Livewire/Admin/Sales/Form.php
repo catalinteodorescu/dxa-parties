@@ -119,14 +119,14 @@ class Form extends Component
         }
     }
 
-    /** La schimbarea sesiunii, randurile cu o metoda neacceptata la acea petrecere revin pe cash. */
+    /** La schimbarea sesiunii, randurile cu o metoda neacceptata la acea petrecere revin pe prima metoda acceptata. */
     private function resetDisallowedPayments(): void
     {
         $allowed = $this->methods();
 
         foreach ($this->payments as $i => $p) {
             if (! isset($allowed[$p['method'] ?? ''])) {
-                $this->payments[$i] = ['method' => PaymentMethods::CASH, 'amount' => '', 'tokens' => ''];
+                $this->payments[$i] = ['method' => array_key_first($allowed) ?? PaymentMethods::CASH, 'amount' => '', 'tokens' => ''];
             }
         }
     }

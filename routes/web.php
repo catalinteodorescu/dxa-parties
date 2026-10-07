@@ -62,16 +62,21 @@ use App\Livewire\Bar\Sale as BarSale;
 use App\Livewire\Participant\Account as ParticipantAccount;
 use App\Livewire\Participant\Announcements as ParticipantAnnouncements;
 use App\Livewire\Participant\AnnouncementShow as ParticipantAnnouncementShow;
+use App\Livewire\Participant\DeleteAccount as ParticipantDeleteAccount;
+use App\Livewire\Participant\DeletedAccountTickets as ParticipantDeletedAccountTickets;
 use App\Livewire\Participant\ForgotPassword as ParticipantForgotPassword;
 use App\Livewire\Participant\History as ParticipantHistory;
 use App\Livewire\Participant\Home as ParticipantHome;
 use App\Livewire\Participant\Login as ParticipantLogin;
 use App\Livewire\Participant\Parties as ParticipantParties;
-use App\Livewire\Participant\PartyShow as ParticipantPartyShow; // DXA: adaugat (PWA Recepție)
-use App\Livewire\Participant\Register as ParticipantRegister;
+use App\Livewire\Participant\PartyShow as ParticipantPartyShow;
+use App\Livewire\Participant\Register as ParticipantRegister; // DXA: adaugat (PWA Recepție)
 use App\Livewire\Participant\ResetPassword as ParticipantResetPassword;
 use App\Livewire\Participant\TicketLink as ParticipantTicketLink;
 use App\Livewire\Participant\Tickets as ParticipantTickets;
+use App\Livewire\Participant\TicketShortLink as ParticipantTicketShortLink;
+use App\Livewire\Participant\Topup as ParticipantTopup;
+use App\Livewire\Participant\TopupPay as ParticipantTopupPay;
 use App\Livewire\Participant\Verify as ParticipantVerify; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
 use App\Livewire\Participant\Wallet as ParticipantWallet;
 use App\Livewire\Reception\CreditSale as ReceptieCreditSale;
@@ -83,6 +88,7 @@ use App\Livewire\Reception\Recent as ReceptieRecent;
 use App\Livewire\Reception\Report as ReceptieReport;
 use App\Livewire\Reception\TokenSale as ReceptieTokenSale;
 use App\Models\Participant;
+use App\Services\AccountExport;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -295,14 +301,27 @@ Route::name('app.')->group(function () {
     // Linkul din SMS: semnat + temporar; funcționează și cu un cont deja logat (nu cere guest).
     // DXA: adaugat (runda 39). Linkul din SMS-ul „ți-a trimis un bilet” (pentru cine nu are încă cont): semnat, fără expirare în timp; se stinge când biletul își schimbă deținătorul.
     Route::get('/bilet/{ticket:uuid}', ParticipantTicketLink::class)->middleware('signed')->name('ticket-link');
+    Route::get('/b/{code}', ParticipantTicketShortLink::class)->where('code', '[0-9a-f]{16}')->name('ticket-short'); // DXA: adaugat (runda 52d): link scurt pentru SMS
+    Route::get('/c/{code}', ParticipantDeletedAccountTickets::class)->where('code', '[0-9a-f]{16}')->name('deleted-tickets'); // DXA: adaugat (runda 53): biletele rămase după ștergerea contului
     Route::get('/resetare-parola/{participant}', ParticipantResetPassword::class)->middleware('signed')->name('reset');
 
-    Route::middleware('auth:participant')->group(function () {
+    Route::middleware(['auth:participant', 'participant.active'])->group(function () {
         Route::get('/cont', ParticipantAccount::class)->name('account');
+        // DXA: adaugat (runda 52). Ștergerea contului (pagină de confirmare) și exportul datelor proprii.
+        Route::get('/cont/sterge', ParticipantDeleteAccount::class)->name('account.delete');
+        Route::get('/cont/date', function () {
+            $me = Auth::guard('participant')->user();
+            $file = 'datele-mele-'.now()->format('Y-m-d').'.json';
+
+            return response()->streamDownload(fn () => print (json_encode(AccountExport::build($me), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)), $file, ['Content-Type' => 'application/json; charset=utf-8']);
+        })->middleware('throttle:6,1')->name('account.export');
         Route::get('/bilete', ParticipantTickets::class)->name('tickets');
         Route::get('/bilete/toate', ParticipantHistory::class)->defaults('kind', 'tickets')->name('tickets.all');
         Route::get('/portofel', ParticipantWallet::class)->name('wallet');
         Route::get('/portofel/incarcari', ParticipantHistory::class)->defaults('kind', 'credits')->name('wallet.all');
+        // DXA: adaugat (runda 51/51b). Încărcarea de credite: pagina de alegere a sumei + confirmare, apoi (fără plată simulată) pagina de plată, loc rezervat până la Stripe.
+        Route::get('/portofel/incarca', ParticipantTopup::class)->name('wallet.load');
+        Route::get('/portofel/incarca/{topup}', ParticipantTopupPay::class)->name('wallet.topup');
         Route::get('/cont/intrari', ParticipantHistory::class)->defaults('kind', 'entries')->name('entries.all');
         Route::get('/cont/consumatii', ParticipantHistory::class)->defaults('kind', 'bar')->name('bar.all');
         Route::get('/cont/poza', function () {

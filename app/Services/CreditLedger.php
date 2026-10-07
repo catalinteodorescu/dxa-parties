@@ -54,7 +54,7 @@ class CreditLedger
     }
 
     /**
-     * Creditele vândute la recepție pentru o petrecere (număr și lei), sau null dacă nu s-a vândut niciun credit.
+     * Creditele vândute la recepție pentru o petrecere (număr și lei încasați, fără bonus), sau null dacă nu s-a vândut niciun credit.
      *
      * @return object{sold_count: int, sold_amount: float}|null
      */
@@ -71,7 +71,7 @@ class CreditLedger
 
         return (object) [
             'sold_count' => $count,
-            'sold_amount' => round((float) (clone $sold)->sum('amount'), 2),
+            'sold_amount' => round((float) (clone $sold)->sum('amount') - (float) (clone $sold)->sum('bonus'), 2),   // runda 51: banii vânduți, fără bonus
         ];
     }
 
@@ -80,6 +80,7 @@ class CreditLedger
     /**
      * Încarcă credite unui participant (amount > 0). $source: participant_app / reception / manual.
      * La sursa `manual`, motivul e obligatoriu (e o corecție/stoc inițial, nu o vânzare).
+     * Runda 51: `$amount` = TOTALUL creditat (plătit + bonus); `$bonus` = cât din el a fost bonus (gratis).
      */
     public static function load(
         Participant $participant,
@@ -90,6 +91,7 @@ class CreditLedger
         ?string $referenceType = null,
         ?int $referenceId = null,
         ?Carbon $at = null,
+        float $bonus = 0.0,
     ): CreditTransaction {
         if ($amount <= 0 || $amount > self::MAX_LOAD) {
             throw new DomainException('Suma de încărcat trebuie să fie între 0 și '.number_format(self::MAX_LOAD, 0, ',', '.').' lei.');
@@ -98,11 +100,12 @@ class CreditLedger
             throw new DomainException('Spune de ce încarci credite manual (motiv obligatoriu).');
         }
 
-        $tx = self::write($participant, CreditTransaction::LOAD, $amount, $source, $adminId, $note, $referenceType, $referenceId, $at);
+        $tx = self::write($participant, CreditTransaction::LOAD, $amount, $source, $adminId, $note, $referenceType, $referenceId, $at, $bonus);
 
         ActivityLogger::log('credits.loaded', sprintf(
-            'A încărcat %s lei credite lui %s (sursă: %s)%s.',
+            'A încărcat %s lei credite%s lui %s (sursă: %s)%s.',
             PaymentRows::money($amount),
+            $bonus > 0 ? ' (din care bonus '.PaymentRows::money($bonus).' lei)' : '',
             $participant->label(),
             CreditTransaction::SOURCE_LABELS[$source] ?? $source,
             $note ? ' — '.$note : ''
@@ -192,6 +195,24 @@ class CreditLedger
     }
 
     /**
+     * DXA: adaugat (runda 52). Scoate TOT soldul din portofel (ajustare negativă, sursa „Sistem”) când contul se șterge.
+     * Fără refund automat: creditele se pierd, iar rândul rămâne în ledger ca urmă. Întoarce suma scoasă (0 dacă soldul era gol).
+     */
+    public static function forfeit(Participant $participant, string $reason): float
+    {
+        $balance = round(self::balance($participant->refresh()), 2);
+        if ($balance <= 0) {
+            return 0.0;
+        }
+
+        self::write($participant, CreditTransaction::ADJUSTMENT, -$balance, CreditTransaction::SOURCE_SYSTEM, null, Str::limit($reason, 255, ''), null, null, null);
+
+        ActivityLogger::log('credits.forfeited', sprintf('Au dispărut %s lei credite ale lui %s: %s.', PaymentRows::money($balance), $participant->label(), $reason), actor: null);
+
+        return $balance;
+    }
+
+    /**
      * Vinde credite unui participant la recepție. Plata se introduce pe total (poate fi mixtă), fără credite
      * (nu se cumpără credite cu credite). La fel ca vânzarea de tokeni: se leagă de sesiunea de recepție a
      * petrecerii (se deschide singură la prima înregistrare) — aceeași sesiune/raport ca tokenii.
@@ -224,14 +245,18 @@ class CreditLedger
 
         $onlyExisting = $enforceState && $party->receptionOnlyExistingSession();
 
-        $tx = DB::transaction(function () use ($party, $participant, $amount, $rows, $adminId, $at, $onlyExisting) {
+        // Runda 51: bonusul la încărcare se aplică și la Recepție. Plata se face pe suma vândută; participantul primește suma + bonus.
+        $bonus = CreditBonus::bonusFor($amount);
+
+        $tx = DB::transaction(function () use ($party, $participant, $amount, $rows, $adminId, $at, $onlyExisting, $bonus) {
             // Sesiunea de recepție deschisă a petrecerii (se deschide singură la prima înregistrare).
             $session = ReceptionSession::openFor($party->id, $adminId, onlyExisting: $onlyExisting);
 
             $tx = CreditTransaction::create([
                 'participant_id' => $participant->id,
                 'type' => CreditTransaction::LOAD,
-                'amount' => $amount,
+                'amount' => round($amount + $bonus, 2),
+                'bonus' => $bonus,
                 'source' => CreditTransaction::SOURCE_RECEPTION,
                 'party_id' => $party->id,
                 'reception_session_id' => $session->id,
@@ -249,8 +274,9 @@ class CreditLedger
         });
 
         ActivityLogger::log('credits.sold', sprintf(
-            'A vândut %s lei credite lui %s la „%s” (%s lei).',
+            'A vândut %s lei credite%s lui %s la „%s” (%s lei).',
             PaymentRows::money($amount),
+            $bonus > 0 ? ' + bonus '.PaymentRows::money($bonus).' lei' : '',
             $participant->label(),
             $party->name,
             PaymentRows::money($totalCents / 100)
@@ -361,12 +387,14 @@ class CreditLedger
         ?string $referenceType,
         ?int $referenceId,
         ?Carbon $at,
+        float $bonus = 0.0,
     ): CreditTransaction {
-        return DB::transaction(function () use ($participant, $type, $amount, $source, $adminId, $note, $referenceType, $referenceId, $at) {
+        return DB::transaction(function () use ($participant, $type, $amount, $source, $adminId, $note, $referenceType, $referenceId, $at, $bonus) {
             $tx = CreditTransaction::create([
                 'participant_id' => $participant->id,
                 'type' => $type,
                 'amount' => $amount,
+                'bonus' => $bonus,
                 'source' => $source,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,

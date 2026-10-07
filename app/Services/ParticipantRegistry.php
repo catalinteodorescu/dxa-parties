@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\CreditTopup;
 use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyEntry;
 use App\Models\PartyInterest;
 use App\Models\ReceptionSession;
+use App\Models\Ticket;
 use App\Support\Phone;
 use DomainException;
 use Illuminate\Support\Collection;
@@ -90,8 +92,12 @@ class ParticipantRegistry
         ActivityLogger::log('participants.deleted', 'A șters participantul „'.$label.'”.');
     }
 
-    /** Golește numele și telefonul (istoricul intrărilor rămâne, ca număr, pentru statistici). */
-    public static function anonymize(Participant $participant): void
+    /**
+     * Golește numele și telefonul (istoricul intrărilor rămâne, ca număr, pentru statistici).
+     * Runda 52: biletele VALABILE rămân valabile dar fără deținător (altfel un deținător anonimizat ar bloca intrarea la Recepție),
+     * iar încărcările de credite rămase în așteptare se anulează. $action/$message permit altui apelant (ștergere din cont) să-și pună propriul jurnal.
+     */
+    public static function anonymize(Participant $participant, string $action = 'participants.anonymized', string $message = 'A anonimizat participantul'): void
     {
         if ($participant->isAnonymized()) {
             throw new DomainException('Participantul e deja anonimizat.');
@@ -108,8 +114,10 @@ class ParticipantRegistry
         ])->save();
         ParticipantAvatar::delete($participant);
         PartyInterest::query()->where('participant_id', $participant->id)->delete();   // runda 40: petrecerile salvate
+        Ticket::query()->where('holder_participant_id', $participant->id)->where('status', Ticket::VALID)->update(['holder_participant_id' => null]);   // runda 52
+        CreditTopup::query()->where('participant_id', $participant->id)->where('status', CreditTopup::PENDING)->update(['status' => CreditTopup::CANCELLED]);   // runda 52
 
-        ActivityLogger::log('participants.anonymized', 'A anonimizat participantul „'.$label.'”.');
+        ActivityLogger::log($action, $message.' „'.$label.'”.');
     }
 
     /**

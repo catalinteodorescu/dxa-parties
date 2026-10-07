@@ -19,7 +19,6 @@ use App\Models\TokenTransaction;
 use App\Support\PaymentMethods;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Statistici pe petrecere, calculate la cerere (fara tabele proprii) DOAR din raportarile FINALIZATE
@@ -244,6 +243,7 @@ class PartyStats
         $entries = PartyEntry::query()
             ->active()
             ->where('party_id', $party->id)
+            ->with('ticket.order')
             ->get(['id', 'price_paid', 'grace_applied', 'override_reason', 'entered_at', 'participant_id']);
 
         if ($entries->isEmpty()) {

@@ -144,6 +144,16 @@
                 @csrf
                 <button type="submit" class="pa-btn pa-btn-ghost pa-btn-block">Deconectare</button>
             </form>
+
+            {{-- Datele mele: descărcare (export) și ștergerea contului --}}
+            <div class="pa-glass pa-pad pa-stack" style="gap: .6rem">
+                <div class="pa-label" style="margin: 0">Datele mele</div>
+                <div class="pa-soft" style="font-size: .85rem">Poți descărca tot ce ține de contul tău sau îl poți șterge definitiv.</div>
+                <div style="display: flex; gap: .5rem">
+                    <a href="{{ route('app.account.export') }}" class="pa-btn pa-btn-ghost pa-btn-sm" style="flex: 1; text-align: center" data-account-export>Descarcă datele</a>
+                    <a href="{{ route('app.account.delete') }}" wire:navigate class="pa-btn pa-btn-ghost pa-btn-sm" style="flex: 1; text-align: center; color: #f87171" data-account-delete>Șterge contul</a>
+                </div>
+            </div>
         </section>
     @endif
 </div>

@@ -19,7 +19,7 @@ use Throwable;
  * (comandă, preț, reducere, cod, combo, QR). Nu se recalculează nimic: treptele, stocul și codurile nu sunt atinse.
  *
  *  - Cine poate trimite: contul în care e biletul acum (`owner_participant_id`), cât biletul e valabil și petrecerea nu s-a încheiat.
- *    Deținătorul nou poate trimite mai departe. Nu există retragere / anulare de transfer.
+ *    Deținătorul nou poate trimite mai departe (cumpărătorul păstrează biletul în istoric, la „Trimise de mine”). Nu există retragere / anulare de transfer.
  *  - Către un cont existent: biletul apare direct în contul lui.
  *  - Către un telefon fără cont: biletul se leagă de participantul acelui telefon (creat acum, fără cont, dacă nu există; cel
  *    din Recepție se refolosește) și destinatarul primește un SMS cu un link semnat către bilet. Când își face cont cu acel
@@ -32,6 +32,7 @@ class TicketTransfers
 
     public static function canSend(Ticket $ticket, Participant $me): bool
     {
+        // Runda 55: se trimite orice bilet aflat în contul meu (liber, pe numele meu sau primit de la altcineva).
         return (int) $ticket->owner_participant_id === (int) $me->id
             && $ticket->status === Ticket::VALID
             && $ticket->party?->state() !== 'past';
@@ -121,8 +122,30 @@ class TicketTransfers
         return ['transfer' => $transfer, 'recipient' => $to, 'has_account' => $hasAccount, 'sms' => $sent];
     }
 
-    /** Linkul semnat din SMS: se stinge când biletul își schimbă deținătorul (amprenta depinde de el). */
+    /** Linkul scurt din SMS (/b/<cod>): se stinge când biletul își schimbă deținătorul (codul depinde de el). */
     public static function linkFor(Ticket $ticket): string
+    {
+        return route('app.ticket-short', ['code' => self::shortCode($ticket)]);
+    }
+
+    /** 8 caractere din uuid (pentru căutare) + 8 din semnătura HMAC (autenticitate, legată de deținător). */
+    public static function shortCode(Ticket $ticket): string
+    {
+        return substr($ticket->uuid, 0, 8).substr(hash_hmac('sha256', $ticket->uuid.'|'.(int) $ticket->holder_participant_id.'|s', (string) config('app.key')), 0, 8);
+    }
+
+    public static function findByShortCode(string $code): ?Ticket
+    {
+        if (! preg_match('/^[0-9a-f]{16}$/', $code)) {
+            return null;
+        }
+
+        return Ticket::query()->where('uuid', 'like', substr($code, 0, 8).'%')->get()
+            ->first(fn (Ticket $t) => hash_equals(self::shortCode($t), $code));
+    }
+
+    /** Linkul semnat lung (vechi, rămas valabil pentru SMS-urile deja trimise). */
+    public static function signedLinkFor(Ticket $ticket): string
     {
         return URL::signedRoute('app.ticket-link', ['ticket' => $ticket->uuid, 'v' => self::stamp($ticket)]);
     }

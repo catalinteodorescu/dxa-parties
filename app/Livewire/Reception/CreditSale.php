@@ -6,6 +6,7 @@ use App\Livewire\Concerns\GuardsResubmit;
 use App\Livewire\Concerns\HandlesSaleScreen;
 use App\Livewire\Reception\Concerns\UsesReceptionParty;
 use App\Models\ReceptionSession;
+use App\Services\CreditBonus;
 use App\Services\CreditLedger;
 use App\Services\ParticipantRegistry;
 use App\Support\PaymentMethods;
@@ -73,7 +74,7 @@ class CreditSale extends Component
 
             $this->done = [
                 'title' => 'Credite vândute',
-                'line' => $participant->label(),
+                'line' => $participant->label().((float) $tx->bonus > 0 ? ' · bonus '.number_format((float) $tx->bonus, 2, ',', '.').' lei' : ''),
                 'total' => number_format((float) $tx->amount, 2, ',', '.'),
                 'note' => $hadSession ? null : ReceptionSession::openedNotice($party->id),
             ];
@@ -91,6 +92,8 @@ class CreditSale extends Component
         return view('livewire.reception.credit-sale', [
             ...$this->saleViewData($this->currentParty()),
             'purchasable' => PaymentMethods::creditsPurchasable(),
+            'bonus' => CreditBonus::bonusFor($this->amountValue()),   // runda 51
+            'amountSold' => $this->amountValue(),
         ]);
     }
 }

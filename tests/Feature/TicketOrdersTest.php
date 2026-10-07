@@ -62,31 +62,16 @@ it('o comandă de 1 bilet: bilet valabil pe numele cumpărătorului, cu QR propr
         ->and(Ticket::findByQrPayload($t->uuid)->id)->toBe($t->id);
 });
 
-it('3 bilete: primul pe numele meu, celelalte în contul meu fără nume; telefonul cu cont mută biletul în contul lui', function () {
+it('3 bilete: toate în contul cumpărătorului; primul pe numele lui, celelalte libere (fără nume, fără telefon)', function () {
     $party = toParty();
     $ana = toUser();
-    $bob = toUser('Bob Prieten', '0733222333');
-    ParticipantRegistry::create('Fără Cont', '0744333444'); // creat la recepție, fără cont de aplicație
 
-    $order = TicketOrders::place($ana, $party, 'Bilet', 3, ['0733222333', '0744333444']);
+    $order = TicketOrders::place($ana, $party, 'Bilet', 3);
     [$t1, $t2, $t3] = $order->tickets->all();
 
     expect($t1->owner_participant_id)->toBe($ana->id)->and($t1->holder_participant_id)->toBe($ana->id)
-        ->and($t2->owner_participant_id)->toBe($bob->id)->and($t2->holder_participant_id)->toBe($bob->id)
-        ->and($t3->owner_participant_id)->toBe($ana->id)->and($t3->holder_participant_id)->toBeNull()->and($t3->holder_phone)->toBe('+40744333444');
-});
-
-it('telefoane goale = bilete fără nume în contul cumpărătorului; telefon nevalid, propriu sau dublat e refuzat', function () {
-    $party = toParty();
-    $ana = toUser();
-
-    $order = TicketOrders::place($ana, $party, 'Bilet', 2, ['']);
-    expect($order->tickets[1]->owner_participant_id)->toBe($ana->id)->and($order->tickets[1]->holder_participant_id)->toBeNull();
-
-    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 2, ['abc']))->toThrow(DomainException::class, 'nu este valid')
-        ->and(fn () => TicketOrders::place($ana, $party, 'Bilet', 2, ['0722111222']))->toThrow(DomainException::class, 'deja pe numele tău')
-        ->and(fn () => TicketOrders::place($ana, $party, 'Bilet', 3, ['0733000111', '0733000111']))->toThrow(DomainException::class, 'de două ori');
-    expect(Order::count())->toBe(1);
+        ->and($t2->owner_participant_id)->toBe($ana->id)->and($t2->holder_participant_id)->toBeNull()->and($t2->holder_phone)->toBeNull()
+        ->and($t3->owner_participant_id)->toBe($ana->id)->and($t3->holder_participant_id)->toBeNull()->and($t3->holder_phone)->toBeNull();
 });
 
 it('nu se vinde dacă vânzarea online e oprită, petrecerea e ciornă, dezactivată sau încheiată', function () {
@@ -174,7 +159,7 @@ it('cod de reducere: se aplică per bilet, fiecare bilet cu reducere consumă o 
     $party = toParty();
     $code = toCode($party, ['max_uses' => 3]);
 
-    $order = TicketOrders::place($ana, $party, 'Bilet', 2, [], 'promo10');
+    $order = TicketOrders::place($ana, $party, 'Bilet', 2, 'promo10');
     expect((float) $order->subtotal)->toBe(100.0)->and((float) $order->discount_total)->toBe(10.0)->and((float) $order->total)->toBe(90.0)
         ->and($order->discount_code_id)->toBe($code->id)
         ->and($order->tickets->every(fn ($t) => $t->discount_code_id === $code->id && (float) $t->price === 45.0))->toBeTrue()
@@ -183,8 +168,8 @@ it('cod de reducere: se aplică per bilet, fiecare bilet cu reducere consumă o 
     // Runda 28: mai e o singură utilizare => primul bilet cu reducere, al doilea la preț întreg (nu mai e eroare).
     $partial = TicketOrders::quote($party, 'Bilet', 2, 'PROMO10');
     expect($partial->code_applied)->toBe(1)->and($partial->total)->toBe(95.0);
-    expect(TicketOrders::place($ana, $party, 'Bilet', 1, [], 'PROMO10')->tickets_count)->toBe(1);
-    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, [], 'PROMO10'))->toThrow(DomainException::class, 'maxim de ori');
+    expect(TicketOrders::place($ana, $party, 'Bilet', 1, 'PROMO10')->tickets_count)->toBe(1);
+    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, 'PROMO10'))->toThrow(DomainException::class, 'maxim de ori');
 });
 
 it('codul cu limită per participant: o singură reducere pe titular cu nume, anonimii doar pe limita totală', function () {
@@ -192,8 +177,8 @@ it('codul cu limită per participant: o singură reducere pe titular cu nume, an
     $party = toParty();
     toCode($party, ['max_uses_per_participant' => 1]);
 
-    TicketOrders::place($ana, $party, 'Bilet', 1, [], 'PROMO10');
-    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, [], 'PROMO10'))->toThrow(DomainException::class, 'deja acest cod');
+    TicketOrders::place($ana, $party, 'Bilet', 1, 'PROMO10');
+    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, 'PROMO10'))->toThrow(DomainException::class, 'deja acest cod');
 });
 
 it('cod inexistent, expirat sau care nu aduce reducere e refuzat și nu se creează comanda', function () {
@@ -201,13 +186,13 @@ it('cod inexistent, expirat sau care nu aduce reducere e refuzat și nu se creea
     $party = toParty();
     toCode($party, ['code' => 'VECHI', 'valid_until' => '2026-09-30 00:00:00']);
 
-    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, [], 'NUEXISTA'))->toThrow(DomainException::class, 'nu există')
-        ->and(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, [], 'VECHI'))->toThrow(DomainException::class, 'expirat');
+    expect(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, 'NUEXISTA'))->toThrow(DomainException::class, 'nu există')
+        ->and(fn () => TicketOrders::place($ana, $party, 'Bilet', 1, 'VECHI'))->toThrow(DomainException::class, 'expirat');
     expect(Order::count())->toBe(0);
 
     $gratis = toParty(['name' => 'Gratis', 'ticket_types' => [['name' => 'Bilet', 'price' => 0, 'discounts' => [], 'qty_tiers' => []]]]);
     toCode($gratis, ['code' => 'PROMO10']);
-    expect(fn () => TicketOrders::place($ana, $gratis, 'Bilet', 1, [], 'PROMO10'))->toThrow(DomainException::class, 'gratuit');
+    expect(fn () => TicketOrders::place($ana, $gratis, 'Bilet', 1, 'PROMO10'))->toThrow(DomainException::class, 'gratuit');
 });
 
 it('anularea unui bilet eliberează locul și utilizarea codului (bilet void nu se numără)', function () {
@@ -215,7 +200,7 @@ it('anularea unui bilet eliberează locul și utilizarea codului (bilet void nu 
     $party = toParty(['tickets_for_sale' => 1]);
     $code = toCode($party, ['max_uses' => 1]);
 
-    $order = TicketOrders::place($ana, $party, 'Bilet', 1, [], 'PROMO10');
+    $order = TicketOrders::place($ana, $party, 'Bilet', 1, 'PROMO10');
     expect(TicketOrders::available($party, 'Bilet'))->toBe(0)->and($code->fresh()->usesCount())->toBe(1);
 
     $order->tickets->first()->update(['status' => 'void']);
@@ -254,7 +239,6 @@ it('utilizatorul conectat vede dialogul de comandă și cumpără prin Livewire;
 
     Livewire::test(PartyShow::class, ['party' => $party])
         ->call('inc')->call('inc')->assertSet('qty', 3)
-        ->set('phones', ['', ''])
         ->call('buy')->assertRedirect(route('app.tickets'));
 
     expect(Order::count())->toBe(1)->and(Ticket::query()->where('owner_participant_id', $ana->id)->count())->toBe(3);
@@ -351,11 +335,11 @@ it('biletele gratuite nu consumă locuri din treapta „primele 10 la 30 lei”;
     // După 22:00: reducerea cu oră nu mai e activă, treapta e încă deschisă: 10 bilete la 30, al 11-lea la 50.
     $after = Carbon::parse('2026-10-03 22:30:00');
     Carbon::setTestNow($after);
-    $ten = TicketOrders::place($ana, $party, 'Bilet', 10, [], null, $after);
+    $ten = TicketOrders::place($ana, $party, 'Bilet', 10, null, $after);
     expect($ten->tickets->every(fn ($t) => (float) $t->price === 30.0 && $t->valid_until === null))->toBeTrue()
         ->and((float) $ten->total)->toBe(300.0);
 
-    $next = TicketOrders::place($ana, $party, 'Bilet', 1, [], null, $after)->tickets->first();
+    $next = TicketOrders::place($ana, $party, 'Bilet', 1, null, $after)->tickets->first();
     expect((float) $next->price)->toBe(50.0)
         ->and(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(11)->and(TicketOrders::soldCount($party, 'Bilet'))->toBe(23);   // și biletul de 50 lei e plătit, deci numărat
 });
@@ -379,7 +363,7 @@ it('un bilet din treaptă redus la 0 de un cod de 100% a ocupat totuși un loc (
     $party = toParty(['ticket_types' => [['name' => 'Bilet', 'price' => 50, 'discounts' => [], 'qty_tiers' => [['label' => 'Primele 10', 'price' => 30, 'first' => 10]]]]]);
     toCode($party, ['code' => 'GRATIS', 'value' => 100]);
 
-    $order = TicketOrders::place($ana, $party, 'Bilet', 1, [], 'GRATIS');
+    $order = TicketOrders::place($ana, $party, 'Bilet', 1, 'GRATIS');
     $t = $order->tickets->first();
     expect((float) $t->list_price)->toBe(30.0)->and((float) $t->price)->toBe(0.0)
         ->and(TicketOrders::tierSoldCount($party, 'Bilet'))->toBe(1);

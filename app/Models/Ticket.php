@@ -63,7 +63,8 @@ class Ticket extends Model
     public function scopeVisibleTo(Builder $query, int $participantId): Builder
     {
         return $query->where(fn ($q) => $q->where('owner_participant_id', $participantId)
-            ->orWhereHas('order', fn ($o) => $o->where('participant_id', $participantId)));
+            ->orWhereHas('order', fn ($o) => $o->where('participant_id', $participantId))
+            ->orWhereIn('id', TicketTransfer::query()->select('ticket_id')->where('from_participant_id', $participantId)));   // biletele trimise de mine rămân în istoric
     }
 
     /** Biletele care încă ocupă un loc (valabile sau deja folosite); cele anulate nu. */

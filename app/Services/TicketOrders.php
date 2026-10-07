@@ -9,7 +9,6 @@ use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\Ticket;
 use App\Support\PaymentMethods;
-use App\Support\Phone;
 use App\Support\Settings\Settings;
 use DomainException;
 use Illuminate\Support\Carbon;
@@ -146,6 +145,22 @@ class TicketOrders
         }
 
         return max(0, min($caps));
+    }
+
+    /** Motivul pentru care nu se pot cumpăra mai multe bilete într-o comandă (afișat lângă butonul „+”), pe baza celei mai mici limite. */
+    public static function capReason(Party $party, string $ticketName): string
+    {
+        $perOrder = $party->max_tickets_per_order ? (int) $party->max_tickets_per_order : self::SAFETY_MAX;
+        $perOrder = min($perOrder, self::SAFETY_MAX);
+        $available = self::available($party, $ticketName);
+
+        if ($available !== null && $available <= $perOrder) {
+            return $available <= 0
+                ? 'Biletele „'.$ticketName.'” au fost epuizate.'
+                : 'Nu mai pot fi adăugate bilete: au mai rămas disponibile doar '.$available.' bilete „'.$ticketName.'”.';
+        }
+
+        return 'Ai atins numărul maxim de bilete pe o comandă ('.$perOrder.').';
     }
 
     /** Prețul de bază cerut de treapta „primele N” deschisă pentru biletul cu numărul $soldBefore+1; null dacă nu e nicio treaptă deschisă. */
@@ -347,22 +362,18 @@ class TicketOrders
     }
 
     /**
-     * Plasează comanda. `$phones` = telefoanele participanților pentru biletele 2..N (chei/ordine ignorate: se citesc pe rând;
-     * intrările goale = bilet fără nume). Totul într-o tranzacție, cu petrecerea (și codul) blocate.
+     * Plasează comanda. Primul bilet e pe numele cumpărătorului, celelalte rămân libere în contul lui (runda 53). Totul într-o tranzacție, cu petrecerea (și codul) blocate.
      *
-     * @param  array<int, ?string>  $phones
      *
      * @throws DomainException cu motivul în română
      */
-    public static function place(Participant $buyer, Party $party, string $ticketName, int $count, array $phones = [], ?string $codeInput = null, ?Carbon $at = null, ?string $combo = null, bool $withCredits = false): Order
+    public static function place(Participant $buyer, Party $party, string $ticketName, int $count, ?string $codeInput = null, ?Carbon $at = null, ?string $combo = null, bool $withCredits = false): Order
     {
         if (! $buyer->hasAccount()) {
             throw new DomainException('Ai nevoie de un cont activ ca să cumperi bilete.');
         }
 
-        $others = self::resolveOthers($buyer, $count, $phones);
-
-        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $others, $codeInput, $at, $combo, $withCredits) {
+        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $codeInput, $at, $combo, $withCredits) {
             // Blochează petrecerea (stocul) și codul (utilizările) înainte de a recalcula.
             $party = Party::query()->whereKey($party->id)->lockForUpdate()->firstOrFail();
             $code = $codeInput !== null && trim($codeInput) !== '' ? DiscountCodes::find($party, $codeInput) : null;
@@ -370,7 +381,7 @@ class TicketOrders
                 PartyDiscountCode::query()->whereKey($code->id)->lockForUpdate()->first();
             }
 
-            $holderIds = array_values(array_filter(array_merge([$buyer->id], array_column($others, 'holder_id'))));
+            $holderIds = [$buyer->id];
             $quote = self::quote($party, $ticketName, $count, $codeInput, $holderIds, $at, $combo);
 
             if ($withCredits) {
@@ -400,15 +411,13 @@ class TicketOrders
             ]);
 
             foreach ($quote->lines as $i => $line) {
-                $other = $i === 0 ? null : $others[$i - 1];
-
                 Ticket::create([
                     'order_id' => $order->id,
                     'party_id' => $party->id,
                     'ticket_type' => $ticketName,
-                    'owner_participant_id' => $i === 0 ? $buyer->id : ($other['holder_id'] ?? $buyer->id),
-                    'holder_participant_id' => $i === 0 ? $buyer->id : ($other['holder_id'] ?? null),
-                    'holder_phone' => $other['phone'] ?? null,
+                    'owner_participant_id' => $buyer->id,
+                    'holder_participant_id' => $i === 0 ? $buyer->id : null,   // runda 53: primul bilet pe numele cumpărătorului, restul libere
+                    'holder_phone' => null,
                     'list_price' => $line['list'],
                     'discount_amount' => $line['discount'],
                     'price' => $line['price'],
@@ -434,41 +443,5 @@ class TicketOrders
 
             return $order->load('tickets');
         });
-    }
-
-    /**
-     * Telefoanele biletelor 2..N → [['phone' => ?normalizat, 'holder_id' => ?int], ...] (câte $count - 1).
-     *
-     * @param  array<int, ?string>  $phones
-     * @return array<int, array{phone: ?string, holder_id: ?int}>
-     */
-    public static function resolveOthers(Participant $buyer, int $count, array $phones): array
-    {
-        $phones = array_values($phones);
-        $out = [];
-        $seen = [];
-
-        for ($i = 0; $i < max(0, $count - 1); $i++) {
-            $raw = trim((string) ($phones[$i] ?? ''));
-            if ($raw === '') {
-                $out[] = ['phone' => null, 'holder_id' => null];
-
-                continue;
-            }
-
-            $phone = Phone::normalize($raw) ?? throw new DomainException('Telefonul „'.$raw.'” nu este valid.');
-            if ($phone === $buyer->phone) {
-                throw new DomainException('Primul bilet este deja pe numele tău. Folosește alt telefon pentru celelalte bilete.');
-            }
-            if (isset($seen[$phone])) {
-                throw new DomainException('Telefonul '.$raw.' apare de două ori în comandă.');
-            }
-            $seen[$phone] = true;
-
-            $holder = Participant::query()->where('phone', $phone)->first();
-            $out[] = ['phone' => $phone, 'holder_id' => $holder && $holder->hasAccount() ? $holder->id : null];
-        }
-
-        return $out;
     }
 }

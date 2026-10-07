@@ -3,8 +3,10 @@
 namespace App\Livewire\Reception;
 
 use App\Livewire\Reception\Concerns\UsesReceptionParty;
+use App\Models\Order;
 use App\Models\PartyEntry;
 use App\Models\ReceptionSession;
+use App\Models\Ticket;
 use App\Services\CreditLedger;
 use App\Services\EntryRecorder;
 use App\Services\TokenLedger;
@@ -101,13 +103,20 @@ class Recent extends Component
             return collect($by)->map(fn ($amount, $m) => ($labels[$m] ?? $m).' '.number_format($amount, 2, ',', '.'))->implode(' · ');
         };
 
-        $entries = PartyEntry::query()->where('reception_session_id', $session->id)
+        $rows = PartyEntry::query()->where('reception_session_id', $session->id)
             ->with(['payments', 'participant', 'discountCode'])
-            ->orderBy('id')->get()
+            ->orderBy('id')->get();
+        // Biletele online folosite la aceste intrări: ce s-a plătit în aplicație (nu apare în încasările de la intrare).
+        $tickets = Ticket::query()->with('order')->whereIn('party_entry_id', $rows->pluck('id'))->get()->groupBy('party_entry_id');
+
+        $entries = $rows
             ->groupBy('batch')
-            ->map(function ($group) use ($methods) {
+            ->map(function ($group) use ($methods, $tickets) {
                 $first = $group->first();
                 $total = round((float) $group->sum('price_paid'), 2);
+                $online = round((float) $group->flatMap(fn ($e) => $tickets->get($e->id, collect()))
+                    ->filter(fn ($t) => $t->order && $t->order->payment_status !== Order::PAY_AT_ENTRY)->sum('price'), 2);
+                $hasTicket = $group->contains(fn ($e) => $tickets->has($e->id));
 
                 return (object) [
                     'kind' => 'entry',
@@ -116,6 +125,8 @@ class Recent extends Component
                     'label' => 'Intrare',
                     'title' => $group->count().' × '.$first->ticket_type,
                     'amount' => $total,
+                    'online' => $online,
+                    'has_ticket' => $hasTicket,
                     'methods' => $methods($group->flatMap->payments),
                     'people' => $group->pluck('participant.name')->filter()->values()->all(),
                     'code' => $first->discountCode ? $first->discountCode->code.' (−'.number_format((float) $group->sum('discount_amount'), 2, ',', '.').' lei)' : null, // DXA: adaugat (Coduri de reducere)
@@ -131,6 +142,7 @@ class Recent extends Component
             'label' => 'Tokeni',
             'title' => number_format($t->tokens, 0, ',', '.').' tokeni',
             'amount' => round((float) $t->amount, 2),
+            'online' => 0.0,
             'methods' => $methods($t->payments),
             'people' => array_filter([$t->participant?->name]),
             'cancelled' => $t->isCancelled(),
@@ -144,6 +156,7 @@ class Recent extends Component
             'label' => 'Credite',
             'title' => number_format((float) $c->amount, 2, ',', '.').' lei credite',
             'amount' => round((float) $c->amount, 2),
+            'online' => 0.0,
             'methods' => $methods($c->payments),
             'people' => array_filter([$c->participant?->name]),
             'cancelled' => $c->isCancelled(),

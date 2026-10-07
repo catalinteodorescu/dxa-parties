@@ -128,7 +128,12 @@
                 </div>
             </div>
         @else
-            <p class="text-sm text-ink-soft">Intrare gratuită: nu se încasează nimic.</p>
+            <p class="text-sm text-ink-soft">@php
+                    $tr = $this->ticketRows();
+                    $nPaid = $tr->filter(fn ($r) => (float) $r['ticket']->price > 0)->count();
+                    $msg = $tr->isEmpty() ? 'Intrare gratuită' : ($nPaid === 0 ? ($tr->count() === 1 ? 'Biletul este gratuit' : 'Biletele sunt gratuite') : ($nPaid === $tr->count() ? ($nPaid === 1 ? 'Biletul este plătit online' : 'Biletele sunt plătite online') : $nPaid.' bilete plătite online, '.($tr->count() - $nPaid).' gratuite'));
+                @endphp
+                {{ $msg }}: nu se încasează nimic.</p>
         @endif
 
         @if ($error)

@@ -39,6 +39,8 @@
                 <span class="text-2xl font-semibold text-primary">{{ $money($total) }} <span class="text-sm font-normal text-ink-soft">lei</span></span>
             </div>
 
+            @include('livewire.reception._credit-bonus', ['bonus' => $bonus, 'amount' => $amountSold])
+
             @include('livewire.reception._sale-payment', ['prefix' => 'c'])
 
             @if ($error)

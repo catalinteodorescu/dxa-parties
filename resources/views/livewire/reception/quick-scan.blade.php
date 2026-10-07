@@ -5,7 +5,7 @@
     Aceeași bibliotecă și același mod de pornire ca în reception/_scanner.blade.php (local, HTTPS pentru cameră). Mesajele vin din ReceptionScan.
 --}}
 <div x-data="{
-        open: false, ready: false, camErr: '', busy: false, scanner: null, fb: null, choice: null, sel: [], count: 0, last: '', lastAt: 0,
+        open: false, ready: false, camErr: '', busy: false, scanner: null, fb: null, prog: 0, held: false, fbTimer: null, choice: null, sel: [], count: 0, last: '', lastAt: 0,
         lib: '{{ asset('vendor/html5-qrcode.min.js') }}',
         async load() {
             if (window.Html5Qrcode) return;
@@ -41,8 +41,12 @@
         cancelChoice() {
             this.choice = null; this.sel = []; this.last = ''; this.busy = false;
         },
+        fbStart() {
+            clearInterval(this.fbTimer); this.prog = 0;
+            this.fbTimer = setInterval(() => { if (this.held) return; this.prog += 1; if (this.prog >= 100) this.dismiss(); }, 100);
+        },
         dismiss() {
-            this.fb = null;
+            clearInterval(this.fbTimer); this.fb = null; this.prog = 0;
         },
         async handle(r) {
             if (r.status === 'open') {
@@ -58,16 +62,16 @@
             }
             this.choice = null; this.sel = [];
             const ok = r.status === 'entered';
-            this.fb = { ok: ok, msg: r.message };
+            this.fb = { ok: ok, msg: r.message }; this.fbStart();
             if (ok) { this.count++; if (navigator.vibrate) navigator.vibrate(60); }
             this.busy = false;
         },
         async stop() {
-            this.open = false; this.fb = null; this.choice = null;
+            clearInterval(this.fbTimer); this.open = false; this.fb = null; this.choice = null;
             try { if (this.scanner) { await this.scanner.stop(); this.scanner.clear(); } } catch (e) {}
             this.scanner = null; this.ready = false;
         }
-    }" x-on:livewire:navigating.window="stop()">
+    }" x-on:pointerdown.window="held = true" x-on:pointerup.window="held = false" x-on:pointercancel.window="held = false" x-on:livewire:navigating.window="stop()">
 
     {{-- Cartela de pe ecranul principal: contur în culoarea temei (altfel s-ar confunda cu petrecerea selectată, care e plină) --}}
     <button type="button" x-on:click="start()" data-quick-scan class="w-full flex items-center gap-4 rounded-2xl border-primary bg-surface px-4 py-4 text-left hover:bg-bg" style="border-width: 2px; border-style: solid">
@@ -109,6 +113,10 @@
                         <svg x-show="fb && ! fb.ok" class="w-9 h-9" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
                     <p class="text-lg font-semibold leading-snug text-white" x-text="fb ? fb.msg : ''"></p>
+                    <div class="flex flex-col items-center gap-3 pt-3">
+                        <button type="button" x-on:click="dismiss()" data-scan-close class="rounded-lg bg-white/90 px-6 py-2 text-sm font-semibold text-ink shadow-sm">Am înțeles</button>
+                        <div class="h-1.5 w-40 overflow-hidden rounded-full bg-white/30" data-scan-progress><div class="h-full rounded-full bg-white" :style="'width:' + prog + '%'"></div></div>
+                    </div>
                 </div>
 
                 {{-- Mai multe bilete pe același QR: alegi cele care intră acum --}}

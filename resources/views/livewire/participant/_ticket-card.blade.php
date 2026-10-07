@@ -10,7 +10,11 @@
             <div style="font-weight: 800">{{ $t->party?->name }}</div>
             <div class="pa-soft" style="font-size: .85rem">{{ $t->party ? \App\Support\PartyPublic::dateLabel($t->party) : '' }} · {{ $t->ticket_type }}</div>
         </div>
-        <span class="pa-chip pa-chip-amber" style="flex: none">VALABIL</span>
+        @if ($t->status === \App\Models\Ticket::USED)
+            <span class="pa-chip" style="flex: none" data-ticket-used>INTRAT</span>
+        @else
+            <span class="pa-chip pa-chip-amber" style="flex: none">VALABIL</span>
+        @endif
     </div>
     <div wire:ignore style="display: flex; justify-content: center"
          x-data
@@ -24,6 +28,9 @@
          })()">
         <div x-ref="qr" data-ticket-qr="{{ $t->qrPayload() }}" style="width: 200px; height: 200px; background: #fff; padding: 10px; border-radius: .9rem"></div>
     </div>
+    @if ($t->status === \App\Models\Ticket::USED)
+        <div style="font-weight: 800; color: #ffb36b">Biletul a fost folosit{{ $t->used_at ? ' la '.$t->used_at->format('H:i') : '' }}.</div>
+    @endif
     <div style="font-size: .9rem">
         @if ($t->holder)
             <span style="font-weight: 800">{{ $t->holder->name }}</span>
@@ -33,9 +40,6 @@
         @php $payStatus = $t->order?->payment_status ?? \App\Models\Order::PAY_AT_ENTRY; @endphp
         <span class="pa-soft"> · {{ (float) $t->price > 0 ? number_format((float) $t->price, 2, ',', '.').' lei, '.($payStatus === \App\Models\Order::PAY_CREDITS ? 'achitat cu credite' : ($payStatus === \App\Models\Order::PAY_AT_ENTRY ? 'de plătit la intrare' : 'achitat')) : 'gratuit' }}</span>
     </div>
-    @if (! $public && $t->owner_participant_id !== $me?->id && $t->owner)
-        <div class="pa-soft" style="font-size: .85rem">Trimis în contul lui {{ $t->owner->name }}.</div>
-    @endif
     @if (! $public && $me && \App\Services\TicketTransfers::canSend($t, $me))
         <button type="button" class="pa-btn pa-btn-ghost pa-btn-sm" wire:click="startSend({{ $t->id }})" data-send-ticket="{{ $t->id }}">Trimite biletul</button>
     @endif

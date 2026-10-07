@@ -72,7 +72,7 @@ function dsBuy(Party $party, ?string $code, string $at, ?int $holderId = null, i
     $buyer = $holderId ? Participant::find($holderId) : ParticipantRegistry::create('Cumpărător '.$n, '07300'.str_pad((string) $n, 5, '0', STR_PAD_LEFT));
     $buyer->forceFill(['password' => 'parola-sigura', 'phone_verified_at' => now()])->save();
 
-    $order = TicketOrders::place($buyer, $party, 'Bilet', $count, [], $code, Carbon::parse($at));
+    $order = TicketOrders::place($buyer, $party, 'Bilet', $count, $code, Carbon::parse($at));
     $order->tickets()->update(['created_at' => Carbon::parse($at)]);
     if (! $holderId) {
         $order->tickets()->update(['holder_participant_id' => null]);

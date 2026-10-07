@@ -335,6 +335,12 @@ class Sale extends Component
     {
         $party = $this->currentParty();
         $methods = $this->saleMethods($party);
+        // Runda 57: cash nu mai e forțat la bar; un rând cu o metodă neacceptată trece pe prima metodă acceptată.
+        foreach ($this->payments as $i => $p) {
+            if ($methods && ! isset($methods[$p['method'] ?? ''])) {
+                $this->payments[$i]['method'] = array_key_first($methods);
+            }
+        }
         $items = $this->cartItems();
         $total = $this->totalCents();
         $paid = $this->paidCents();

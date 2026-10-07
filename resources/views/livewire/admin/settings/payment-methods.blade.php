@@ -136,6 +136,59 @@
                                 <span class="{{ $knob }} {{ $creditsPurchasable ? 'translate-x-6' : 'translate-x-1' }}"></span>
                             </button>
                         </div>
+
+                        {{-- Încărcare: limite, sume rapide și bonus pe praguri (runda 51) --}}
+                        @if ($creditsPurchasable)
+                            <div class="mt-4 space-y-5" data-credit-topup-settings>
+                                <div>
+                                    <div class="text-sm font-medium text-ink">Sume de încărcat</div>
+                                    <div class="mt-1.5 flex flex-wrap items-end gap-3">
+                                        <label class="block"><span class="block text-xs text-ink-soft">Minim (lei)</span>
+                                            <input type="text" inputmode="decimal" wire:model="topupMin" class="mt-1 w-24 rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"></label>
+                                        <label class="block"><span class="block text-xs text-ink-soft">Maxim (lei)</span>
+                                            <input type="text" inputmode="decimal" wire:model="topupMax" class="mt-1 w-24 rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"></label>
+                                        <label class="block flex-1 min-w-[10rem]"><span class="block text-xs text-ink-soft">Sume rapide (separate prin virgulă)</span>
+                                            <input type="text" wire:model="presets" placeholder="20, 50, 100, 200" class="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"></label>
+                                        <x-btn variant="neutral" size="sm" wire:click="saveLimits">Salvează</x-btn>
+                                    </div>
+                                    @if ($limitsMessage)
+                                        <x-alert type="success" class="mt-2" dismiss-prop="limitsMessage" :dismiss-value="null" data-limits-message>{{ $limitsMessage }}</x-alert>
+                                    @endif
+                                    @if ($limitsError)
+                                        <x-alert type="error" class="mt-2" dismiss-prop="limitsError" :dismiss-value="null" data-limits-error>{{ $limitsError }}</x-alert>
+                                    @endif
+                                </div>
+
+                                <div>
+                                    <div class="text-sm font-medium text-ink">Bonus la încărcare</div>
+                                    <p class="mt-0.5 text-xs text-ink-soft">Cine încarcă cel puțin suma „de la” primește în plus procentul ales, ca credit obișnuit (fără expirare). Se aplică cel mai mare prag atins, nu se adună. Valabil și la încărcarea din aplicație, și la vânzarea la Recepție; fără praguri, nu există bonus.</p>
+                                    <div class="mt-2 space-y-2">
+                                        @foreach ($tiers as $i => $t)
+                                            <div wire:key="tier-{{ $i }}" class="flex flex-wrap items-center gap-2" data-bonus-tier>
+                                                <span class="text-sm text-ink-soft">de la</span>
+                                                <input type="text" inputmode="decimal" wire:model="tiers.{{ $i }}.min" aria-label="Prag (lei)" class="w-24 rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                                                <span class="text-sm text-ink-soft">lei → +</span>
+                                                <input type="text" inputmode="decimal" wire:model="tiers.{{ $i }}.percent" aria-label="Bonus (%)" class="w-20 rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                                                <span class="text-sm text-ink-soft">%</span>
+                                                <x-btn variant="danger" size="icon" outline tooltip="Șterge pragul" wire:click="removeTier({{ $i }})">
+                                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                                </x-btn>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <div class="mt-2 flex items-center gap-2">
+                                        <x-btn variant="neutral" size="sm" wire:click="addTier">Adaugă prag</x-btn>
+                                        <x-btn variant="primary" size="sm" wire:click="saveBonus">Salvează bonusul</x-btn>
+                                    </div>
+                                    @if ($bonusMessage)
+                                        <x-alert type="success" class="mt-2" dismiss-prop="bonusMessage" :dismiss-value="null" data-bonus-message>{{ $bonusMessage }}</x-alert>
+                                    @endif
+                                    @if ($bonusError)
+                                        <x-alert type="error" class="mt-2" dismiss-prop="bonusError" :dismiss-value="null" data-bonus-error>{{ $bonusError }}</x-alert>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     @else
                         <p class="mt-1.5 text-xs text-ink-soft">Creditele plătesc intrarea și barul. Activate, participanții vor putea cumpăra credite din aplicație.</p>
                     @endif

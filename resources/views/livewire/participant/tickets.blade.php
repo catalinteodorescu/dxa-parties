@@ -5,7 +5,7 @@
     </section>
 
     <section class="pa-section">
-        @if ($valid->isEmpty())
+        @if ($carousel->isEmpty())
             <div class="pa-glass pa-pad pa-stack" style="text-align: center">
                 <div style="font-weight: 800">Nu ai bilete valabile</div>
                 <div class="pa-soft" style="font-size: .9rem">Cumpără un bilet de pe pagina unei petreceri.</div>
@@ -16,15 +16,15 @@
             <div x-data="{ i: 0 }" class="pa-stack" style="gap: .6rem" data-tickets-carousel>
                 <div style="display: flex; gap: .75rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch"
                      @scroll.passive="i = Math.round($el.scrollLeft / $el.clientWidth)">
-                    @foreach ($valid as $t)
+                    @foreach ($carousel as $t)
                         <div style="flex: 0 0 100%; scroll-snap-align: center; box-sizing: border-box" wire:key="vt-{{ $t->id }}">
                             @include('livewire.participant._ticket-card', ['t' => $t])
                         </div>
                     @endforeach
                 </div>
-                @if ($valid->count() > 1)
+                @if ($carousel->count() > 1)
                     <div class="pa-dots" style="margin-top: 0" aria-hidden="true">
-                        @foreach ($valid as $k => $t)
+                        @foreach ($carousel as $k => $t)
                             <span :class="{ 'on': i === {{ $k }} }"></span>
                         @endforeach
                     </div>
@@ -32,6 +32,17 @@
             </div>
         @endif
     </section>
+
+    @if ($sent->isNotEmpty())
+        <section class="pa-section">
+            <div class="pa-glass pa-pad pa-stack" data-sent-tickets>
+                <div class="pa-label" style="margin: 0">Trimise de mine</div>
+                @foreach ($sent as $t)
+                    <div wire:key="st-{{ $t->id }}">@include('livewire.participant._ticket-row', ['t' => $t])</div>
+                @endforeach
+            </div>
+        </section>
+    @endif
 
     @if ($recent->isNotEmpty() || $past->isNotEmpty())
         <section class="pa-section">
@@ -70,12 +81,12 @@
                 @else
                     <p style="margin: 0; font-size: .95rem">
                         @if ($sendInfo['has_account'] ?? false)
-                            Biletul va ajunge în contul lui <strong>{{ $sendInfo['name'] }}</strong> ({{ $sendInfo['phone'] }}).
+                            Numărul <strong>{{ $sendInfo['phone'] }}</strong> are cont în aplicație: biletul va ajunge direct acolo.
                         @else
-                            Numărul <strong>{{ $sendInfo['phone'] ?? '' }}</strong> nu are cont. Îi trimitem un SMS cu un link către bilet și îl îndrumăm să-și facă cont.
+                            Numărul <strong>{{ $sendInfo['phone'] ?? '' }}</strong> nu are cont. Îi trimitem un SMS cu un link către bilet; când își face cont cu acest număr, biletul apare la el. Verifică bine numărul.
                         @endif
                     </p>
-                    <p class="pa-soft" style="margin: 0; font-size: .85rem">Biletul va ieși din contul tău și nu poți anula trimiterea.</p>
+                    <p class="pa-soft" style="margin: 0; font-size: .85rem">Biletul va ieși din contul tău și trimiterea nu se poate anula. Rămâne la tine doar o mențiune în istoric.</p>
                     <button type="button" class="pa-btn pa-btn-block" wire:click="confirmSend" wire:loading.attr="disabled">Trimite biletul</button>
                     <button type="button" class="pa-btn pa-btn-ghost pa-btn-block" wire:click="backSend">Înapoi</button>
                 @endif

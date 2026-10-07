@@ -78,10 +78,16 @@ class PartyDiscountCode extends Model
         return (int) $this->entries()->active()->count() + (int) $this->tickets()->counted()->count();
     }
 
-    /** Câte bilete valabile ale participantului (titular cu nume) au folosit codul. */
+    /**
+     * Câte FOLOSIRI ale codului are participantul (runda 53): o comandă online cu codul = o folosire, oricâte bilete cu reducere ar avea;
+     * la Recepție, fiecare intrare valabilă cu codul pe numele lui = o folosire. Limita per participant se numără pe folosiri, nu pe bilete.
+     * Comenzile cu toate biletele anulate nu se numără.
+     */
     public function usesBy(int $participantId): int
     {
         return (int) $this->entries()->active()->where('participant_id', $participantId)->count()
-            + (int) $this->tickets()->counted()->where('holder_participant_id', $participantId)->count();
+            + (int) $this->tickets()->counted()
+                ->whereHas('order', fn ($q) => $q->where('participant_id', $participantId))
+                ->distinct()->count('order_id');
     }
 }

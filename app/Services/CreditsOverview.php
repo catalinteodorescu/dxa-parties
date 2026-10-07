@@ -34,7 +34,7 @@ class CreditsOverview
      * Sumar all-time. `active` = soldul însumat al participanților (cât se datorează în credite nefolosite);
      * identitate: loaded − spent − refunded + adjusted = active.
      *
-     * @return object{active: float, loaded: float, spent: float, spent_bar: float, spent_entry: float, spent_tickets: float, refunded: float, adjusted: float}
+     * @return object{active: float, loaded: float, spent: float, spent_bar: float, spent_entry: float, spent_tickets: float, bonus: float, refunded: float, adjusted: float}
      */
     public static function summary(): object
     {
@@ -54,6 +54,7 @@ class CreditsOverview
             'spent_bar' => round($spentBar, 2),
             'spent_entry' => round($spentEntry, 2),
             'spent_tickets' => round($spentTickets, 2),
+            'bonus' => round((float) CreditTransaction::query()->active()->where('type', CreditTransaction::LOAD)->sum('bonus'), 2),   // runda 51: cât din „încărcat” a fost bonus
             'refunded' => round(-$sum(CreditTransaction::REFUND), 2),
             'adjusted' => round($sum(CreditTransaction::ADJUSTMENT), 2),
         ];

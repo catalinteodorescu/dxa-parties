@@ -36,6 +36,9 @@
         <div class="{{ $card }}">
             <div class="text-[11px] text-ink-soft">Încărcat</div>
             <div class="text-2xl font-semibold text-ink">{{ $lei($summary->loaded) }}</div>
+            @if ($summary->bonus > 0)
+                <div class="mt-0.5 text-[11px] text-ink-soft" data-bonus-total>din care bonus {{ $lei($summary->bonus) }}</div>
+            @endif
         </div>
         <div class="{{ $card }}">
             <div class="text-[11px] text-ink-soft">Cheltuit</div>

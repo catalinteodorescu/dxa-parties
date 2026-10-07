@@ -380,7 +380,7 @@ it('portofelul arată soldul evidențiat și toate mișcările proprii (încărc
 
     $this->actingAs($p, 'participant')->get('/portofel')->assertOk()
         ->assertSee('data-balance', false)->assertSee('45,00')->assertSee('Prima încărcare')->assertSee('Bonus test')
-        ->assertDontSee('Al altcuiva')->assertDontSee('Vezi mai mult')->assertSee('Încarcă');
+        ->assertDontSee('Al altcuiva')->assertDontSee('Vezi mai mult')->assertSee('data-topup-unavailable', false);   // runda 51b: cu cumpărarea oprită, mesajul spre Recepție în loc de butonul „Încarcă”
 
     // O plată apare în listă, cu minus.
     CreditLedger::pay($p, 12, Sale::class, 1, null);
@@ -635,10 +635,10 @@ it('bilete: mai multe bilete valabile într-un carusel cu puncte; ultimele 5 fol
         ->assertSee('data-tickets-carousel', false)->assertSee('pa-dots', false)->assertDontSee('glisează')->assertDontSee('bilete valabile')
         ->assertDontSee('Ultimele bilete')->assertDontSee('Se încarcă');
 
-    // Douăsprezece bilete folosite: apar 10, cu lazy load pentru restul.
+    // Douăsprezece bilete anulate: apar 10, cu lazy load pentru restul (cele folosite rămân în carusel, runda 54).
     foreach (range(1, 12) as $i) {
         $t = TicketOrders::place($p, $party, 'Bilet', 1)->tickets->first();
-        $t->update(['status' => 'used']);
+        $t->update(['status' => 'void']);
     }
     $this->get('/bilete')->assertOk()->assertSee('Ultimele bilete')->assertSee('Se încarcă');
     Livewire::test(Tickets::class)->assertSet('limit', 10)->call('more')->assertSet('limit', 20)->assertDontSee('Se încarcă');

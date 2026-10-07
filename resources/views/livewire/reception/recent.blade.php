@@ -1,5 +1,15 @@
 @php
     $money = fn ($n) => number_format((float) $n, 2, ',', '.');
+    // Suma afișată: ce s-a încasat la intrare + ce era plătit online pe bilet (altfel o intrare cu bilet plătit online ar părea „gratuit”).
+    $amountLabel = function ($o) use ($money) {
+        $parts = [];
+        if ($o->amount > 0) { $parts[] = $money($o->amount).' lei'; }
+        if (($o->online ?? 0) > 0) { $parts[] = $money($o->online).' lei plătiți online'; }
+        if ($parts) { return implode(' + ', $parts); }
+        if ($o->cancelled && $o->kind === 'entry') { return null; }
+
+        return ($o->has_ticket ?? false) ? 'bilet online' : 'gratuit';
+    };
     $badge = ['entry' => 'bg-info-soft text-info', 'token' => 'bg-warning/10 text-warning', 'credit' => 'bg-success-soft text-success'];
 @endphp
 <div class="space-y-4"
@@ -47,7 +57,7 @@
                                 <span class="text-xs text-ink-soft">{{ $o->at?->format('H:i') }}</span>
                             </div>
                             <div class="mt-1 text-base font-semibold {{ $o->cancelled ? 'text-ink-soft line-through' : 'text-ink' }}">
-                                {{ $o->title }} · {{ $o->amount > 0 ? $money($o->amount).' lei' : 'gratuit' }}
+                                {{ $o->title }}@if ($amountLabel($o)) · {{ $amountLabel($o) }}@endif
                             </div>
                             @if ($o->methods)<div class="mt-0.5 text-xs text-ink-soft">{{ $o->methods }}</div>@endif
                             @if (! empty($o->code))<div class="mt-0.5 text-xs text-success">Cod {{ $o->code }}</div>@endif
@@ -60,7 +70,7 @@
                         </div>
                         @unless ($o->cancelled)
                             <x-btn variant="danger" size="sm" outline
-                                   x-on:click="ask('{{ $o->kind }}', '{{ addslashes($o->key) }}', {{ \Illuminate\Support\Js::from($o->title.' · '.$money($o->amount).' lei') }})">Anulează</x-btn>
+                                   x-on:click="ask('{{ $o->kind }}', '{{ addslashes($o->key) }}', {{ \Illuminate\Support\Js::from($o->title.($amountLabel($o) ? ' · '.$amountLabel($o) : '')) }})">Anulează</x-btn>
                         @endunless
                     </div>
                 </div>
