@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\CreditTransaction;
 use App\Models\Order;
 use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\Ticket;
+use App\Support\PaymentMethods;
 use App\Support\Phone;
 use App\Support\Settings\Settings;
 use DomainException;
@@ -28,7 +30,9 @@ use Illuminate\Support\Str;
  *    contul lui (cu numele lui); altfel rămâne în contul cumpărătorului, fără nume (telefonul se păstrează).
  *  - Combo (runda 26): „3+1” = în fiecare set de 4 bilete de același tip, primele 3 se plătesc, al 4-lea e oferit (0 lei, bilet real cu
  *    stoc și QR, nu expiră, nu ocupă locuri din treptele „primele N”). Codul se aplică doar biletelor plătite. Nume/telefoane rămân opționale.
- *  - Fără plată online încă: comanda e „de plătit la intrare”. Nu există anulare din aplicație.
+ *  - Fără plată online încă: comanda e „de plătit la intrare” (sau achitată, cu DXA_TICKETS_AUTO_PAID, ca simulare a plății cu cardul).
+ *    Runda 50: plata cu credite — integrală, din portofelul cumpărătorului, doar dacă soldul acoperă totalul; debitul se face în aceeași
+ *    tranzacție cu comanda (sold verificat pe rândul blocat). Nu există anulare din aplicație.
  */
 class TicketOrders
 {
@@ -49,6 +53,26 @@ class TicketOrders
         }
 
         return null;
+    }
+
+    /**
+     * DXA: adaugat (runda 50). Se pot plăti biletele cu credite la această petrecere? Motivul refuzului, sau null dacă da:
+     * metoda „Credite” activă în Setări și acceptată la intrare de petrecere (PaymentMethods::forEntry).
+     */
+    public static function creditsBlockReason(Party $party): ?string
+    {
+        if (! PaymentMethods::isEnabled(PaymentMethods::CREDIT) || ! isset(PaymentMethods::forEntry($party)[PaymentMethods::CREDIT])) {
+            return 'La această petrecere nu se poate plăti cu credite.';
+        }
+
+        return null;
+    }
+
+    /** Poate cumpărătorul plăti un total cu credite (metoda permisă, total > 0, sold suficient)? Folosit de aplicație ca să arate sau nu opțiunea. */
+    public static function canPayWithCredits(Participant $buyer, Party $party, float $total): bool
+    {
+        return $total > 0 && self::creditsBlockReason($party) === null
+            && PaymentRows::cents(CreditLedger::balance($buyer)) >= PaymentRows::cents($total);
     }
 
     /** @return array{name: string, type: array}|null */
@@ -330,7 +354,7 @@ class TicketOrders
      *
      * @throws DomainException cu motivul în română
      */
-    public static function place(Participant $buyer, Party $party, string $ticketName, int $count, array $phones = [], ?string $codeInput = null, ?Carbon $at = null, ?string $combo = null): Order
+    public static function place(Participant $buyer, Party $party, string $ticketName, int $count, array $phones = [], ?string $codeInput = null, ?Carbon $at = null, ?string $combo = null, bool $withCredits = false): Order
     {
         if (! $buyer->hasAccount()) {
             throw new DomainException('Ai nevoie de un cont activ ca să cumperi bilete.');
@@ -338,7 +362,7 @@ class TicketOrders
 
         $others = self::resolveOthers($buyer, $count, $phones);
 
-        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $others, $codeInput, $at, $combo) {
+        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $others, $codeInput, $at, $combo, $withCredits) {
             // Blochează petrecerea (stocul) și codul (utilizările) înainte de a recalcula.
             $party = Party::query()->whereKey($party->id)->lockForUpdate()->firstOrFail();
             $code = $codeInput !== null && trim($codeInput) !== '' ? DiscountCodes::find($party, $codeInput) : null;
@@ -349,6 +373,20 @@ class TicketOrders
             $holderIds = array_values(array_filter(array_merge([$buyer->id], array_column($others, 'holder_id'))));
             $quote = self::quote($party, $ticketName, $count, $codeInput, $holderIds, $at, $combo);
 
+            if ($withCredits) {
+                if ($reason = self::creditsBlockReason($party)) {
+                    throw new DomainException($reason);
+                }
+                if ($quote->total <= 0) {
+                    throw new DomainException('Comanda e gratuită: nu e nimic de plătit cu credite.');
+                }
+                // Soldul se citește de pe rândul blocat al cumpărătorului: două comenzi simultane nu pot cheltui aceiași bani.
+                $wallet = Participant::query()->whereKey($buyer->id)->lockForUpdate()->firstOrFail();
+                if (PaymentRows::cents(CreditLedger::balance($wallet)) < PaymentRows::cents($quote->total)) {
+                    throw new DomainException('Soldul de credite ('.PaymentRows::money(CreditLedger::balance($wallet)).' lei) nu ajunge pentru '.PaymentRows::money($quote->total).' lei.');
+                }
+            }
+
             $order = Order::create([
                 'uuid' => (string) Str::uuid(),
                 'participant_id' => $buyer->id,
@@ -358,7 +396,7 @@ class TicketOrders
                 'discount_total' => $quote->discount,
                 'total' => $quote->total,
                 'discount_code_id' => $quote->code?->id,
-                'payment_status' => config('app.dxa_tickets_auto_paid') ? Order::PAY_PAID : Order::PAY_AT_ENTRY,
+                'payment_status' => $withCredits ? Order::PAY_CREDITS : (config('app.dxa_tickets_auto_paid') ? Order::PAY_PAID : Order::PAY_AT_ENTRY),
             ]);
 
             foreach ($quote->lines as $i => $line) {
@@ -382,10 +420,16 @@ class TicketOrders
                 ]);
             }
 
+            if ($withCredits) {
+                CreditLedger::pay($wallet, (float) $quote->total, Order::class, $order->id, null, $at, CreditTransaction::SOURCE_APP, Str::limit('Bilete · '.$party->name, 255, ''));
+                $buyer->credit_balance = $wallet->credit_balance;
+            }
+
             ActivityLogger::log('tickets.ordered', sprintf(
-                '%s a cumpărat %d %s „%s” la „%s” (total %s lei%s%s).',
+                '%s a cumpărat %d %s „%s” la „%s” (total %s lei%s%s%s).',
                 $buyer->name, $count, $count === 1 ? 'bilet' : 'bilete', $ticketName, $party->name,
-                number_format($quote->total, 2, ',', '.'), $quote->code ? ', cod '.$quote->code->code : '', $combo ? ', combo '.$combo : ''
+                number_format($quote->total, 2, ',', '.'), $quote->code ? ', cod '.$quote->code->code : '', $combo ? ', combo '.$combo : '',
+                $withCredits ? ', plătit cu credite' : ''
             ), actor: null);
 
             return $order->load('tickets');

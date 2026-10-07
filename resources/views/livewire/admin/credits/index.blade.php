@@ -10,7 +10,7 @@
     ];
     $sourceLoadLabels = \App\Models\CreditTransaction::SOURCE_LABELS;
     $loadedMax = max(array_merge([0.01], array_values($loadedBySource)));
-    $spentMax = max(0.01, (float) $summary->spent_bar, (float) $summary->spent_entry);
+    $spentMax = max(0.01, (float) $summary->spent_bar, (float) $summary->spent_entry, (float) $summary->spent_tickets);
 @endphp
 <div class="max-w-3xl">
     <div class="mb-5">
@@ -40,7 +40,7 @@
         <div class="{{ $card }}">
             <div class="text-[11px] text-ink-soft">Cheltuit</div>
             <div class="text-2xl font-semibold text-ink">{{ $lei($summary->spent) }}</div>
-            <div class="mt-0.5 text-[11px] text-ink-soft">bar {{ $lei($summary->spent_bar) }} · intrare {{ $lei($summary->spent_entry) }}</div>
+            <div class="mt-0.5 text-[11px] text-ink-soft">bar {{ $lei($summary->spent_bar) }} · intrare {{ $lei($summary->spent_entry) }} · bilete online {{ $lei($summary->spent_tickets) }}</div>
         </div>
         <div class="{{ $card }}">
             <div class="text-[11px] text-ink-soft">Rambursat</div>
@@ -74,7 +74,7 @@
         <div class="{{ $card }}">
             <h3 class="text-sm font-semibold text-ink">Cheltuit pe destinație</h3>
             <div class="mt-3 space-y-3">
-                @foreach (['Bar' => $summary->spent_bar, 'Intrare' => $summary->spent_entry] as $label => $amount)
+                @foreach (['Bar' => $summary->spent_bar, 'Intrare' => $summary->spent_entry, 'Bilete online' => $summary->spent_tickets] as $label => $amount)
                     <div wire:key="sp-{{ $label }}">
                         <div class="flex items-baseline justify-between gap-2 text-xs">
                             <span class="text-ink-soft">{{ $label }}</span>
@@ -130,10 +130,11 @@
                     @php
                         $ref = $t->reference;
                         $partyName = $t->party?->name
-                            ?? ($ref instanceof \App\Models\Sale ? $ref->group?->party?->name : ($ref instanceof \App\Models\PartyEntry ? $ref->party?->name : null));
+                            ?? ($ref instanceof \App\Models\Sale ? $ref->group?->party?->name : ($ref instanceof \App\Models\PartyEntry || $ref instanceof \App\Models\Order ? $ref->party?->name : null));
                         $origin = match (true) {
                             $t->reference_type === \App\Models\Sale::class => 'Vânzare la bar #'.$t->reference_id,
                             $t->reference_type === \App\Models\PartyEntry::class => 'Intrare',
+                            $t->reference_type === \App\Models\Order::class => 'Bilete online · comanda #'.$t->reference_id,
                             default => null,
                         };
                         $cancelled = $t->isCancelled();

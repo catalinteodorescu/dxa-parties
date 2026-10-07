@@ -1,6 +1,6 @@
 {{-- DXA: adaugat (Aplicația participanților - runda 14). Cumpărarea de bilete: buton + dialog centrat (comandă) sau, pentru
-     vizitatorii neconectați, dialog de logare / înregistrare. Variabile: $party, $me, $options, $maxQty, $quote, $quoteError, $combos (combo-urile tipului ales), $count (biletele din comandă).
-     Componenta părinte: Livewire\Participant\PartyShow. Fără plată online încă: comanda e „de plătit la intrare”. --}}
+     vizitatorii neconectați, dialog de logare / înregistrare. Variabile: $party, $me, $options, $maxQty, $quote, $quoteError, $combos (combo-urile tipului ales), $count (biletele din comandă), $creditBalance (soldul, doar dacă acoperă totalul).
+     Componenta părinte: Livewire\Participant\PartyShow. Plata cu cardul e simulată (Confirmă); runda 50: „Plătesc cu credite”, cu confirmare, doar dacă soldul acoperă totalul. --}}
 @php
     use App\Support\PartyPublic;
     $soldOut = $maxQty < 1;
@@ -8,7 +8,7 @@
     $grouped = $quote ? collect($quote->lines)->groupBy(fn ($l) => ($l['free'] ? 'f' : 'p').number_format($l['price'], 2, '.', ''))->map(fn ($g) => ['n' => $g->count(), 'price' => (float) $g->first()['price'], 'free' => (bool) $g->first()['free']])->values() : collect();
     $comboDef = $combo !== '' ? collect($combos)->firstWhere('key', $combo) : null;
 @endphp
-<div x-data="{ buy: false, auth: false }" @keydown.escape.window="buy = false; auth = false" id="bilete">
+<div x-data="{ buy: false, auth: false, cr: false }" @keydown.escape.window="buy = false; auth = false; cr = false" id="bilete">
     @if ($soldOut)
         <div class="pa-glass pa-pad" style="text-align: center; font-weight: 800">Biletele online au fost epuizate.</div>
     @else
@@ -148,11 +148,32 @@
                     <p class="pa-err">{{ $quoteError }}</p>
                 @endif
 
-                <div class="pa-soft" style="font-size: .8rem">Plata se face la intrare. Comanda nu se poate anula din aplicație.</div>
+                <div class="pa-soft" style="font-size: .8rem">Comanda nu se poate anula din aplicație.</div>
 
-                <div style="display: flex; gap: .5rem">
-                    <button type="button" class="pa-btn pa-btn-ghost" style="flex: 1" @click="buy = false">Renunță</button>
-                    <button type="button" class="pa-btn" style="flex: 1" wire:click="buy" wire:loading.attr="disabled" wire:target="buy" @if (! $quote) disabled @endif>Confirmă</button>
+                @if ($creditBalance !== null && $quote)
+                    {{-- Plata cu credite (runda 50): apare doar dacă soldul acoperă totalul; cere confirmare înainte de debitare. --}}
+                    <div x-show="cr" x-cloak class="pa-glass pa-pad pa-stack" style="gap: .6rem" data-credit-confirm>
+                        <div style="font-weight: 800">Plătești cu credite</div>
+                        <div style="font-size: .92rem">Se scad <b>{{ PartyPublic::lei($quote->total) }}</b> din portofel. Îți rămân <b>{{ PartyPublic::lei($creditBalance - $quote->total) }}</b>.</div>
+                        <div class="pa-soft" style="font-size: .8rem">Comanda nu se poate anula, iar creditele nu se returnează automat.</div>
+                        <div style="display: flex; gap: .5rem">
+                            <button type="button" class="pa-btn pa-btn-ghost" style="flex: 1" @click="cr = false">Înapoi</button>
+                            <button type="button" class="pa-btn" style="flex: 1" wire:click="buyWithCredits" wire:loading.attr="disabled" wire:target="buyWithCredits" data-pay-credits>Confirmă</button>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- x-show pe un container separat: Alpine șterge `display` inline la afișare, deci `flex` + `gap` stau pe copil. --}}
+                <div @if ($creditBalance !== null) x-show="! cr" @endif>
+                    <div style="display: flex; flex-direction: column; gap: .75rem">
+                        @if ($creditBalance !== null)
+                            <button type="button" class="pa-btn pa-btn-ghost pa-btn-block" @click="cr = true" data-credit-option>Plătesc cu credite</button>
+                        @endif
+                        <div style="display: flex; gap: .5rem">
+                            <button type="button" class="pa-btn pa-btn-ghost" style="flex: 1" @click="buy = false">Renunță</button>
+                            <button type="button" class="pa-btn" style="flex: 1" wire:click="buy" wire:loading.attr="disabled" wire:target="buy" @if (! $quote) disabled @endif>Confirmă</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

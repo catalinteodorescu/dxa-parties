@@ -52,6 +52,9 @@
                     <div class="text-[11px] text-ink-soft">Valoare bilete</div>
                     <div class="text-lg font-semibold text-ink">{{ $money($t->revenue) }}</div>
                     <div class="text-[11px] text-ink-soft">{{ $int($t->orders) }} {{ $t->orders === 1 ? 'comandă' : 'comenzi' }} · {{ $int($t->buyers) }} {{ $t->buyers === 1 ? 'cumpărător' : 'cumpărători' }}</div>
+                    @if ($t->credit_orders > 0)
+                        <div class="text-[11px] text-ink-soft" data-credit-orders>din care {{ $money($t->credit_amount) }} plătiți cu credite ({{ $int($t->credit_orders) }} {{ $t->credit_orders === 1 ? 'comandă' : 'comenzi' }})</div>
+                    @endif
                     {!! $vs('money', $t->revenue, $ct?->revenue, 'up') !!}
                 </div>
                 <div class="{{ $tile }}">

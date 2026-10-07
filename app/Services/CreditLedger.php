@@ -113,7 +113,8 @@ class CreditLedger
 
     /**
      * Debitează credite la o plată (bar/intrare), automat, fără aprobarea participantului.
-     * Aruncă excepție dacă soldul nu ajunge. $referenceType/$referenceId leagă rândul de vânzare/intrare.
+     * Aruncă excepție dacă soldul nu ajunge. $referenceType/$referenceId leagă rândul de vânzare/intrare/comandă de bilete
+     * (runda 50: `$source` = participant_app pentru biletele cumpărate online, `$note` = textul din istoric).
      */
     public static function pay(
         Participant $participant,
@@ -122,6 +123,8 @@ class CreditLedger
         int $referenceId,
         ?int $adminId = null,
         ?Carbon $at = null,
+        string $source = CreditTransaction::SOURCE_BAR,
+        ?string $note = null,
     ): CreditTransaction {
         if ($amount <= 0) {
             throw new DomainException('Suma de plată cu credite trebuie să fie mai mare ca 0.');
@@ -130,7 +133,7 @@ class CreditLedger
             throw new DomainException('Soldul de credite ('.number_format(self::balance($participant), 2, ',', '.').' lei) nu ajunge pentru '.PaymentRows::money($amount).' lei.');
         }
 
-        return self::write($participant, CreditTransaction::PAYMENT, -$amount, CreditTransaction::SOURCE_BAR, $adminId, null, $referenceType, $referenceId, $at);
+        return self::write($participant, CreditTransaction::PAYMENT, -$amount, $source, $adminId, $note, $referenceType, $referenceId, $at);
     }
 
     /**

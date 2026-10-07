@@ -144,6 +144,17 @@ class PartyShow extends Component
 
     public function buy(): void
     {
+        $this->placeOrder(false);
+    }
+
+    /** DXA: adaugat (runda 50). Plata integrală din portofel; confirmarea o cere dialogul înainte de apel, serverul reverifică soldul. */
+    public function buyWithCredits(): void
+    {
+        $this->placeOrder(true);
+    }
+
+    private function placeOrder(bool $withCredits): void
+    {
         $this->buyError = '';
         $me = auth('participant')->user();
         if (! $me) {
@@ -157,7 +168,7 @@ class PartyShow extends Component
             $count = $this->ticketCount($party);
             $order = TicketOrders::place(
                 $me, $party, $this->ticketName, $count,
-                array_slice($this->phones, 0, max(0, $count - 1)), $this->appliedCode ?: null, null, $this->combo ?: null
+                array_slice($this->phones, 0, max(0, $count - 1)), $this->appliedCode ?: null, null, $this->combo ?: null, $withCredits
             );
         } catch (DomainException $e) {
             $this->buyError = $e->getMessage();
@@ -165,7 +176,7 @@ class PartyShow extends Component
             return;
         }
 
-        session()->flash('status', self::orderMessage($order, $me->id));
+        session()->flash('status', ($withCredits ? 'Plătit cu credite. ' : '').self::orderMessage($order, $me->id));
         $this->redirectRoute('app.tickets', navigate: true);
     }
 
@@ -199,6 +210,7 @@ class PartyShow extends Component
         $options = [];
         $combos = [];
         $count = 0;
+        $creditBalance = null;   // runda 50: soldul, doar dacă acoperă totalul (altfel opțiunea „Plătesc cu credite” nu apare)
 
         if (! $saleBlock) {
             foreach ($party->entryTicketTypes() as $t) {
@@ -234,6 +246,9 @@ class PartyShow extends Component
                 } catch (DomainException $e) {
                     $quoteError = $e->getMessage();
                 }
+                if ($quote && $me && TicketOrders::canPayWithCredits($me, $party, (float) $quote->total)) {
+                    $creditBalance = (float) $me->credit_balance;
+                }
             }
         }
 
@@ -249,6 +264,7 @@ class PartyShow extends Component
             'count' => $count,
             'quote' => $quote,
             'quoteError' => $quoteError,
+            'creditBalance' => $creditBalance,
         ])->title($party->name);
     }
 }

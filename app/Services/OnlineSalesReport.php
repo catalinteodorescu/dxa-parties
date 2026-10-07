@@ -14,7 +14,8 @@ use Illuminate\Support\Collection;
  *  - bilete = bilete online neanulate (status ≠ void); cele anulate se numără separat;
  *  - oferite = biletele gratuite dintr-un combo (`combo_free`); gratuite = alte bilete cu preț de listă 0 (ex. „gratis până la 22:00”);
  *    plătite = restul (chiar dacă un cod le-a redus la 0);
- *  - valoare = suma `price` a biletelor (comenzile sunt „de plătit la intrare”, nu există încă plată online);
+ *  - valoare = suma `price` a biletelor (comenzile sunt „de plătit la intrare”, nu există încă plată online; cele plătite cu credite
+ *    se numără separat: `credit_orders` / `credit_amount`, runda 50);
  *  - reducere = suma `discount_amount` (doar codurile; reducerile de preț cu oră și treptele sunt deja în prețul de listă). Detaliul pe coduri
  *    și promotori NU e aici: îl dă DiscountCodeStats, afișat în secțiunea „Coduri de reducere” din aceeași pagină;
  *  - locuri la preț special = cât mai rămâne din fiecare treaptă „primele N” (numărate ca la vânzare: TicketOrders::tierSoldCount).
@@ -44,6 +45,9 @@ class OnlineSalesReport
         $totals->orders = (int) Order::query()->where('party_id', $party->id)->count();
         $totals->buyers = (int) Order::query()->where('party_id', $party->id)->distinct()->count('participant_id');
         $totals->voided = (int) $rows->where('status', Ticket::VOID)->sum('n');
+        $creditOrders = Order::query()->where('party_id', $party->id)->where('payment_status', Order::PAY_CREDITS);   // runda 50
+        $totals->credit_orders = (int) (clone $creditOrders)->count();
+        $totals->credit_amount = round((float) (clone $creditOrders)->sum('total'), 2);
         $totals->limit = $party->tickets_for_sale;
         $totals->left = $party->tickets_for_sale !== null ? max(0, (int) $party->tickets_for_sale - $totals->tickets) : null;
 

@@ -30,7 +30,8 @@
         @else
             <span class="pa-soft">Fără nume{{ $t->holder_phone ? ' · '.$t->holder_phone : '' }}</span>
         @endif
-        <span class="pa-soft"> · {{ (float) $t->price > 0 ? number_format((float) $t->price, 2, ',', '.').' lei, de plătit la intrare' : 'gratuit' }}</span>
+        @php $payStatus = $t->order?->payment_status ?? \App\Models\Order::PAY_AT_ENTRY; @endphp
+        <span class="pa-soft"> · {{ (float) $t->price > 0 ? number_format((float) $t->price, 2, ',', '.').' lei, '.($payStatus === \App\Models\Order::PAY_CREDITS ? 'achitat cu credite' : ($payStatus === \App\Models\Order::PAY_AT_ENTRY ? 'de plătit la intrare' : 'achitat')) : 'gratuit' }}</span>
     </div>
     @if (! $public && $t->owner_participant_id !== $me?->id && $t->owner)
         <div class="pa-soft" style="font-size: .85rem">Trimis în contul lui {{ $t->owner->name }}.</div>

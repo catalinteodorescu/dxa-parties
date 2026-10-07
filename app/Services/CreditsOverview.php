@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CreditTransaction;
+use App\Models\Order;
 use App\Models\Participant;
 use App\Models\PartyEntry;
 use App\Models\Sale;
@@ -33,7 +34,7 @@ class CreditsOverview
      * Sumar all-time. `active` = soldul însumat al participanților (cât se datorează în credite nefolosite);
      * identitate: loaded − spent − refunded + adjusted = active.
      *
-     * @return object{active: float, loaded: float, spent: float, spent_bar: float, spent_entry: float, refunded: float, adjusted: float}
+     * @return object{active: float, loaded: float, spent: float, spent_bar: float, spent_entry: float, spent_tickets: float, refunded: float, adjusted: float}
      */
     public static function summary(): object
     {
@@ -44,6 +45,7 @@ class CreditsOverview
 
         $spentBar = -$sum(CreditTransaction::PAYMENT, Sale::class);
         $spentEntry = -$sum(CreditTransaction::PAYMENT, PartyEntry::class);
+        $spentTickets = -$sum(CreditTransaction::PAYMENT, Order::class);   // runda 50: bilete cumpărate online
 
         return (object) [
             'active' => round(CreditLedger::totalOutstanding(), 2),
@@ -51,6 +53,7 @@ class CreditsOverview
             'spent' => round(-$sum(CreditTransaction::PAYMENT), 2),
             'spent_bar' => round($spentBar, 2),
             'spent_entry' => round($spentEntry, 2),
+            'spent_tickets' => round($spentTickets, 2),
             'refunded' => round(-$sum(CreditTransaction::REFUND), 2),
             'adjusted' => round($sum(CreditTransaction::ADJUSTMENT), 2),
         ];
