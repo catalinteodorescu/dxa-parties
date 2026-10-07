@@ -358,7 +358,7 @@ class TicketOrders
                 'discount_total' => $quote->discount,
                 'total' => $quote->total,
                 'discount_code_id' => $quote->code?->id,
-                'payment_status' => Order::PAY_AT_ENTRY,
+                'payment_status' => config('app.dxa_tickets_auto_paid') ? Order::PAY_PAID : Order::PAY_AT_ENTRY,
             ]);
 
             foreach ($quote->lines as $i => $line) {

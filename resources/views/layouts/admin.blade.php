@@ -177,10 +177,14 @@
                             <path d="M12 12 4.207 4.207A.707.707 0 0 1 4.707 3h14.586a.707.707 0 0 1 .5 1.207z"/><path d="M12 12v10"/><path d="M7 22h10"/>
                         </svg>
                         <span>Bar</span>
-                        <svg class="w-3.5 h-3.5 ml-auto shrink-0 transition-transform" :class="menuBarOpen ? 'rotate-180' : ''"
-                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="m6 9 6 6 6-6"/>
-                        </svg>
+                        <span class="ml-auto flex items-center gap-1.5 shrink-0">
+                            {{-- DXA: adaugat (runda 48). Notificare: case rămase deschise de peste 12 ore; pe antet doar cât grupul e strâns (altfel se vede pe linkul unde se rezolvă). --}}
+                            @if (($staleN = \App\Models\SalesGroup::staleOpen()->count()) > 0)<span x-show="! menuBarOpen" class="inline-flex"><x-tip text="{{ $staleN }} sesiuni de bar deschise de peste 12 ore. Deschide grupul și intră la „Raportări stoc”."><span data-stale-badge class="inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning text-white text-[11px] font-semibold px-1.5 py-0.5 normal-case tracking-normal">{{ $staleN }}</span></x-tip></span>@endif
+                            <svg class="w-3.5 h-3.5 shrink-0 transition-transform" :class="menuBarOpen ? 'rotate-180' : ''"
+                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6"/>
+                            </svg>
+                        </span>
                     </button>
 
                     <div x-show="menuBarOpen"
@@ -244,6 +248,7 @@
                                 <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/>
                             </svg>
                             Raportări stoc
+                            @if (($staleN = \App\Models\SalesGroup::staleOpen()->count()) > 0)<span class="ml-auto"><x-tip text="{{ $staleN }} {{ $staleN === 1 ? 'sesiune de bar deschisă' : 'sesiuni de bar deschise' }} de peste 12 ore. Intră aici, la „Sesiuni deschise”, și apasă „Adu în raportare” ca s-o închizi."><span data-stale-badge class="inline-flex min-w-[1.25rem] justify-center rounded-full bg-danger text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $staleN }}</span></x-tip></span>@endif
                         </a>
                         @endif
 
@@ -283,10 +288,14 @@
                             <path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>
                         </svg>
                         <span>Recepție</span>
-                        <svg class="w-3.5 h-3.5 ml-auto shrink-0 transition-transform" :class="receptionOpen ? 'rotate-180' : ''"
-                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="m6 9 6 6 6-6"/>
-                        </svg>
+                        <span class="ml-auto flex items-center gap-1.5 shrink-0">
+                            {{-- DXA: adaugat (runda 48). Notificare: case rămase deschise de peste 12 ore; pe antet doar cât grupul e strâns (altfel se vede pe linkul unde se rezolvă). --}}
+                            @if (($staleN = \App\Models\ReceptionSession::staleOpen()->count()) > 0)<span x-show="! receptionOpen" class="inline-flex"><x-tip text="{{ $staleN }} case de recepție deschise de peste 12 ore. Deschide grupul și intră la „Raportări casă”."><span data-stale-badge class="inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning text-white text-[11px] font-semibold px-1.5 py-0.5 normal-case tracking-normal">{{ $staleN }}</span></x-tip></span>@endif
+                            <svg class="w-3.5 h-3.5 shrink-0 transition-transform" :class="receptionOpen ? 'rotate-180' : ''"
+                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6"/>
+                            </svg>
+                        </span>
                     </button>
 
                     <div x-show="receptionOpen"
@@ -325,7 +334,8 @@
                                 <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/>
                             </svg>
                             Raportări casă
-                            @if (($n = \App\Models\ReceptionReport::awaitingAdmin()->count()) > 0)<span class="ml-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $n }}</span>@endif
+                            @if (($staleN = \App\Models\ReceptionSession::staleOpen()->count()) > 0)<span class="ml-auto"><x-tip text="{{ $staleN }} {{ $staleN === 1 ? 'casă deschisă' : 'case deschise' }} de peste 12 ore. Intră aici și apasă „Închide casa” la sesiunea respectivă."><span data-stale-badge class="inline-flex min-w-[1.25rem] justify-center rounded-full bg-danger text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $staleN }}</span></x-tip></span>@endif
+                            @if (($n = \App\Models\ReceptionReport::awaitingAdmin()->count()) > 0)<span class="{{ ($staleN ?? 0) > 0 ? '' : 'ml-auto' }} inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $n }}</span>@endif
                         </a>
                         @endif
 

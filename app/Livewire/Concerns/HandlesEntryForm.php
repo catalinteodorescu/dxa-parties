@@ -8,8 +8,8 @@ use App\Models\ReceptionSession;
 use App\Models\Ticket;
 use App\Services\EntryRecorder;
 use App\Services\LoyaltyLedger;
+use App\Services\ReceptionScan;
 use App\Support\PaymentMethods;
-use App\Support\Phone;
 use App\Support\RecentEntryParticipants;
 use DomainException;
 use Illuminate\Support\Collection;
@@ -164,6 +164,11 @@ trait HandlesEntryForm
                 return ['ok' => false, 'message' => $ticket->status === Ticket::USED ? 'Biletul a fost deja folosit.' : 'Biletul a fost anulat.'];
             }
 
+            // Același bilet scanat a doua oară: nu se adaugă nimic, deci nu e „succes”.
+            if (in_array($ticket->id, $this->ticketIds, true)) {
+                return ['ok' => false, 'message' => 'Biletul e deja adăugat.'];
+            }
+
             $this->addTickets(collect([$ticket]));
 
             return $this->participantError
@@ -177,6 +182,12 @@ trait HandlesEntryForm
         }
 
         $tickets = $this->validTicketsFor($participant);
+
+        // Același cod scanat a doua oară (participantul e deja în listă și nu are bilete noi de adăugat): nu e „succes”.
+        $newTickets = $tickets->reject(fn (Ticket $t) => in_array($t->id, $this->ticketIds, true));
+        if (in_array($participant->id, $this->participantIds, true) && $newTickets->isEmpty()) {
+            return ['ok' => false, 'message' => 'Participantul e deja adăugat.'];
+        }
 
         if ($tickets->isNotEmpty()) {
             $this->addTickets($tickets);
@@ -224,20 +235,8 @@ trait HandlesEntryForm
     protected function validTicketsFor(Participant $participant): Collection
     {
         $party = $this->currentParty();
-        if (! $party) {
-            return collect();
-        }
 
-        $phone = Phone::normalize($participant->phone);
-
-        return Ticket::query()->where('party_id', $party->id)->where('status', Ticket::VALID)
-            ->where(function ($q) use ($participant, $phone) {
-                $q->where('owner_participant_id', $participant->id)->orWhere('holder_participant_id', $participant->id);
-                if ($phone) {
-                    $q->orWhere('holder_phone', $phone);
-                }
-            })
-            ->orderBy('id')->get();
+        return $party ? ReceptionScan::validTicketsFor($party, $participant) : collect();
     }
 
     /** Adaugă biletele (fără dubluri) și deținătorii lor cu nume ca participanți; ridică numărul de persoane la nevoie. */

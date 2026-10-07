@@ -79,6 +79,26 @@ class SalesGroup extends Model
         return $query->where('status', 'open');
     }
 
+    /** DXA: adaugat (runda 48). Ca la recepție: sesiune de bar deschisă de prea mult timp (probabil o seară uitată). */
+    public const STALE_HOURS = 12;
+
+    public function isStale(): bool
+    {
+        return $this->isOpen() && $this->created_at !== null && $this->created_at->lt(now()->subHours(self::STALE_HOURS));
+    }
+
+    /**
+     * DXA: adaugat (runda 48). Sesiunile de bar rămase deschise de peste STALE_HOURS ore. Cele cu raportarea de bar trimisă nu intră:
+     * așteaptă adminul și au deja indicatorul lor („Raportări casă”).
+     *
+     * @return Collection<int, static>
+     */
+    public static function staleOpen(): Collection
+    {
+        return static::query()->open()->where('created_at', '<', now()->subHours(self::STALE_HOURS))->with('barReport')->get()
+            ->reject(fn (self $g) => $g->reportSubmitted())->values();
+    }
+
     public function isOpen(): bool
     {
         return $this->status === 'open';

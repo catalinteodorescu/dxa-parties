@@ -90,6 +90,11 @@ trait PicksParticipants
             return ['ok' => false, 'message' => 'Cod necunoscut. Încearcă din nou.'];
         }
 
+        // Același cod scanat a doua oară: participantul e deja ales, deci nu e „succes”.
+        if (in_array($participant->id, $this->participantIds, true)) {
+            return ['ok' => false, 'message' => 'Participantul e deja adăugat.'];
+        }
+
         $this->addParticipant($participant->id);
 
         if ($this->participantError) {

@@ -110,8 +110,9 @@ class Tickets extends Component
         $me = auth('participant')->user();
         $base = fn () => Ticket::query()->visibleTo($me->id)->with(['party', 'holder']);
 
+        // Caruselul: ultima comandă cumpărată prima (biletele aceleiași comenzi rămân în ordinea lor).
         // Biletele „valabile” ale unei petreceri încheiate nu mai sunt valabile: trec în lista de jos, ca „expirate” (runda 32).
-        [$past, $valid] = $base()->where('status', Ticket::VALID)->orderBy('id')->get()
+        [$past, $valid] = $base()->where('status', Ticket::VALID)->orderByDesc('order_id')->orderBy('id')->get()
             ->partition(fn (Ticket $t) => $t->party?->state() === 'past');
 
         $sendTicket = $this->sendId ? $base()->find($this->sendId) : null;

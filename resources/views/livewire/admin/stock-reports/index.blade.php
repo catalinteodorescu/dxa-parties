@@ -50,6 +50,9 @@
                         <span class="text-ink-soft/40">·</span> {{ $s->sales_count }} {{ $s->sales_count === 1 ? 'vânzare' : 'vânzări' }}
                         <span class="text-ink-soft/40">·</span> {{ $money($s->sales_revenue ?? 0) }} lei
                     </span>
+                    @if ($s->isStale())
+                        <span class="mt-1 inline-flex items-center rounded-full bg-warning/10 text-warning text-[11px] font-medium px-2 py-0.5">deschisă de peste {{ \App\Models\SalesGroup::STALE_HOURS }} ore — nu ai uitat să o închizi?</span>
+                    @endif
                 </div>
                 <div class="mt-3 md:mt-0 shrink-0">
                     @if ($openDraft && (int) $openDraft->sales_group_id === $s->id)

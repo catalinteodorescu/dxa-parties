@@ -169,9 +169,9 @@ class Dashboard extends Component
         ];
 
         // DXA: adaugat (Recepție - raportări): indicatori dirijați de o listă (se pot adăuga alții). Alerta „sesiune uitată”
-        // se ridică doar pentru petreceri viitoare / în desfășurare; sesiunile petrecerilor încheiate nu fac zgomot.
+        // (runda 48: ca badge-ul din meniu) numără casele deschise de peste 12 ore la ORICE petrecere, și la cele încheiate.
         $openSessions = ReceptionSession::query()->open()->with('party')->get();
-        $staleSessions = $openSessions->filter(fn (ReceptionSession $s) => $s->isStale() && in_array($s->party?->state(), ['upcoming', 'live'], true));
+        $staleSessions = ReceptionSession::staleOpen();
 
         $lastReceptionReport = ReceptionReport::query()->where('status', 'finalized')->with('party')
             ->orderByDesc('finalized_at')->orderByDesc('id')->first();

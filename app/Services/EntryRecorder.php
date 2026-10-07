@@ -14,6 +14,8 @@ use App\Support\Settings\Settings;
 use DomainException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -151,6 +153,8 @@ class EntryRecorder
             throw new DomainException('Numărul de persoane trebuie să fie între 1 și '.self::MAX_GROUP.'.');
         }
         if ($enforceState && ! $party->acceptsReceptionRecords()) {
+            self::logRefusedClosed($party, $count);
+
             throw new DomainException('Petrecerea nu primește intrări (nu e publicată, sau s-a încheiat și casa e închisă).');
         }
 
@@ -312,6 +316,30 @@ class EntryRecorder
         ).($applied ? sprintf(' Cod de reducere „%s” (−%s lei/persoană).', $applied->code->code, self::money($applied->discount)) : ''));
 
         return $entries;
+    }
+
+    /**
+     * DXA: adaugat (runda 48). Încercare de intrare la o petrecere ÎNCHEIATĂ cu casa închisă: se trece în Jurnal (categoria „Intrări”),
+     * ca adminul să vadă că cineva a încercat. O dată pe petrecere și persoană la 10 minute (apăsări repetate nu umplu jurnalul).
+     * Se apelează înainte de tranzacție: într-o tranzacție care aruncă, rândul de jurnal s-ar pierde odată cu ea.
+     */
+    private static function logRefusedClosed(Party $party, int $count): void
+    {
+        if ($party->state() !== 'past') {
+            return;   // ciornă / inactivă / alte motive: nu e „intrare la petrecere închisă”
+        }
+
+        $actorId = Auth::guard('admin')->id() ?? 0;
+        if (! Cache::add('entries.refused_closed.'.$party->id.'.'.$actorId, true, now()->addMinutes(10))) {
+            return;
+        }
+
+        ActivityLogger::log('entries.refused_closed', sprintf(
+            'Încercare de intrare refuzată la „%s” (%d %s): petrecerea s-a încheiat și casa e închisă.',
+            $party->name,
+            $count,
+            $count === 1 ? 'persoană' : 'persoane'
+        ));
     }
 
     /**

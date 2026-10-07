@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -99,6 +100,18 @@ class ReceptionSession extends Model
     public function isStale(): bool
     {
         return $this->isOpen() && $this->created_at !== null && $this->created_at->lt(now()->subHours(self::STALE_HOURS));
+    }
+
+    /**
+     * DXA: adaugat (runda 48). Casele rămase deschise de peste STALE_HOURS ore (la orice petrecere, și la cele încheiate).
+     * Cele cu raportarea trimisă nu intră: așteaptă adminul și au deja indicatorul lor („Raportări casă”).
+     *
+     * @return Collection<int, static>
+     */
+    public static function staleOpen(): Collection
+    {
+        return static::query()->open()->where('created_at', '<', now()->subHours(self::STALE_HOURS))->with('report')->get()
+            ->reject(fn (self $s) => $s->reportSubmitted())->values();
     }
 
     /**

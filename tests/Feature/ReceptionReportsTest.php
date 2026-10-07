@@ -345,7 +345,7 @@ it('KPI-ul „Diferență casă recepție” se randează și în grila complet�
     $this->get(route('admin.parties.stats', $party))->assertOk()->assertSee('Diferență casă recepție')->assertSee('+25,00 lei');
 });
 
-it('dashboardul arată indicatorii de recepție; alerta „sesiune uitată” doar la petreceri neîncheiate', function () {
+it('dashboardul arată indicatorii de recepție; alerta „sesiune uitată” apare și după ce petrecerea s-a încheiat (runda 48)', function () {
     $admin = rcpAdmin();
     $this->actingAs($admin, 'admin');
     // Festival pe 3 zile (21:00-06:00 fiecare), ca sesiunea sa ramana „live”/„upcoming” pana pe 6.10.
@@ -366,9 +366,9 @@ it('dashboardul arată indicatorii de recepție; alerta „sesiune uitată” do
     Carbon::setTestNow(Carbon::parse('2026-10-04 12:00'));
     $this->get(route('admin.dashboard'))->assertOk()->assertSee('1 de peste 12 ore');
 
-    // Petrecerea s-a încheiat: sesiunea rămâne deschisă în listă, dar fără alertă pe dashboard.
+    // Petrecerea s-a încheiat: casa uitată deschisă se vede în continuare (card + badge în meniu), tocmai acolo e cel mai de folos.
     Carbon::setTestNow(Carbon::parse('2026-10-08 12:00'));
-    $this->get(route('admin.dashboard'))->assertOk()->assertDontSee('de peste 12 ore');
+    $this->get(route('admin.dashboard'))->assertOk()->assertSee('1 de peste 12 ore')->assertSee('data-stale-badge', false);
     expect(ReceptionSession::currentFor($festival->id)->isStale())->toBeTrue();
 
     // După o raportare finalizată apar ultima diferență și totalul pe 30 de zile.

@@ -14,6 +14,9 @@ class Order extends Model
 {
     public const PAY_AT_ENTRY = 'at_entry';
 
+    /** DXA: adaugat (runda 47b). Doar pentru teste (DXA_TICKETS_AUTO_PAID=true): comanda se consideră achitată, nimic de încasat la Recepție. */
+    public const PAY_PAID = 'paid';
+
     protected $fillable = ['uuid', 'participant_id', 'party_id', 'tickets_count', 'subtotal', 'discount_total', 'total', 'discount_code_id', 'payment_status'];
 
     protected function casts(): array

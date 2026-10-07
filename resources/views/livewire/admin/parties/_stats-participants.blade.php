@@ -12,7 +12,13 @@
 <div class="{{ $card }} mb-4">
     <div class="flex items-start justify-between gap-3 flex-wrap">
         <div>
-            <h3 class="text-sm font-semibold text-ink">Participanți</h3>
+            <div class="flex items-baseline gap-x-3 gap-y-1 flex-wrap">
+                <h3 class="text-sm font-semibold text-ink">Participanți</h3>
+                {{-- DXA: adaugat (runda 49). Lista participanților petrecerii se deschide de aici (butonul din pagina petrecerii a fost scos). --}}
+                @permits('parties', 'view')
+                    <a href="{{ route('admin.parties.attendees', $party) }}" wire:navigate data-attendees-link class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Vezi lista participanți <span aria-hidden="true">→</span></a>
+                @endpermits
+            </div>
             <p class="mt-1 text-xs text-ink-soft">
                 Clasament la această petrecere.
                 @if ($part->bar_identified_pct !== null)

@@ -160,9 +160,13 @@ it('pagina: căutare după nume (fără diacritice) și telefon, filtru de situa
     expect($t->viewData('people')->items())->toHaveCount(5);
 });
 
-it('pagina se deschide din pagina petrecerii și cere admin logat', function () {
+it('pagina se deschide din Statistici petrecere › Participanți (nu din pagina petrecerii) și cere admin logat', function () {
     $party = paParty2();
-    $this->actingAs(paAdmin(), 'admin')->get(route('admin.parties.show', $party))->assertOk()->assertSee(route('admin.parties.attendees', $party), false);
+    paEntry($party, paUser('Ana Test', '0721000001'));
+    // Pagina petrecerii nu mai are butonul „Participanți”; linkul e lângă titlul secțiunii Participanți din statistici.
+    $this->actingAs(paAdmin(), 'admin')->get(route('admin.parties.show', $party))->assertOk()->assertDontSee(route('admin.parties.attendees', $party), false);
+    $this->actingAs(paAdmin(), 'admin')->get(route('admin.parties.stats', $party))->assertOk()
+        ->assertSee('Vezi lista participanți')->assertSee(route('admin.parties.attendees', $party), false);
     $this->actingAs(paAdmin(), 'admin')->get(route('admin.parties.attendees', $party))->assertOk()->assertSee('Participanți');
     auth('admin')->logout();
     $this->get(route('admin.parties.attendees', $party))->assertRedirect();

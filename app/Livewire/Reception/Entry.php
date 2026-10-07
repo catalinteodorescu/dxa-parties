@@ -4,6 +4,7 @@ namespace App\Livewire\Reception;
 
 use App\Livewire\Concerns\HandlesEntryForm;
 use App\Livewire\Reception\Concerns\UsesReceptionParty;
+use App\Models\Ticket;
 use App\Services\EntryRecorder;
 use App\Support\PaymentMethods;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +22,31 @@ class Entry extends Component
     use HandlesEntryForm;
     use UsesReceptionParty;
 
+    /** DXA: adaugat (runda 47). Formularul s-a deschis o dată din scanare (bilete / participant în adresă): pre-completarea nu se mai repetă. */
+    public bool $scanPrefilled = false;
+
+    /**
+     * DXA: adaugat (runda 47). Scanerul de pe ecranul principal trimite aici ce nu poate înregistra singur: `?bilete=1,2` (au de încasat)
+     * și/sau `?participant=ID` (persoană fără bilete → flux de vânzare). Biletele se reverifică (petrecerea curentă, valabile).
+     */
+    protected function prefillFromScan(): void
+    {
+        $party = $this->currentParty();
+        if (! $party) {
+            return;
+        }
+
+        $ids = array_slice(array_values(array_unique(array_filter(array_map('intval', explode(',', (string) request()->query('bilete')))))), 0, EntryRecorder::MAX_GROUP);
+        if ($ids !== []) {
+            $this->addTickets(Ticket::query()->where('party_id', $party->id)->where('status', Ticket::VALID)->whereIn('id', $ids)->orderBy('id')->get());
+        }
+
+        $participantId = (int) request()->query('participant');
+        if ($participantId > 0 && ! $this->participantError) {
+            $this->pickParticipant($participantId);
+        }
+    }
+
     protected function canOverridePrice(): bool
     {
         return Auth::guard('admin')->user()?->canAccess('admin') ?? false;
@@ -29,6 +55,10 @@ class Entry extends Component
     public function render()
     {
         $party = $this->currentParty();
+        if (! $this->scanPrefilled) {
+            $this->scanPrefilled = true;
+            $this->prefillFromScan();
+        }
         $this->syncTicket();
 
         $tickets = [];
