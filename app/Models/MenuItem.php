@@ -47,7 +47,7 @@ class MenuItem extends Model
     }
 
     /**
-     * Pretul in tokeni. Daca scoala foloseste tokeni (Settings::get('uses_tokens')),
+     * Pretul in tokeni. Daca organizatorul foloseste tokeni (Settings::get('uses_tokens')),
      * coloana `tokens` e sursa de adevar. Altfel, e doar un echivalent calculat
      * din pretul in lei si curs — util daca politica se schimba mai tarziu.
      */

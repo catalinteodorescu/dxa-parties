@@ -8,17 +8,8 @@
 
     <x-flash class="mb-4" />
 
-    {{-- DXA: adaugat (Setări - categorii meniu bar): panou cu salvare imediată, separat de formularul de mai sus --}}
-    <div class="mb-5">
-        @livewire(\App\Livewire\Admin\Settings\MenuCategories::class)
-    </div>
-
-    {{-- DXA: adaugat (Setări - metode de plată): panou cu salvare imediată, înlocuiește fosta secțiune „Tokeni” --}}
-    <div class="mb-5">
-        @livewire(\App\Livewire\Admin\Settings\PaymentMethods::class)
-    </div>
-
-    <form wire:submit="save" class="space-y-5">
+    {{-- Un singur „Salvează setările” pentru câmpurile din carduri; panourile (secțiuni dashboard, metode de plată) se salvează pe loc. --}}
+    <div class="space-y-5">
         @foreach ($this->sections() as $section)
             <div class="bg-surface border border-border rounded-2xl p-6">
                 <h3 class="text-sm font-semibold text-ink">{{ $section['label'] }}</h3>
@@ -145,13 +136,19 @@
                     @endforeach
                 </div>
             </div>
+
+            {{-- După „Aspect”: panourile cu salvare pe loc, în ordinea cerută (Organizație, Aspect, Secțiuni dashboard, Metode de plată, Recepție, Card de fidelitate) --}}
+            @if ($section['key'] === 'appearance')
+                @livewire(\App\Livewire\Admin\Settings\DashboardSections::class)
+                @livewire(\App\Livewire\Admin\Settings\PaymentMethods::class)
+            @endif
         @endforeach
 
         <div class="flex items-center gap-4">
-            <x-btn variant="primary" type="submit" wire:loading.attr="disabled" wire:target="save">
+            <x-btn variant="primary" wire:click="save" wire:loading.attr="disabled" wire:target="save">
                 Salvează setările
             </x-btn>
         </div>
-    </form>
+    </div>
 
 </div>

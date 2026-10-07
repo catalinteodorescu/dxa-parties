@@ -28,10 +28,16 @@
             <h2 class="text-lg font-semibold text-ink">Bar — Meniu</h2>
             <p class="mt-1 text-sm text-ink-soft">Articolele afișate în meniul barului din app.</p>
         </div>
-        <x-btn variant="primary" :href="route('admin.menu-items.create')" wire:navigate class="self-start">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-            Produs nou
-        </x-btn>
+        <div class="flex flex-wrap items-center gap-2 self-start">
+            <x-btn variant="neutral" outline :href="route('admin.menu-items.categories')" wire:navigate>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+                Categorii produse
+            </x-btn>
+            <x-btn variant="primary" :href="route('admin.menu-items.create')" wire:navigate>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Produs nou
+            </x-btn>
+        </div>
     </div>
 
     {{-- Filtre + căutare — pe ecrane mici (<md) sunt ascunse într-un toggle (deschis automat dacă există filtre active); de la md în sus sunt mereu vizibile, fără buton. --}}

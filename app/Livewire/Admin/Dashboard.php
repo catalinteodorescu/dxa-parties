@@ -21,6 +21,7 @@ use App\Services\DiscountCodeStats;                // DXA: adaugat (Coduri de re
 use App\Services\LoyaltyLedger;             // DXA: adaugat (Card de fidelitate)
 use App\Services\PartiesOverview;           // DXA: adaugat (Petreceri - dashboard, statistici agregate)
 use App\Services\TokenLedger;               // DXA: adaugat (Participanți - dashboard, tokeni)
+use App\Support\DashboardSections;           // DXA: adaugat (runda 45 — secțiuni dashboard din Setări)
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -225,6 +226,7 @@ class Dashboard extends Component
             'adminsActive' => Admin::withAccess(Admin::APP_ADMIN)->where('is_active', true)->count(),
             'adminsTotal' => Admin::withAccess(Admin::APP_ADMIN)->count(),
             'currentAdmin' => Auth::guard('admin')->user(),
+            'dashboardSections' => DashboardSections::active((bool) Auth::guard('admin')->user()?->isSuperAdmin()), // DXA: runda 45 — ordinea/activarea din Setări
 
             // DXA: adaugat (Petreceri)
             'partiesUpcomingList' => $partiesUpcomingList,

@@ -933,7 +933,7 @@ class Form extends Component
         $this->removeImage = true;
     }
 
-    /** Completeaza locatia cu datele scolii din Setari > Scoala (nume, adresa, link harta). */
+    /** Completeaza locatia cu datele organizatorului din Setari > Organizatie (nume, adresa, link harta). */
     public function fillSchoolVenue(): void
     {
         $this->location_name = Branding::name();

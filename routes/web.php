@@ -18,7 +18,8 @@ use App\Livewire\Admin\Invite\Complete as InviteComplete;
 use App\Livewire\Admin\Login;
 use App\Livewire\Admin\Logs\Index as LogsIndex;          // DXA: adaugat (Card de fidelitate - pagina Carduri)
 use App\Livewire\Admin\Loyalty\Cards as LoyaltyCardsPage;
-use App\Livewire\Admin\MenuItems\Form as MenuItemForm; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\MenuItems\Categories as MenuCategoriesPage; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\MenuItems\Form as MenuItemForm;
 use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex;          // DXA: adaugat (Meniu bar - produse)
 use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;         // DXA: adaugat (Petreceri)
 use App\Livewire\Admin\Participants\Index as ParticipantsIndex;     // DXA: adaugat (Petreceri)
@@ -128,6 +129,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             // DXA: adaugat (Meniu bar - produse)
             Route::get('/menu/items', MenuItemsIndex::class)->name('menu-items.index');
+            Route::get('/menu/categories', MenuCategoriesPage::class)->name('menu-items.categories'); // DXA: runda 45 (ex-panou din Setări)
             Route::get('/menu/items/create', MenuItemForm::class)->name('menu-items.create');
             Route::get('/menu/items/{menuItem}/edit', MenuItemForm::class)->name('menu-items.edit');
 

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * Identitatea scolii: nume, doua variante de logo, adresa si linkul de harta.
- * Se editeaza in Setari > Scoala (vezi SettingsRegistry) si se citesc DOAR prin
+ * Se editeaza in Setari > Organizatie (vezi SettingsRegistry) si se citesc DOAR prin
  * aceasta clasa — nu hardcoda numele/logo-ul in view-uri.
  *
  * Logo-urile au doua variante:

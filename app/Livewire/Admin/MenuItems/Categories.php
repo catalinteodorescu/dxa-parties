@@ -1,23 +1,25 @@
 <?php
 
-namespace App\Livewire\Admin\Settings;
+namespace App\Livewire\Admin\MenuItems;
 
 use App\Models\MenuCategory;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * DXA: adaugat (Setari - categorii meniu bar).
- *
- * Panou inclus in pagina de Setari: redenumire inline, vizibil/ascuns, stergere
- * si reordonare (drag & drop). Actiunile se salveaza pe loc (nu depind de
- * butonul „Salveaza setarile" al formularului de setari). Categoriile NU se
- * creeaza aici, ci din butonul „+" de langa selectul din formularul de produs.
+ * DXA: runda 45. Pagina „Categorii produse” (din Bar › Meniu, lângă „Produs nou”): ex-panoul din Setări.
+ * Redenumire inline, vizibil/ascuns, ștergere, reordonare (drag & drop) și adăugare de categorii noi.
+ * Acțiunile se salvează pe loc. Categoriile se mai pot crea și din butonul „+” din formularul de produs.
  */
-class MenuCategories extends Component
+#[Layout('layouts.admin')]
+class Categories extends Component
 {
     /** @var array<int, string> id categorie => nume din input (editabil inline) */
     public array $names = [];
+
+    public string $newName = '';
 
     public ?string $message = null;
 
@@ -25,7 +27,46 @@ class MenuCategories extends Component
 
     public function mount(): void
     {
+        abort_unless(Auth::guard('admin')->check(), 403);
+
         $this->names = MenuCategory::ordered()->pluck('name', 'id')->all();
+    }
+
+    public function add(): void
+    {
+        $this->message = $this->error = null;
+
+        $name = trim($this->newName);
+
+        if ($name === '') {
+            $this->error = 'Numele categoriei este obligatoriu.';
+
+            return;
+        }
+
+        if (mb_strlen($name) > 120) {
+            $this->error = 'Numele categoriei poate avea cel mult 120 de caractere.';
+
+            return;
+        }
+
+        if (MenuCategory::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->exists()) {
+            $this->error = 'Există deja o categorie cu numele „'.$name.'".';
+
+            return;
+        }
+
+        $category = MenuCategory::create([
+            'name' => $name,
+            'sort_order' => (int) (MenuCategory::max('sort_order') ?? -1) + 1,
+            'is_active' => true,
+        ]);
+
+        $this->names[$category->id] = $category->name;
+        $this->newName = '';
+
+        ActivityLogger::log('menu.category_created', 'A adăugat categoria de meniu „'.$category->name.'".');
+        $this->message = 'Categoria „'.$category->name.'” a fost adăugată.';
     }
 
     public function rename(int $id): void
@@ -157,7 +198,7 @@ class MenuCategories extends Component
 
     public function render()
     {
-        return view('livewire.admin.settings.menu-categories', [
+        return view('livewire.admin.menu-items.categories', [
             'categories' => MenuCategory::ordered()->withCount('items')->get(),
         ]);
     }

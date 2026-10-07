@@ -126,7 +126,7 @@ class Index extends Component
             'uploads.*.mimes' => 'Logo-ul trebuie să fie PNG sau JPG.',
             'uploads.*.max' => 'Logo-ul nu poate depăși 2 MB.',
             'uploads.*.file' => 'Alege un fișier imagine (PNG sau JPG).',
-            'values.school_name.required' => 'Numele școlii nu poate lipsi.',
+            'values.school_name.required' => 'Numele organizației nu poate lipsi.',
             'values.school_maps_url.url' => 'Linkul hărții nu pare valid (începe cu https://).',
         ];
     }

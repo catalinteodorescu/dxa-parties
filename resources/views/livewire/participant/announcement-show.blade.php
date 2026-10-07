@@ -15,8 +15,15 @@
                 @if ($announcement->body)
                     <div class="pa-prose">{{ $announcement->body }}</div>
                 @endif
-                @if ($announcement->url)
-                    <div><a href="{{ $announcement->url }}" target="_blank" rel="noopener" class="pa-btn pa-btn-sm" data-track-action="a:{{ $announcement->id }}">{{ $announcement->url_label ?: 'Vezi mai mult' }}</a></div>
+                @php $cta = \App\Support\AnnouncementLink::resolve($announcement, auth('participant')->check()); @endphp
+                @if ($cta)
+                    <div>
+                        @if ($cta->external)
+                            <a href="{{ $cta->href }}" target="_blank" rel="noopener" class="pa-btn pa-btn-sm" data-track-action="a:{{ $announcement->id }}" data-announcement-cta>{{ $cta->label }}</a>
+                        @else
+                            <a href="{{ $cta->href }}" wire:navigate class="pa-btn pa-btn-sm" data-track-action="a:{{ $announcement->id }}" data-announcement-cta>{{ $cta->label }}</a>
+                        @endif
+                    </div>
                 @endif
             </div>
         </div>

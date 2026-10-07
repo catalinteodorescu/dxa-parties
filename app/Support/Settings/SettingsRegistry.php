@@ -40,14 +40,14 @@ class SettingsRegistry
     {
         return [
             [
-                'key' => 'school',
-                'label' => 'Școala',
-                'description' => 'Numele, logo-urile și locația școlii. Numele apare în titlul paginilor, în PDF-uri și pe pagina de autentificare; adresa și linkul de hartă precompletează locația la petreceri noi.',
+                'key' => 'organization',
+                'label' => 'Organizație',
+                'description' => 'Numele, logo-urile și locația organizatorului. Numele apare în titlul paginilor, în PDF-uri și pe pagina de autentificare; adresa și linkul de hartă precompletează locația la petreceri noi.',
                 'fields' => [
                     [
                         'key' => 'school_name',
                         'type' => 'text',
-                        'label' => 'Numele școlii',
+                        'label' => 'Numele organizației',
                         'default' => Branding::DEFAULT_NAME,
                         'wide' => true,
                         'rules' => ['required', 'string', 'max:100'],
@@ -80,7 +80,7 @@ class SettingsRegistry
                         'key' => 'school_maps_url',
                         'type' => 'text',
                         'label' => 'Link hartă',
-                        'help' => 'Linkul de Google Maps al școlii (Distribuie → Copiază linkul).',
+                        'help' => 'Linkul de Google Maps al locației (Distribuie → Copiază linkul).',
                         'placeholder' => 'https://maps.google.com/…',
                         'wide' => true,
                         'rules' => ['nullable', 'url', 'max:2048'],
@@ -189,6 +189,8 @@ class SettingsRegistry
     public static function hiddenFields(): array
     {
         return [
+            // DXA: adaugat (runda 45). Ordinea și activarea secțiunilor din dashboard (JSON): panoul Setări › Secțiuni dashboard, citit prin App\Support\DashboardSections.
+            'dashboard_sections' => ['key' => 'dashboard_sections', 'type' => 'text', 'default' => ''],
             'token_mode' => ['key' => 'token_mode', 'type' => 'text', 'default' => 'active'],
             'uses_tokens' => ['key' => 'uses_tokens', 'type' => 'bool', 'default' => true],
             'token_rate' => ['key' => 'token_rate', 'type' => 'number', 'default' => 5],

@@ -1,5 +1,5 @@
 <div
-    class="bg-surface border border-border rounded-2xl p-6"
+    class="max-w-2xl"
     x-data="{
         confirmOpen: false,
         confirmName: '',
@@ -8,11 +8,19 @@
         run() { this.$wire.call('delete', this.confirmId); this.confirmOpen = false; },
     }"
 >
-    <h3 class="text-sm font-semibold text-ink">Categorii meniu bar</h3>
-    <p class="mt-1 text-sm text-ink-soft leading-relaxed">
-        Ordinea de aici se folosește în lista de meniu (grupată) și în selectul din formularul de produs.
-        Categoriile noi se adaugă din butonul „+” de lângă categorie, la crearea sau modificarea unui produs.
-    </p>
+    <div class="flex items-center justify-between gap-3 mb-4">
+        <a href="{{ route('admin.menu-items.index') }}" wire:navigate class="inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            Înapoi la meniu
+        </a>
+    </div>
+
+    <div class="mb-4">
+        <h2 class="text-lg font-semibold text-ink">Categorii produse</h2>
+        <p class="mt-1 text-sm text-ink-soft leading-relaxed">
+            Ordinea de aici se folosește în lista de meniu (grupată) și în selectul din formularul de produs. Trage de mâner (pe telefon, folosește săgețile) ca să reordonezi; modificările se salvează pe loc.
+        </p>
+    </div>
 
     <div class="mt-4 space-y-3">
         @if ($message)
@@ -80,10 +88,20 @@
             </div>
         @empty
             <div class="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-ink-soft">
-                Nicio categorie încă. Adaug-o din formularul de produs, cu butonul „+” de lângă categorie.
+                Nicio categorie încă. Adaugă prima din câmpul de mai jos.
             </div>
         @endforelse
     </div>
+
+    {{-- Rând nou --}}
+    <form wire:submit="add" class="mt-3 flex items-center gap-2" data-new-category>
+        <input type="text" wire:model="newName" maxlength="120" placeholder="Categorie nouă (ex. Cocktailuri)" aria-label="Categorie nouă"
+               class="flex-1 min-w-0 rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+        <x-btn variant="primary" type="submit" wire:loading.attr="disabled" wire:target="add">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Adaugă
+        </x-btn>
+    </form>
 
     {{-- Confirmare ștergere --}}
     <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">

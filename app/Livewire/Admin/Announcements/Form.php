@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Announcements;
 
 use App\Models\Announcement;
 use App\Services\ActivityLogger;
+use App\Support\AnnouncementLink;
 use App\Support\HandlesImageUploads;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,11 @@ class Form extends Component
     public ?string $url = null;
 
     public ?string $url_label = null;
+
+    /** Tipul butonului: none | external (url) | app (destinație din aplicație, vezi AnnouncementLink). */
+    public string $link_mode = 'none';
+
+    public ?string $link_target = null;
 
     public string $audience = 'all';
 
@@ -64,6 +70,8 @@ class Form extends Component
             $this->body = $announcement->body;
             $this->url = $announcement->url;
             $this->url_label = $announcement->url_label;
+            $this->link_target = $announcement->link_target;
+            $this->link_mode = $announcement->link_target ? 'app' : ($announcement->url ? 'external' : 'none');
             $this->audience = $announcement->audience;
             $this->in_carousel = $announcement->in_carousel;
             $this->in_list = $announcement->in_list;
@@ -82,7 +90,13 @@ class Form extends Component
         return [
             'title' => ['required', 'string', 'max:120'],
             'body' => ['nullable', 'string', 'max:'.self::BODY_MAX],
-            'url' => ['nullable', 'url', 'max:2048'],
+            'link_mode' => ['required', 'in:none,external,app'],
+            'url' => [$this->link_mode === 'external' ? 'required' : 'nullable', 'url', 'max:2048'],
+            'link_target' => [$this->link_mode === 'app' ? 'required' : 'nullable', 'string', 'max:40', function ($attr, $value, $fail) {
+                if ($this->link_mode === 'app' && ! AnnouncementLink::isValidTarget($value)) {
+                    $fail('Alege o destinație din listă (petrecerea trebuie să existe și să nu fie ciornă).');
+                }
+            }],
             'url_label' => ['nullable', 'string', 'max:40'],
             'audience' => ['required', 'in:all,auth'],
             'in_carousel' => ['boolean'],
@@ -99,6 +113,8 @@ class Form extends Component
     {
         return [
             'title.required' => 'Titlul este obligatoriu.',
+            'url.required' => 'Adaugă adresa linkului.',
+            'link_target.required' => 'Alege destinația din aplicație.',
             'url.url' => 'Adresa URL nu pare validă (începe cu https://).',
             'ends_at.after' => 'Data de sfârșit trebuie să fie după data de început.',
             'image.image' => 'Fișierul trebuie să fie o imagine.',
@@ -145,8 +161,9 @@ class Form extends Component
         $payload = [
             'title' => $data['title'],
             'body' => $data['body'] ?: null,
-            'url' => $data['url'] ?: null,
-            'url_label' => $data['url_label'] ?: null,
+            'url' => $this->link_mode === 'external' ? ($data['url'] ?: null) : null,
+            'link_target' => $this->link_mode === 'app' ? $data['link_target'] : null,
+            'url_label' => $this->link_mode === 'none' ? null : ($data['url_label'] ?: null),
             'audience' => $data['audience'],
             'in_carousel' => $this->in_carousel,
             'in_list' => $this->in_list,
@@ -178,6 +195,6 @@ class Form extends Component
 
     public function render()
     {
-        return view('livewire.admin.announcements.form');
+        return view('livewire.admin.announcements.form', ['linkTargets' => $this->link_mode === 'app' ? AnnouncementLink::options() : []]);
     }
 }

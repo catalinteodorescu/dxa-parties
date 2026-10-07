@@ -67,20 +67,37 @@
             </div>
         </div>
 
-        {{-- Link --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {{-- Buton cu link (opțional): extern sau în aplicație --}}
+        <div class="space-y-4" data-announcement-link>
             <div>
-                <label for="url" class="block text-sm font-medium text-ink">Link <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
-                <input type="url" id="url" wire:model="url" placeholder="https://…"
-                       class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-                @error('url') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
+                <label class="block text-sm font-medium text-ink mb-1.5">Buton cu link <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
+                <x-select wire:model="link_mode" live :options="['none' => 'Fără buton', 'external' => 'Adresă externă (https://…)', 'app' => 'Pagină sau petrecere din aplicație']" />
             </div>
-            <div>
-                <label for="url_label" class="block text-sm font-medium text-ink">Etichetă buton</label>
-                <input type="text" id="url_label" wire:model="url_label" placeholder="Vezi detalii"
-                       class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-                @error('url_label') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
-            </div>
+
+            @if ($link_mode === 'external')
+                <div>
+                    <label for="url" class="block text-sm font-medium text-ink">Adresa linkului</label>
+                    <input type="url" id="url" wire:model="url" placeholder="https://…"
+                           class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                    @error('url') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
+                </div>
+            @elseif ($link_mode === 'app')
+                <div>
+                    <label class="block text-sm font-medium text-ink mb-1.5">Destinația în aplicație</label>
+                    <x-select wire:model="link_target" :options="$linkTargets" placeholder="Alege destinația…" />
+                    @error('link_target') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
+                    <p class="mt-1.5 text-xs text-ink-soft">Paginile care cer cont (bilete, portofel, cont) îl duc pe vizitator la autentificare. „Creare cont” apare doar celor nelogați.</p>
+                </div>
+            @endif
+
+            @if ($link_mode !== 'none')
+                <div>
+                    <label for="url_label" class="block text-sm font-medium text-ink">Etichetă buton <span class="text-ink-soft/60 font-normal">(opțional)</span></label>
+                    <input type="text" id="url_label" wire:model="url_label" placeholder="{{ $link_mode === 'app' ? 'Implicit, în funcție de destinație' : 'Vezi mai mult' }}"
+                           class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary sm:max-w-xs">
+                    @error('url_label') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
+                </div>
+            @endif
         </div>
 
         {{-- Audiență --}}

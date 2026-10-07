@@ -16,6 +16,7 @@ class Announcement extends Model
         'image_path',
         'url',
         'url_label',
+        'link_target',
         'audience',
         'in_carousel',
         'in_list',
@@ -36,6 +37,12 @@ class Announcement extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
         ];
+    }
+
+    /** Are buton cu link (extern sau în aplicație). */
+    public function hasLink(): bool
+    {
+        return filled($this->url) || filled($this->link_target);
     }
 
     public function creator(): BelongsTo

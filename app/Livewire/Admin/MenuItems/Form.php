@@ -24,20 +24,29 @@ class Form extends Component
 
     // Campuri
     public string $name = '';
+
     public ?int $menu_category_id = null;
+
     public ?string $quantity = null;
+
     public ?string $price = null;
+
     public ?string $tokens = null;
+
     public ?string $description = null;
+
     public bool $is_active = true;
 
     // Imagine
     public $image = null;
+
     public ?string $existingImage = null;
+
     public bool $removeImage = false;
 
     // Adaugare rapida categorie (popup langa select)
     public bool $newCategoryModalOpen = false;
+
     public string $newCategoryName = '';
 
     // DXA: adaugat (Bar - stocuri: reteta)
@@ -326,7 +335,7 @@ class Form extends Component
 
         $isEditing = $this->menuItem && $this->menuItem->exists;
 
-        // Tokenii sunt sursa de adevar cand scoala foloseste tokeni — recalculam
+        // Tokenii sunt sursa de adevar cand organizatorul foloseste tokeni — recalculam
         // pretul in lei chiar inainte de salvare, ca sa fie mereu consistent
         // (indiferent daca hook-ul updatedTokens a apucat sa ruleze sau nu).
         if ($this->usesTokens()) {
