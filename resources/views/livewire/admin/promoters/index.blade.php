@@ -14,7 +14,9 @@
             <h2 class="text-xl font-semibold text-ink">Promotori</h2>
             <p class="mt-1 text-sm text-ink-soft">Cine aduce lume la petreceri, cu codurile lui. Clasamentul se face din intrările valabile cu cod, la toate petrecerile.</p>
         </div>
+        @permits('promoters', 'edit')
         <x-btn variant="primary" wire:click="openForm(0)">Promotor nou</x-btn>
+        @endpermits
     </div>
 
     <x-flash />
@@ -97,10 +99,16 @@
                     </div>
                 </div>
                 <div class="shrink-0 flex items-center gap-1.5">
+                    @permits('promoters', 'edit')
                     <button type="button" wire:click="openForm({{ $p->id }})" class="text-xs font-medium text-primary hover:underline px-2 py-1">Editează</button>
+                    @endpermits
+                    @permits('promoters', 'edit')
                     <button type="button" wire:click="toggleActive({{ $p->id }})" class="text-xs font-medium text-ink-soft hover:text-ink px-2 py-1">{{ $p->is_active ? 'Dezactivează' : 'Activează' }}</button>
+                    @endpermits
                     @if ($row->codes === 0)
+                        @permits('promoters', 'delete')
                         <button type="button" wire:click="askDelete({{ $p->id }})" class="text-xs font-medium text-danger hover:underline px-2 py-1">Șterge</button>
+                        @endpermits
                     @endif
                 </div>
             </div>

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Admin;
 use App\Support\Settings\Settings;
 
 /**
@@ -24,6 +25,17 @@ class DashboardSections
         'discount_codes' => ['Coduri de reducere', 'Reduceri, coduri, promotori', false],
         'participants' => ['Participanți', 'Participanți, tokeni, credite, carduri', false],
         'admins' => ['Administratori', 'Conturi de admin și jurnal', true],
+    ];
+
+    /** DXA: runda 46 — secțiunea de dashboard => secțiunile de permisiuni de care depinde (o secțiune e vizibilă dacă vezi cel puțin una). */
+    public const PERMISSIONS = [
+        'announcements' => ['announcements'],
+        'parties' => ['parties', 'party_stats'],
+        'bar' => ['sales', 'menu', 'stocks', 'requisitions', 'stock_reports', 'bar_reports', 'bar_stats'],
+        'reception' => ['reception', 'reception_tokens', 'reception_reports', 'reception_stats'],
+        'discount_codes' => ['promoters'],
+        'participants' => ['participants', 'loyalty', 'credits'],
+        'admins' => ['users', 'logs'],
     ];
 
     public const SETTING = 'dashboard_sections';
@@ -58,10 +70,21 @@ class DashboardSections
     }
 
     /** Cheile de afișat în dashboard, în ordine: doar cele active (și permise adminului). @return array<int, string> */
-    public static function active(bool $isSuperAdmin): array
+    public static function active(bool|Admin $viewer): array
     {
         return collect(self::all())
-            ->filter(fn ($s) => $s['enabled'] && ($isSuperAdmin || ! $s['superadmin_only']))
+            ->filter(function ($s) use ($viewer) {
+                if (! $s['enabled']) {
+                    return false;
+                }
+
+                // Un cont real: vezi secțiunea doar dacă ai acces la măcar o pagină din ea (runda 46).
+                if ($viewer instanceof Admin) {
+                    return $viewer->permitsAny(...(self::PERMISSIONS[$s['key']] ?? []));
+                }
+
+                return $viewer || ! $s['superadmin_only'];
+            })
             ->pluck('key')->values()->all();
     }
 

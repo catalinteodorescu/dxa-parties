@@ -16,6 +16,7 @@ use App\Services\EntryRecorder;
 use App\Services\ParticipantRegistry;
 use App\Services\SaleRecorder;
 use App\Support\PaymentMethods;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -33,7 +34,7 @@ function covAdmin(): Admin
     return Admin::create([
         'name' => 'Casier Credite',
         'phone' => '+40700'.random_int(100000, 999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'password' => 'secret-pass',
     ]);

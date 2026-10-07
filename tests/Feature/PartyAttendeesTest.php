@@ -9,6 +9,7 @@ use App\Models\PartyEntry;
 use App\Models\Ticket;
 use App\Services\ParticipantRegistry;
 use App\Services\PartyAttendees;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -63,7 +64,7 @@ function paEntry(Party $party, ?Participant $p = null, bool $cancelled = false):
 
 function paAdmin(): Admin
 {
-    return Admin::create(['name' => 'Admin evidență', 'phone' => '+40700'.random_int(100000, 999999), 'role' => 'admin', 'is_active' => true, 'password' => 'secret-pass']);
+    return Admin::create(['name' => 'Admin evidență', 'phone' => '+40700'.random_int(100000, 999999), 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'password' => 'secret-pass']);
 }
 
 function paRows($c): array

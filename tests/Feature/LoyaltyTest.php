@@ -12,6 +12,7 @@ use App\Services\EntryRecorder;
 use App\Services\LoyaltyLedger;
 use App\Services\ParticipantRegistry;
 use App\Support\PaymentMethods;
+use App\Support\Permissions;
 use App\Support\Settings\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -26,7 +27,7 @@ function loyAdmin(): Admin
     return Admin::create([
         'name' => 'Loyalty Admin',
         'phone' => '+40700'.random_int(100000, 999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'password' => 'secret-pass',
     ]);

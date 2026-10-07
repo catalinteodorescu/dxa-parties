@@ -50,8 +50,9 @@ use App\Livewire\Admin\StockReports\Index as StockReportsIndex; // DXA: adaugat 
 use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm; // DXA: adaugat (Bar - stocuri)
 use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex;
 use App\Livewire\Admin\Stocks\Index as StockItemsIndex;
-use App\Livewire\Admin\Users\Create as UsersCreate; // DXA: adaugat (PWA Recepție)
-use App\Livewire\Admin\Users\Index as UsersIndex; // DXA: adaugat (PWA Bar)
+use App\Livewire\Admin\Users\Create as UsersCreate;
+use App\Livewire\Admin\Users\Index as UsersIndex;
+use App\Livewire\Admin\Users\Permissions as UsersPermissions; // DXA: adaugat (PWA Bar)
 use App\Livewire\Bar\Home as BarHome;
 use App\Livewire\Bar\Login as BarLogin;
 use App\Livewire\Bar\PartyPicker as BarPartyPicker;
@@ -109,45 +110,46 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware('admin.phone_setup')->group(function () {
             Route::get('/', Dashboard::class)->name('dashboard');
 
-            Route::get('/users', UsersIndex::class)->name('users.index');
-            Route::get('/users/create', UsersCreate::class)->name('users.create');
+            Route::get('/users', UsersIndex::class)->middleware('admin.can:users,view')->name('users.index');
+            Route::get('/users/create', UsersCreate::class)->middleware('admin.can:users,edit')->name('users.create');
+            Route::get('/users/{admin}/permissions', UsersPermissions::class)->middleware('admin.can:users,edit')->name('users.permissions'); // DXA: adaugat (runda 46)
 
-            Route::get('/announcements', AnnouncementsIndex::class)->name('announcements.index');
-            Route::get('/announcements/create', AnnouncementForm::class)->name('announcements.create');
-            Route::get('/announcements/{announcement}/edit', AnnouncementForm::class)->name('announcements.edit');
+            Route::get('/announcements', AnnouncementsIndex::class)->middleware('admin.can:announcements,view')->name('announcements.index');
+            Route::get('/announcements/create', AnnouncementForm::class)->middleware('admin.can:announcements,edit')->name('announcements.create');
+            Route::get('/announcements/{announcement}/edit', AnnouncementForm::class)->middleware('admin.can:announcements,edit')->name('announcements.edit');
 
             // DXA: adaugat (Petreceri)
-            Route::get('/parties', PartiesIndex::class)->name('parties.index');
-            Route::get('/parties/create', PartyForm::class)->name('parties.create');
+            Route::get('/parties', PartiesIndex::class)->middleware('admin.can:parties,view')->name('parties.index');
+            Route::get('/parties/create', PartyForm::class)->middleware('admin.can:parties,edit')->name('parties.create');
             // 'overview' inainte de '{party}' (ca la /participants/stats), altfel ruta cu wildcard il inghite.
-            Route::get('/parties/overview', PartiesOverviewPage::class)->name('parties.overview'); // DXA: adaugat (statistici agregate)
-            Route::get('/parties/{party}/edit', PartyForm::class)->name('parties.edit');
-            Route::get('/parties/{party}', PartiesShow::class)->name('parties.show'); // DXA: adaugat
-            Route::get('/parties/{party}/stats', PartiesStats::class)->name('parties.stats'); // DXA: adaugat (statistici)
-            Route::get('/parties/{party}/participanti', PartyAttendeesPage::class)->name('parties.attendees'); // DXA: adaugat (runda 43)
-            Route::get('/promoters', PromotersIndex::class)->name('promoters.index'); // DXA: adaugat (Coduri de reducere - promotori)
+            Route::get('/parties/overview', PartiesOverviewPage::class)->middleware('admin.can:party_stats,view')->name('parties.overview'); // DXA: adaugat (statistici agregate)
+            Route::get('/parties/{party}/edit', PartyForm::class)->middleware('admin.can:parties,edit')->name('parties.edit');
+            Route::get('/parties/{party}', PartiesShow::class)->middleware('admin.can:parties,view')->name('parties.show'); // DXA: adaugat
+            Route::get('/parties/{party}/stats', PartiesStats::class)->middleware('admin.can:party_stats,view')->name('parties.stats'); // DXA: adaugat (statistici)
+            Route::get('/parties/{party}/participanti', PartyAttendeesPage::class)->middleware('admin.can:parties,view')->name('parties.attendees'); // DXA: adaugat (runda 43)
+            Route::get('/promoters', PromotersIndex::class)->middleware('admin.can:promoters,view')->name('promoters.index'); // DXA: adaugat (Coduri de reducere - promotori)
 
             // DXA: adaugat (Meniu bar - produse)
-            Route::get('/menu/items', MenuItemsIndex::class)->name('menu-items.index');
-            Route::get('/menu/categories', MenuCategoriesPage::class)->name('menu-items.categories'); // DXA: runda 45 (ex-panou din Setări)
-            Route::get('/menu/items/create', MenuItemForm::class)->name('menu-items.create');
-            Route::get('/menu/items/{menuItem}/edit', MenuItemForm::class)->name('menu-items.edit');
+            Route::get('/menu/items', MenuItemsIndex::class)->middleware('admin.can:menu,view')->name('menu-items.index');
+            Route::get('/menu/categories', MenuCategoriesPage::class)->middleware('admin.can:menu,view')->name('menu-items.categories'); // DXA: runda 45 (ex-panou din Setări)
+            Route::get('/menu/items/create', MenuItemForm::class)->middleware('admin.can:menu,edit')->name('menu-items.create');
+            Route::get('/menu/items/{menuItem}/edit', MenuItemForm::class)->middleware('admin.can:menu,edit')->name('menu-items.edit');
 
-            Route::get('/logs', LogsIndex::class)->name('logs.index');
+            Route::get('/logs', LogsIndex::class)->middleware('admin.can:logs,view')->name('logs.index');
 
             // DXA: adaugat (Bar - stocuri)
-            Route::get('/stocks/items', StockItemsIndex::class)->name('stock-items.index');
+            Route::get('/stocks/items', StockItemsIndex::class)->middleware('admin.can:stocks,view')->name('stock-items.index');
 
             // DXA: adaugat (Bar - necesare)
-            Route::get('/stocks/requisitions', StockRequisitionsIndex::class)->name('stock-requisitions.index');
-            Route::get('/stocks/requisitions/create', StockRequisitionForm::class)->name('stock-requisitions.create');
-            Route::get('/stocks/requisitions/{requisition}/edit', StockRequisitionForm::class)->name('stock-requisitions.edit');
+            Route::get('/stocks/requisitions', StockRequisitionsIndex::class)->middleware('admin.can:requisitions,view')->name('stock-requisitions.index');
+            Route::get('/stocks/requisitions/create', StockRequisitionForm::class)->middleware('admin.can:requisitions,edit')->name('stock-requisitions.create');
+            Route::get('/stocks/requisitions/{requisition}/edit', StockRequisitionForm::class)->middleware('admin.can:requisitions,edit')->name('stock-requisitions.edit');
 
             // DXA: adaugat (Bar - vanzari)
             // DXA: adaugat (Participanți)
-            Route::get('/participants', ParticipantsIndex::class)->name('participants.index');
-            Route::get('/participants/stats', ParticipantsStats::class)->name('participants.stats'); // DXA: adaugat (Participanți - statistici)
-            Route::get('/participants/{participant}', ParticipantsShow::class)->name('participants.show');
+            Route::get('/participants', ParticipantsIndex::class)->middleware('admin.can:participants,view')->name('participants.index');
+            Route::get('/participants/stats', ParticipantsStats::class)->middleware('admin.can:participants,view')->name('participants.stats'); // DXA: adaugat (Participanți - statistici)
+            Route::get('/participants/{participant}', ParticipantsShow::class)->middleware('admin.can:participants,view')->name('participants.show');
             // DXA: adaugat (Aplicația participanților - runda 12). Poza de profil a unui participant, pentru lista din admin (discul e privat).
             Route::get('/participants/{participant}/poza', function (Participant $participant) {
                 abort_unless($participant->hasAvatar() && Storage::disk('local')->exists($participant->avatar_path), 404);
@@ -156,44 +158,44 @@ Route::prefix('admin')->name('admin.')->group(function () {
                     'Content-Type' => 'image/jpeg',
                     'Cache-Control' => 'private, max-age=86400',
                 ]);
-            })->name('participants.avatar');
+            })->middleware('admin.can:participants,view')->name('participants.avatar');
 
             // DXA: adaugat (Credite - pagina Credite, doar afișare, pe modelul paginii Carduri)
-            Route::get('/credits', CreditsIndex::class)->name('credits.index');
+            Route::get('/credits', CreditsIndex::class)->middleware('admin.can:credits,view')->name('credits.index');
 
             // DXA: adaugat (Card de fidelitate - pagina Carduri, pe modelul paginii Tokeni)
-            Route::get('/loyalty/cards', LoyaltyCardsPage::class)->name('loyalty.cards');
+            Route::get('/loyalty/cards', LoyaltyCardsPage::class)->middleware('admin.can:loyalty,view')->name('loyalty.cards');
 
             // DXA: adaugat (Recepție - intrări): /reception = lista, /reception/create = adăugarea (ca la Vânzări)
-            Route::get('/reception', ReceptionIndex::class)->name('reception.index');
-            Route::get('/reception/create', ReceptionForm::class)->name('reception.create');
-            Route::get('/reception/tokens', ReceptionTokens::class)->name('reception.tokens'); // DXA: adaugat (tokeni)
-            Route::get('/settings/reception-app', ReceptionAppSettings::class)->name('settings.reception-app'); // DXA: adaugat (PWA Recepție - setări aplicație)
-            Route::get('/settings/participant-app', ParticipantAppSettingsPage::class)->name('settings.participant-app'); // DXA: adaugat (runda 23 — setări aplicație participanți)
-            Route::get('/settings/bar-app', BarAppSettings::class)->name('settings.bar-app'); // DXA: adaugat (PWA Bar - setări aplicație)
+            Route::get('/reception', ReceptionIndex::class)->middleware('admin.can:reception,view')->name('reception.index');
+            Route::get('/reception/create', ReceptionForm::class)->middleware('admin.can:reception,edit')->name('reception.create');
+            Route::get('/reception/tokens', ReceptionTokens::class)->middleware('admin.can:reception_tokens,view')->name('reception.tokens'); // DXA: adaugat (tokeni)
+            Route::get('/settings/reception-app', ReceptionAppSettings::class)->middleware('admin.can:settings,view')->name('settings.reception-app'); // DXA: adaugat (PWA Recepție - setări aplicație)
+            Route::get('/settings/participant-app', ParticipantAppSettingsPage::class)->middleware('admin.can:settings,view')->name('settings.participant-app'); // DXA: adaugat (runda 23 — setări aplicație participanți)
+            Route::get('/settings/bar-app', BarAppSettings::class)->middleware('admin.can:settings,view')->name('settings.bar-app'); // DXA: adaugat (PWA Bar - setări aplicație)
             // DXA: adaugat (Recepție - raportări = închiderea casei)
-            Route::get('/reception/reports', ReceptionReportsIndex::class)->name('reception.reports.index');
-            Route::get('/reception/reports/{report}', ReceptionReportForm::class)->name('reception.reports.show');
+            Route::get('/reception/reports', ReceptionReportsIndex::class)->middleware('admin.can:reception_reports,view')->name('reception.reports.index');
+            Route::get('/reception/reports/{report}', ReceptionReportForm::class)->middleware('admin.can:reception_reports,view')->name('reception.reports.show');
 
-            Route::get('/sales', SalesIndex::class)->name('sales.index');
-            Route::get('/sales/create', SaleForm::class)->name('sales.create');
+            Route::get('/sales', SalesIndex::class)->middleware('admin.can:sales,view')->name('sales.index');
+            Route::get('/sales/create', SaleForm::class)->middleware('admin.can:sales,edit')->name('sales.create');
 
             // DXA: adaugat (Bar - raportari). 'edit' serveste si vizualizarea unui
             // raport finalizat (read-only e doar o stare a Form-ului, nu ruta separata).
-            Route::get('/stocks/reports', StockReportsIndex::class)->name('stock-reports.index');
-            Route::get('/stocks/reports/create', StockReportForm::class)->name('stock-reports.create');
-            Route::get('/stocks/reports/{report}/edit', StockReportForm::class)->name('stock-reports.edit');
-            Route::get('/bar/reports', BarReportsIndex::class)->name('bar.reports.index'); // DXA: adaugat (Bar - raportări casă)
-            Route::get('/bar/reports/{report}', BarReportShow::class)->name('bar.reports.show');
-            Route::get('/bar/reports/{report}/pdf', BarReportPdfController::class)->name('bar.reports.pdf');
-            Route::get('/evening-balance', ReconciliationIndex::class)->name('reconciliation'); // DXA: adaugat (Bilanțul serii = reconcilierea recepție + bar)
-            Route::get('/bar/stats', BarStatsPage::class)->name('bar.stats'); // DXA: adaugat (Bar - statistici agregate)
+            Route::get('/stocks/reports', StockReportsIndex::class)->middleware('admin.can:stock_reports,view')->name('stock-reports.index');
+            Route::get('/stocks/reports/create', StockReportForm::class)->middleware('admin.can:stock_reports,edit')->name('stock-reports.create');
+            Route::get('/stocks/reports/{report}/edit', StockReportForm::class)->middleware('admin.can:stock_reports,view')->name('stock-reports.edit');
+            Route::get('/bar/reports', BarReportsIndex::class)->middleware('admin.can:bar_reports,view')->name('bar.reports.index'); // DXA: adaugat (Bar - raportări casă)
+            Route::get('/bar/reports/{report}', BarReportShow::class)->middleware('admin.can:bar_reports,view')->name('bar.reports.show');
+            Route::get('/bar/reports/{report}/pdf', BarReportPdfController::class)->middleware('admin.can:bar_reports,view,export_bar_reports')->name('bar.reports.pdf');
+            Route::get('/evening-balance', ReconciliationIndex::class)->middleware('admin.can:reconciliation,view')->name('reconciliation'); // DXA: adaugat (Bilanțul serii = reconcilierea recepție + bar)
+            Route::get('/bar/stats', BarStatsPage::class)->middleware('admin.can:bar_stats,view')->name('bar.stats'); // DXA: adaugat (Bar - statistici agregate)
 
             // DXA: adaugat (Receptie - statistici agregate)
-            Route::get('/reception/stats', ReceptionStatsPage::class)->name('reception.stats');
+            Route::get('/reception/stats', ReceptionStatsPage::class)->middleware('admin.can:reception_stats,view')->name('reception.stats');
 
             // DXA: adaugat (Setari)
-            Route::get('/settings', SettingsIndex::class)->name('settings.index');
+            Route::get('/settings', SettingsIndex::class)->middleware('admin.can:settings,view')->name('settings.index');
 
             Route::get('/account', AccountEdit::class)->name('account.edit');
         });

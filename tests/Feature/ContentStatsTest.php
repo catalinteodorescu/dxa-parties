@@ -12,6 +12,7 @@ use App\Services\ContentStats;
 use App\Services\ParticipantRegistry;
 use App\Services\PartyInterests;
 use App\Services\TicketOrders;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -77,7 +78,7 @@ it('nu numără boții, fără User-Agent, adminii conectați, elementele nepubl
     cntPost([['p', $party->id, 'i']], 'curl/8.0');
     cntPost([['p', $draft->id, 'i'], ['p', 9999, 'i'], ['x', $party->id, 'i'], ['p', $party->id, 'zzz'], 'gunoi', ['p', 'abc', 'i']]);
 
-    $this->actingAs(Admin::create(['name' => 'Admin', 'phone' => '+40700123456', 'role' => 'admin', 'is_active' => true, 'password' => 'secret-pass']), 'admin');
+    $this->actingAs(Admin::create(['name' => 'Admin', 'phone' => '+40700123456', 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'password' => 'secret-pass']), 'admin');
     cntPost([['p', $party->id, 'i']]);
 
     expect(ContentStats::totals('party', $party->id)['impression'])->toBe(0)->and(ContentStats::totals('party', $draft->id)['impression'])->toBe(0);
@@ -122,7 +123,7 @@ it('adminul vede cifrele reale în lista de anunțuri, nu cele demo', function (
     cntPost([['a', $ann->id, 'a']]);
 
     ContentStats::flush();
-    $this->actingAs(Admin::create(['name' => 'Admin', 'phone' => '+40700123456', 'role' => 'admin', 'is_active' => true, 'password' => 'secret-pass']), 'admin');
+    $this->actingAs(Admin::create(['name' => 'Admin', 'phone' => '+40700123456', 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'password' => 'secret-pass']), 'admin');
 
     Livewire::test(AnnouncementsIndex::class)->assertSee('Afișări în aplicație')->assertSee('Click-uri pe butonul cu link')->assertDontSee('(demo)');
     expect($ann->statViews())->toBe(2)->and($ann->statOpens())->toBe(1)->and($ann->statActions())->toBe(1);

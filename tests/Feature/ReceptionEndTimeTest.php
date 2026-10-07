@@ -12,6 +12,7 @@ use App\Services\EntryRecorder;
 use App\Services\ParticipantRegistry;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
@@ -29,7 +30,7 @@ function etAdmin(): Admin
     return Admin::create([
         'name' => 'Recepționer test',
         'phone' => '+40700'.random_int(100000, 999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'password' => 'secret-pass',
     ]);

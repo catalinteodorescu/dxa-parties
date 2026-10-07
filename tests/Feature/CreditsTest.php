@@ -3,10 +3,10 @@
 use App\Livewire\Admin\Participants\Show as ParticipantsShow;
 use App\Models\Admin;
 use App\Models\CreditTransaction;
-use App\Models\Participant;
 use App\Services\CreditLedger;
 use App\Services\ParticipantRegistry;
 use App\Support\PaymentMethods;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -17,7 +17,7 @@ function credAdmin(): Admin
     return Admin::create([
         'name' => 'Credite Admin',
         'phone' => '+40700'.random_int(100000, 999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'password' => 'secret-pass',
     ]);

@@ -4,6 +4,7 @@ use App\Livewire\Admin\Parties\Form as PartyForm;
 use App\Models\Admin;
 use App\Models\Party;
 use App\Services\EntryRecorder;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -12,7 +13,7 @@ uses(RefreshDatabase::class);
 /** DXA: teste (runda 13). Setările de vânzare bilete și capacitate ale petrecerii. */
 function ssAdmin(): Admin
 {
-    return Admin::create(['name' => 'Admin', 'phone' => '+40700'.random_int(100000, 999999), 'role' => 'admin', 'is_active' => true, 'password' => 'secret-pass']);
+    return Admin::create(['name' => 'Admin', 'phone' => '+40700'.random_int(100000, 999999), 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'password' => 'secret-pass']);
 }
 
 function ssParty(array $o = []): Party

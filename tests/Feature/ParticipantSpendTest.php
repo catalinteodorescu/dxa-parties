@@ -1,9 +1,10 @@
 <?php
 
-use App\Livewire\Admin\Parties\Stats as PartyStatsPage;
 use App\Livewire\Admin\Participants\Index as ParticipantsIndex;
 use App\Livewire\Admin\Participants\Show as ParticipantsShow;
+use App\Livewire\Admin\Parties\Stats as PartyStatsPage;
 use App\Livewire\Admin\Reception\Form as ReceptionForm;
+use App\Livewire\Admin\Reception\Tokens;
 use App\Livewire\Admin\Reception\TokenSale;
 use App\Livewire\Admin\Sales\Form as SaleForm;
 use App\Models\Admin;
@@ -11,8 +12,8 @@ use App\Models\CreditTransaction;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Participant;
-use App\Models\PartyEntry;
 use App\Models\Party;
+use App\Models\PartyEntry;
 use App\Models\Sale;
 use App\Models\SalesGroup;
 use App\Models\StockItem;
@@ -25,6 +26,8 @@ use App\Services\ParticipantStats;
 use App\Services\PartyStats;
 use App\Services\SaleRecorder;
 use App\Services\TokenLedger;
+use App\Support\PaymentMethods;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -38,7 +41,7 @@ function spendAdmin(): Admin
     return Admin::create([
         'name' => 'Casier Test',
         'phone' => '+40700'.random_int(100000, 999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'password' => 'secret-pass',
     ]);
@@ -93,7 +96,7 @@ function spendBarSale(Party $party, Admin $admin, string $method = 'cash', ?int 
 /** Pune vanzarile in raportarea FINALIZATA a petrecerii (statisticile de bar numara doar raportarile finalizate). */
 function spendFinalize(Party $party, array $sales): StockReport
 {
-    $report = new StockReport();
+    $report = new StockReport;
     $report->forceFill(['date' => '2026-10-03', 'status' => 'finalized', 'party_id' => $party->id])->save();
     Sale::whereIn('id', array_map(fn ($s) => $s->id, $sales))->update(['report_id' => $report->id]);
 
@@ -187,7 +190,7 @@ it('tokeni: alege participantul care cumpara, il salveaza si il arata in listele
     expect($tx->participant_id)->toBe($ana->id);
 
     Livewire::test(ReceptionForm::class)->assertSee('Ana Ionescu');
-    Livewire::test(\App\Livewire\Admin\Reception\Tokens::class)->assertSee('Ana Ionescu');
+    Livewire::test(Tokens::class)->assertSee('Ana Ionescu');
 
     // Participant nou direct din card.
     $c->call('toggleNewParticipant')->set('newName', 'Maria Dumitru')->set('newPhone', '0744 555 666')->call('createParticipant')
@@ -342,7 +345,7 @@ it('lista de participanti: coloane de intrari, tokeni cheltuiti, credite cheltui
     $admin = spendAdmin();
     $this->actingAs($admin, 'admin');
     $party = spendParty();
-    \App\Support\PaymentMethods::setActive(\App\Support\PaymentMethods::CREDIT, true);
+    PaymentMethods::setActive(PaymentMethods::CREDIT, true);
     $ion = ParticipantRegistry::create('Ion Popescu', '0722 111 111');
     $ana = ParticipantRegistry::create('Ana Ionescu', '0722 222 222');
     $bogdan = ParticipantRegistry::create('Bogdan Ilie', '0722 333 333');

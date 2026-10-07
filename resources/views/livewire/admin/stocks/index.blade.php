@@ -31,10 +31,12 @@
             <h2 class="text-lg font-semibold text-ink">Bar — Stocuri</h2>
             <p class="mt-1 text-sm text-ink-soft">Produsele de stoc (ingrediente/materii prime) folosite în rețetele articolelor de meniu — nu apar direct în meniul barului.</p>
         </div>
+        @permits('stocks', 'edit')
         <x-btn variant="primary" wire:click="openCreate" class="self-start">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             Produs de stoc nou
         </x-btn>
+        @endpermits
     </div>
 
     {{-- Filtre + căutare — pe ecrane mici (<md) sunt ascunse într-un toggle (deschis automat dacă există filtre active); de la md în sus sunt mereu vizibile, fără buton. --}}
@@ -131,33 +133,45 @@
                             </svg>
                         </x-btn>
 
+                        @permitsAction('stock_adjust')
                         <x-btn variant="neutral" size="icon" outline tooltip="Corectează stoc" wire:click="openQtyModal({{ $item->id }})">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="M3.29 7 12 12l8.71-5"/><path d="m7.5 4.27 9 5.15"/></svg>
                         </x-btn>
+                        @endpermitsAction
 
+                        @permitsAction('stock_adjust')
                         <x-btn variant="neutral" size="icon" outline tooltip="Corectează cost" wire:click="openCostModal({{ $item->id }})">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
                         </x-btn>
+                        @endpermitsAction
 
                         @if ($item->is_active)
+                            @permits('stocks', 'edit')
                             <x-btn variant="info" size="icon" outline tooltip="Dezactivează"
                                    x-on:click="askConfirm('Dezactivează produs de stoc', 'Sigur vrei să dezactivezi „{{ addslashes($item->name) }}”? Nu va mai putea fi folosit în rețete noi, dar rămâne în cele existente.', 'toggleActive', [{{ $item->id }}], 'Dezactivează', 'info')">
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>
                             </x-btn>
+                            @endpermits
                         @else
+                            @permits('stocks', 'edit')
                             <x-btn variant="info" size="icon" outline tooltip="Activează" wire:click="toggleActive({{ $item->id }})">
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
                             </x-btn>
+                            @endpermits
                         @endif
 
+                        @permits('stocks', 'edit')
                         <x-btn variant="warning" size="icon" outline tooltip="Editează" wire:click="openEdit({{ $item->id }})">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                         </x-btn>
+                        @endpermits
 
+                        @permits('stocks', 'delete')
                         <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                                x-on:click="askConfirm('Șterge produs de stoc', 'Sigur vrei să ștergi „{{ addslashes($item->name) }}”? Acțiunea nu poate fi anulată.', 'delete', [{{ $item->id }}], 'Șterge', 'danger')">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </x-btn>
+                        @endpermits
                     </div>
                 </div>
 

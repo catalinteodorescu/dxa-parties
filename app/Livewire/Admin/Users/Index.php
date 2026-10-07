@@ -14,11 +14,18 @@ class Index extends Component
 {
     use WithPagination;
 
+    /** DXA: runda 46 — verifică permisiunea la Utilizatori; un superadmin nu poate fi modificat de un non-superadmin. */
+    private function authorizeFor(Admin $current, ?Admin $target, string $level): void
+    {
+        abort_unless($current->permits('users', $level), 403);
+        abort_if($target && $target->isSuperAdmin() && ! $current->isSuperAdmin(), 403);
+    }
+
     public function updateStatus(int $adminId, bool $active): void
     {
         $current = Auth::guard('admin')->user();
 
-        abort_unless($current->isSuperAdmin(), 403);
+        $this->authorizeFor($current, Admin::find($adminId), 'edit');
 
         if ($adminId === $current->id) {
             session()->flash('error', 'Nu îți poți schimba propriul status de aici.');
@@ -71,7 +78,7 @@ class Index extends Component
     {
         $current = Auth::guard('admin')->user();
 
-        abort_unless($current->isSuperAdmin(), 403);
+        $this->authorizeFor($current, Admin::find($adminId), 'edit');
         abort_unless(array_key_exists($app, Admin::ACCESS_COLUMNS), 422);
 
         $target = Admin::findOrFail($adminId);
@@ -97,7 +104,7 @@ class Index extends Component
     {
         $current = Auth::guard('admin')->user();
 
-        abort_unless($current->isSuperAdmin(), 403);
+        $this->authorizeFor($current, Admin::find($adminId), 'delete');
 
         if ($adminId === $current->id) {
             session()->flash('error', 'Nu îți poți șterge propriul cont de aici.');

@@ -33,10 +33,12 @@
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
                 Categorii produse
             </x-btn>
+            @permits('menu', 'edit')
             <x-btn variant="primary" :href="route('admin.menu-items.create')" wire:navigate>
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Produs nou
             </x-btn>
+            @endpermits
         </div>
     </div>
 
@@ -165,6 +167,7 @@
 
                 {{-- Acțiuni --}}
                 <div class="col-span-2 row-start-2 md:col-auto md:row-auto flex items-center gap-2 flex-wrap md:flex-nowrap md:shrink-0">
+                    @permits('menu', 'edit')
                     <x-btn variant="info" size="icon" outline
                            tooltip="{{ $item->is_active ? 'Ascunde din meniu' : 'Afișează în meniu' }}"
                            wire:click="toggleActive({{ $item->id }})">
@@ -174,19 +177,26 @@
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
                         @endif
                     </x-btn>
+                    @endpermits
 
+                    @permits('menu', 'edit')
                     <x-btn variant="warning" size="icon" outline tooltip="Editează" :href="route('admin.menu-items.edit', $item)" wire:navigate>
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                     </x-btn>
+                    @endpermits
 
+                    @permits('menu', 'edit')
                     <x-btn variant="purple" size="icon" outline tooltip="Duplică" wire:click="duplicate({{ $item->id }})">
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                     </x-btn>
+                    @endpermits
 
+                    @permits('menu', 'delete')
                     <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                            x-on:click="askConfirm('Șterge produs', 'Sigur vrei să ștergi produsul „{{ addslashes($item->name) }}”? Acțiunea nu poate fi anulată.', 'delete', [{{ $item->id }}])">
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </x-btn>
+                    @endpermits
                 </div>
             </div>
         @empty

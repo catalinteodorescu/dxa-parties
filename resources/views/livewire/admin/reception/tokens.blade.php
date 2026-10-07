@@ -61,7 +61,9 @@
                    class="sm:col-span-2 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
         </div>
         <div class="mt-3">
+            @permitsAction('tokens_adjust')
             <x-btn variant="primary" wire:click="adjust">Înregistrează ajustarea</x-btn>
+            @endpermitsAction
         </div>
     </div>
 
@@ -74,7 +76,9 @@
         <div class="mt-3 flex flex-col sm:flex-row gap-2">
             <input type="text" wire:model="writeOffReason" maxlength="255" placeholder="Motiv (obligatoriu)"
                    class="flex-1 min-w-0 rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            @permitsAction('tokens_adjust')
             <x-btn variant="danger" wire:click="askWriteOff" :disabled="$circulation <= 0">Casează tokenii</x-btn>
+            @endpermitsAction
         </div>
     </div>
 

@@ -226,7 +226,7 @@ class Dashboard extends Component
             'adminsActive' => Admin::withAccess(Admin::APP_ADMIN)->where('is_active', true)->count(),
             'adminsTotal' => Admin::withAccess(Admin::APP_ADMIN)->count(),
             'currentAdmin' => Auth::guard('admin')->user(),
-            'dashboardSections' => DashboardSections::active((bool) Auth::guard('admin')->user()?->isSuperAdmin()), // DXA: runda 45 — ordinea/activarea din Setări
+            'dashboardSections' => DashboardSections::active(Auth::guard('admin')->user()), // DXA: runda 45 — ordinea/activarea din Setări
 
             // DXA: adaugat (Petreceri)
             'partiesUpcomingList' => $partiesUpcomingList,

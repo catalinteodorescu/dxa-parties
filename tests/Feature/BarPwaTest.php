@@ -30,6 +30,7 @@ use App\Services\ParticipantRegistry;
 use App\Services\SaleRecorder;
 use App\Support\BarApp;
 use App\Support\PaymentMethods;
+use App\Support\Permissions;
 use App\Support\ReceptionApp;
 use App\Support\Settings\Settings;
 use App\Support\SubmitGuard;
@@ -54,7 +55,7 @@ function bpUser(array $attrs = []): Admin
     return Admin::create(array_merge([
         'name' => 'Barman '.random_int(1, 99999),
         'phone' => '07'.random_int(10000000, 99999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'access_admin' => false,
         'access_bar' => true,

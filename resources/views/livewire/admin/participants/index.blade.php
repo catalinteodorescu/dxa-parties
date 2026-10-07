@@ -31,7 +31,9 @@
             <h2 class="text-xl font-semibold text-ink">Participanți</h2>
             <p class="mt-1 text-sm text-ink-soft">{{ $total }} {{ $total === 1 ? 'participant identificat' : 'participanți identificați' }}. Se adaugă aici sau direct la recepție, când înregistrezi o intrare.</p>
         </div>
+        @permits('participants', 'edit')
         <x-btn variant="primary" wire:click="toggleAdd" class="shrink-0">{{ $adding ? 'Renunță' : 'Adaugă' }}</x-btn>
+        @endpermits
     </div>
 
     <x-flash class="mb-4" />
@@ -129,19 +131,23 @@
                         @endif
                         @unless ($anonymized)
                             @if ((int) $p->entries_count === 0)
+                                @permits('participants', 'delete')
                                 <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                                        x-on:click="askConfirm('Șterge participantul', 'Ștergi definitiv participantul „{{ addslashes($p->name) }}”? Acțiunea nu poate fi anulată.', 'delete', [{{ $p->id }}])">
                                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                     </svg>
                                 </x-btn>
+                                @endpermits
                             @else
+                                @permitsAction('anonymize')
                                 <x-btn variant="danger" size="icon" outline tooltip="Anonimizează"
                                        x-on:click="askConfirm('Anonimizează participantul', 'Anonimizezi participantul „{{ addslashes($p->name) }}”? Numele și telefonul se șterg definitiv.', 'anonymize', [{{ $p->id }}])">
                                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/><path d="m3 3 18 18"/>
                                     </svg>
                                 </x-btn>
+                                @endpermitsAction
                             @endif
                         @endunless
                     </div>

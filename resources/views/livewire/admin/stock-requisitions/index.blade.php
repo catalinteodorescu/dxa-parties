@@ -34,10 +34,12 @@
             <h2 class="text-lg font-semibold text-ink">Bar — Necesare</h2>
             <p class="mt-1 text-sm text-ink-soft">Listele de produse de stoc de cumpărat. Se rezolvă automat din Raportări, pe măsură ce intră marfa.</p>
         </div>
+        @permits('requisitions', 'edit')
         <x-btn variant="primary" :href="route('admin.stock-requisitions.create')" wire:navigate class="self-start">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             Necesar nou
         </x-btn>
+        @endpermits
     </div>
 
     {{-- Filtre + căutare — pe ecrane mici (<md) sunt ascunse într-un toggle (deschis automat dacă există filtre active); de la md în sus sunt mereu vizibile, fără buton. --}}
@@ -138,10 +140,12 @@
                     <div class="mt-3 md:mt-0 flex flex-wrap items-center gap-2 md:justify-end">
                         {{-- DXA: adaugat (Bar - raportari) — doar pt. necesare deschise: aduce grupul in Raportare --}}
                         @if ($req->status === 'open')
+                            @permits('stock_reports', 'edit')
                             <x-btn variant="primary" size="icon" outline tooltip="Raportează din acest necesar"
                                    :href="route('admin.stock-reports.create', ['requisition' => $req->id])" wire:navigate>
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M9 15h6"/><path d="M12 18v-6"/></svg>
                             </x-btn>
+                            @endpermits
                         @endif
 
                         <x-btn variant="neutral" size="icon" outline
@@ -152,17 +156,23 @@
                             </svg>
                         </x-btn>
 
+                        @permits('requisitions', 'edit')
                         <x-btn variant="warning" size="icon" outline tooltip="Editează" :href="route('admin.stock-requisitions.edit', $req)" wire:navigate>
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                         </x-btn>
+                        @endpermits
 
+                        @permits('requisitions', 'edit')
                         <x-btn variant="purple" size="icon" outline tooltip="Duplică" wire:click="duplicate({{ $req->id }})">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                         </x-btn>
+                        @endpermits
 
+                        @permitsAction('export_requisitions')
                         <x-btn variant="neutral" size="icon" outline tooltip="Export PDF" wire:click="exportPdf({{ $req->id }})" wire:loading.attr="disabled" wire:target="exportPdf({{ $req->id }})">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
                         </x-btn>
+                        @endpermitsAction
 
                         <x-btn variant="success" size="icon" outline tooltip="Trimite pe WhatsApp" :href="$req->whatsAppUrl()" target="_blank" rel="noopener">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -171,22 +181,28 @@
                         </x-btn>
 
                         @if ($req->status !== 'closed')
+                            @permits('requisitions', 'edit')
                             <x-btn variant="info" size="icon" outline tooltip="Închide necesarul"
                                    x-on:click="askConfirm('Închide necesarul', 'Sigur vrei să închizi „{{ addslashes($req->label) }}”? Îl marchezi ca încheiat, fără să mai aștepți restul produselor. Stocul nu se modifică și îl poți redeschide oricând.', 'close', [{{ $req->id }}], 'Închide', 'info')">
                                 {{-- arhivă --}}
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
                             </x-btn>
+                            @endpermits
                         @else
+                            @permits('requisitions', 'edit')
                             <x-btn variant="info" size="icon" outline tooltip="Redeschide" wire:click="reopen({{ $req->id }})">
                                 {{-- înapoi --}}
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                             </x-btn>
+                            @endpermits
                         @endif
 
+                        @permits('requisitions', 'delete')
                         <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                                x-on:click="askConfirm('Șterge necesarul', 'Sigur vrei să ștergi „{{ addslashes($req->label) }}”? Acțiunea nu poate fi anulată.', 'delete', [{{ $req->id }}], 'Șterge', 'danger')">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </x-btn>
+                        @endpermits
                     </div>
                 </div>
 

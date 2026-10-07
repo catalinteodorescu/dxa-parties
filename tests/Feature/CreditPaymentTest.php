@@ -4,6 +4,7 @@ use App\Models\Admin;
 use App\Models\CreditTransaction;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
+use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyEntry;
 use App\Models\Sale;
@@ -14,6 +15,7 @@ use App\Services\EntryRecorder;
 use App\Services\ParticipantRegistry;
 use App\Services\SaleRecorder;
 use App\Support\PaymentMethods;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
@@ -30,7 +32,7 @@ function cpAdmin(): Admin
     return Admin::create([
         'name' => 'Casier Etapa3',
         'phone' => '+40700'.random_int(100000, 999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'password' => 'secret-pass',
     ]);
@@ -68,7 +70,7 @@ function cpCocktail(Admin $admin): MenuItem
     return $cocktail;
 }
 
-function cpBuyer(Admin $admin, float $load = 50): \App\Models\Participant
+function cpBuyer(Admin $admin, float $load = 50): Participant
 {
     $p = ParticipantRegistry::create('Cumpărător '.random_int(1, 999999), '0722'.random_int(100000, 999999));
     CreditLedger::load($p, $load, CreditTransaction::SOURCE_MANUAL, $admin->id, 'stoc initial test');

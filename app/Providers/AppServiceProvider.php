@@ -7,7 +7,9 @@ use App\Services\CreditLedger;
 use App\Services\Sms\LogSmsSender;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
+use App\Support\PermissionGuard;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +29,12 @@ class AppServiceProvider extends ServiceProvider
         if (str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
+
+        // DXA: adaugat (runda 46 — permisiuni): paza acțiunilor Livewire din panou.
+        PermissionGuard::register();
+        // @permits('secțiune', 'edit') … @endpermits  și  @permitsAction('export_pdf') … @endpermitsAction — butoane doar pentru cine are voie.
+        Blade::if('permits', fn (string $section, string $level = 'view') => (bool) auth('admin')->user()?->permits($section, $level));
+        Blade::if('permitsAction', fn (string $action) => (bool) auth('admin')->user()?->permitsAction($action));
 
         // Paginare custom (tema DXA) pentru toate listele.
         Paginator::defaultView('pagination.dxa');

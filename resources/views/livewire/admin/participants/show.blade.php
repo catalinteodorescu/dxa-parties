@@ -106,7 +106,9 @@
             <div class="mt-3 grid grid-cols-1 sm:grid-cols-5 gap-2">
                 <input type="text" wire:model="name" maxlength="120" placeholder="Nume" class="sm:col-span-2 {{ $input }}">
                 <input type="text" inputmode="tel" wire:model="phone" maxlength="20" placeholder="Telefon" x-on:keydown.enter.prevent="$wire.save()" class="sm:col-span-2 {{ $input }}">
+                @permits('participants', 'edit')
                 <x-btn variant="warning" wire:click="save">Salvează</x-btn>
+                @endpermits
             </div>
             <p class="mt-2 text-xs text-ink-soft">Telefonul e cheia participantului: când își face cont în aplicație cu același număr, istoricul se păstrează.</p>
         </div>
@@ -147,7 +149,9 @@
                 <div class="space-y-1.5 max-w-sm">
                     <input type="text" inputmode="decimal" wire:model="creditLoadAmount" placeholder="Sumă (lei)" class="{{ $input }}">
                     <input type="text" wire:model="creditLoadNote" maxlength="255" placeholder="Motiv (obligatoriu)" class="{{ $input }}">
+                    @permitsAction('credits_adjust')
                     <x-btn variant="primary" wire:click="loadCredits">Încarcă</x-btn>
+                    @endpermitsAction
                 </div>
             </div>
 
@@ -156,7 +160,9 @@
                 <div class="space-y-1.5 max-w-sm">
                     <input type="text" inputmode="decimal" wire:model="creditAdjustAmount" placeholder="ex. 20 sau -20" class="{{ $input }}">
                     <input type="text" wire:model="creditAdjustReason" maxlength="255" placeholder="Motiv (obligatoriu)" class="{{ $input }}">
+                    @permitsAction('credits_adjust')
                     <x-btn variant="neutral" wire:click="adjustCredits">Ajustează</x-btn>
+                    @endpermitsAction
                 </div>
             </div>
 
@@ -165,7 +171,9 @@
                 <div class="space-y-1.5 max-w-sm">
                     <input type="text" inputmode="decimal" wire:model="creditRefundAmount" placeholder="Sumă (lei)" class="{{ $input }}">
                     <input type="text" wire:model="creditRefundReason" maxlength="255" placeholder="Motiv (obligatoriu)" class="{{ $input }}">
+                    @permitsAction('credits_adjust')
                     <x-btn variant="danger" outline wire:click="refundCredits">Refundează</x-btn>
+                    @endpermitsAction
                 </div>
             </div>
         </div>
@@ -204,7 +212,9 @@
             <div class="flex items-center justify-between gap-3">
                 <h3 class="text-sm font-semibold text-ink">Card de fidelitate</h3>
                 @if (! $loyaltyEnrolled)
+                    @permits('participants', 'edit')
                     <x-btn variant="primary" size="sm" wire:click="toggleEnroll">Înrolează la fidelitate</x-btn>
+                    @endpermits
                 @endif
             </div>
 
@@ -250,7 +260,9 @@
                         <div class="space-y-1.5 max-w-sm">
                             <input type="text" inputmode="numeric" wire:model="loyaltyAdjustDelta" placeholder="ex. 3 sau -1" class="{{ $input }}">
                             <input type="text" wire:model="loyaltyAdjustReason" maxlength="255" placeholder="Motiv (obligatoriu)" class="{{ $input }}">
+                            @permitsAction('loyalty_adjust')
                             <x-btn variant="neutral" wire:click="adjustLoyaltyStamps">Ajustează</x-btn>
+                            @endpermitsAction
                         </div>
                         <p class="mt-1.5 text-[11px] text-ink-soft">Util și pentru a prelua ștampilele unui card fizic mai vechi.</p>
                     </div>
@@ -410,20 +422,24 @@
         @if ($totalEntries === 0)
             <p class="mt-1 text-xs text-ink-soft leading-relaxed">Participantul n-are nicio intrare, deci poate fi șters complet.</p>
             <div class="mt-3">
+                @permits('participants', 'delete')
                 <x-btn variant="danger" outline
                        x-on:click="askConfirm('Șterge participantul', 'Ștergi definitiv acest participant? Acțiunea nu poate fi anulată.', 'delete')">
                     Șterge participantul
                 </x-btn>
+                @endpermits
             </div>
         @elseif (! $anonymized)
             <p class="mt-1 text-xs text-ink-soft leading-relaxed">
                 Are intrări înregistrate, deci nu se șterge. Poți să-l anonimizezi: numele și telefonul se golesc, iar intrările rămân doar ca număr în statistici. Nu se poate anula.
             </p>
             <div class="mt-3">
+                @permitsAction('anonymize')
                 <x-btn variant="danger" outline
                        x-on:click="askConfirm('Anonimizează participantul', 'Anonimizezi acest participant? Numele și telefonul se șterg definitiv.', 'anonymize')">
                     Anonimizează
                 </x-btn>
+                @endpermitsAction
             </div>
         @else
             <p class="mt-1 text-xs text-ink-soft">Participantul a fost anonimizat; intrările rămân doar ca număr în statistici.</p>

@@ -7,6 +7,7 @@ use App\Livewire\Admin\Users\Create as UsersCreate;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Models\Admin;
 use App\Models\AdminActivityLog;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -23,7 +24,7 @@ function uaUser(array $attrs = []): Admin
     return Admin::create(array_merge([
         'name' => 'Utilizator '.random_int(1, 99999),
         'phone' => '07'.random_int(10000000, 99999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'password' => 'secret-pass',
     ], $attrs));
@@ -124,15 +125,16 @@ it('accesul unui superadmin nu se editeaza', function () {
     expect($other->fresh()->canAccess(Admin::APP_BAR))->toBeTrue();
 });
 
-it('lista de utilizatori arata coloana Acces doar superadmin-ului', function () {
+it('lista de utilizatori arata coloana Acces, dar o poate edita doar cine are „modificare” la Utilizatori', function () {
     $super = uaUser(['role' => 'superadmin', 'name' => 'Sef Suprem']);
     uaUser(['name' => 'Bar Man', 'access_admin' => false, 'access_bar' => true]);
 
     $this->actingAs($super, 'admin');
     Livewire::test(UsersIndex::class)->assertSee('Acces')->assertSee('Recepție')->assertSee('Toate');
 
-    $this->actingAs(uaUser(), 'admin');
-    Livewire::test(UsersIndex::class)->assertDontSee('Recepție');
+    // Cu „vizualizare” la Utilizatori: vede coloana, dar fără butoane de modificare (runda 46).
+    $this->actingAs(uaUser(['permissions' => ['levels' => ['users' => 1], 'actions' => []]]), 'admin');
+    Livewire::test(UsersIndex::class)->assertSee('Recepție')->assertDontSeeHtml('wire:click="updateAccess');
 });
 
 it('creeaza un utilizator cu accesul ales si cere cel putin o aplicatie', function () {

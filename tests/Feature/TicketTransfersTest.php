@@ -14,6 +14,7 @@ use App\Services\ParticipantRegistry;
 use App\Services\TicketOrders;
 use App\Services\TicketTransfers;
 use App\Support\ParticipantAppSettings;
+use App\Support\Permissions;
 use App\Support\Settings\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -259,7 +260,7 @@ it('istoricul apare în pagina participantului din admin', function () {
     $ticket = ttTicket($ana);
     TicketTransfers::send($ticket->id, $ana, $bob->phone, $this->sms);
 
-    $admin = Admin::create(['name' => 'Admin T', 'phone' => '+40700'.random_int(100000, 999999), 'role' => 'admin', 'is_active' => true, 'password' => 'secret-pass']);
+    $admin = Admin::create(['name' => 'Admin T', 'phone' => '+40700'.random_int(100000, 999999), 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'password' => 'secret-pass']);
     $this->actingAs($admin, 'admin');
 
     Livewire::test(Show::class, ['participant' => $ana])->assertSee('Bilete trimise / primite')->assertSee('trimis către Bob');

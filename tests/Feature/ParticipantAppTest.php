@@ -31,6 +31,7 @@ use App\Services\ParticipantRegistry;
 use App\Services\TicketOrders;
 use App\Support\ParticipantApp;
 use App\Support\ParticipantAppSettings;
+use App\Support\Permissions;
 use App\Support\Settings\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -330,7 +331,7 @@ it('anonimizarea șterge parola și verificarea contului', function () {
 });
 
 it('guard-urile admin și participant sunt separate', function () {
-    $admin = Admin::create(['name' => 'A', 'phone' => '+40700111222', 'role' => 'admin', 'is_active' => true, 'password' => 'secret-pass']);
+    $admin = Admin::create(['name' => 'A', 'phone' => '+40700111222', 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'password' => 'secret-pass']);
     $this->actingAs($admin, 'admin');
 
     $this->get('/cont')->assertRedirect(route('app.login'));
@@ -431,7 +432,7 @@ it('contul: ultimele 5 intrări și consumații la bar cu „Vezi tot”, cardul
 });
 
 it('contul afișează intrările proprii, nu și pe cele anulate sau ale altora', function () {
-    $admin = Admin::create(['name' => 'R', 'phone' => '+40700999888', 'role' => 'admin', 'is_active' => true, 'password' => 'secret-pass']);
+    $admin = Admin::create(['name' => 'R', 'phone' => '+40700999888', 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'password' => 'secret-pass']);
     $party = paParty(['name' => 'Seara mea', 'start_date' => now()->toDateString(), 'start_time' => '00:01', 'end_time' => '23:59']);
     $p = paAccount();
     $other = paAccount('0733111222');
@@ -584,7 +585,7 @@ it('înscrierea la fidelitate se face din aplicație, doar când programul e act
 
 it('lista de participanți din admin arată poza în cerc, sau inițialele; poza se servește doar adminilor', function () {
     Storage::fake('local');
-    $admin = Admin::create(['name' => 'Adm', 'phone' => '+40700555444', 'role' => 'admin', 'is_active' => true, 'password' => 'secret-pass']);
+    $admin = Admin::create(['name' => 'Adm', 'phone' => '+40700555444', 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'password' => 'secret-pass']);
     $withPhoto = paAccount('0722000001');
     $without = ParticipantRegistry::create('Ion Popescu', '0722000002');
     ParticipantAvatar::store($withPhoto, UploadedFile::fake()->image('a.png', 300, 300));

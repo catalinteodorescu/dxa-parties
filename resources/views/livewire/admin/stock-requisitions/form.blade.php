@@ -22,10 +22,12 @@
 
             @if ($isEditing)
                 <div class="flex items-center gap-3 shrink-0">
+                    @permitsAction('export_requisitions')
                     <x-btn variant="neutral" size="sm" outline wire:click="exportPdf" wire:loading.attr="disabled" wire:target="exportPdf">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
                         Export PDF
                     </x-btn>
+                    @endpermitsAction
                     <x-btn variant="success" size="sm" outline :href="$requisition->whatsAppUrl()" target="_blank" rel="noopener">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-11.98 7.76L3 21l1.83-6.02A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 10.5c.3 2.5 2.5 4.7 5 5"/></svg>
                         WhatsApp

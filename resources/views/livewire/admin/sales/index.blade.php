@@ -29,10 +29,12 @@
             <p class="mt-1 text-sm text-ink-soft">Toate vânzările din bar. O sesiune de vânzări (ex. o petrecere) e comună tuturor barmanilor; vânzările simple, de exemplu la un curs, nu aparțin niciunei sesiuni. Stocul se actualizează la finalizarea raportării.</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+            @permits('sales', 'edit')
             <x-btn variant="primary" :href="route('admin.sales.create', $group !== 'all' ? ['group' => $group] : [])" wire:navigate>
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Vânzare nouă
             </x-btn>
+            @endpermits
         </div>
     </div>
 
@@ -56,7 +58,9 @@
                               title="Trimisă din aplicația de bar de {{ $s->barReport->submitter?->name ?? '—' }}, {{ $s->barReport->submitted_at->format('d.m H:i') }}">
                             Raportare trimisă · numărat {{ $money($s->barReport->counted_cash) }} lei
                         </span>
+                        @permitsAction('reopen_sales')
                         <x-btn variant="neutral" size="sm" outline wire:click="askReopen({{ $s->id }})">Redeschide raportarea</x-btn>
+                        @endpermitsAction
                     @endif
                     <x-btn variant="neutral" size="sm" outline :href="route('admin.sales.index', ['group' => $s->id])" wire:navigate>Vezi vânzările</x-btn>
                 </div>
@@ -158,10 +162,12 @@
                         <span class="text-base font-semibold text-ink whitespace-nowrap">{{ $money($sale->total) }} lei</span>
                         @if ($sale->canBeCancelled())
                             @php $cancelInfo = $sale->sold_at->format('d.m.Y H:i').' · '.$money($sale->total).' lei'; @endphp
+                            @permitsAction('cancel_sales')
                             <x-btn variant="danger" size="icon" outline tooltip="Anulează vânzarea"
                                    x-on:click="askCancel({{ $sale->id }}, '{{ $cancelInfo }}')">
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
                             </x-btn>
+                            @endpermitsAction
                         @endif
                     </div>
                 </div>

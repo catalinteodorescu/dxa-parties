@@ -26,10 +26,12 @@
             <h2 class="text-lg font-semibold text-ink">Recepție · Intrări</h2>
             <p class="mt-1 text-sm text-ink-soft">Toate intrările înregistrate la recepție. Un rând = un grup (1-50 persoane), înregistrat odată, cu plata lui.</p>
         </div>
+        @permits('reception', 'edit')
         <x-btn variant="primary" :href="route('admin.reception.create')" wire:navigate class="shrink-0">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             Intrare nouă
         </x-btn>
+        @endpermits
     </div>
 
     {{-- Filtre — pe ecrane mici (<md) sunt ascunse într-un toggle (deschis automat dacă există filtre active); de la md în sus sunt mereu vizibile, fără buton. --}}
@@ -125,10 +127,12 @@
                         <span class="text-base font-semibold text-ink whitespace-nowrap">{{ $money($b->total) }} lei</span>
                         @if (! $b->cancelled)
                             @php $cancelInfo = $b->at->format('d.m.Y H:i').' · '.$b->count.' persoane · '.$money($b->total).' lei'; @endphp
+                            @permitsAction('cancel_entries')
                             <x-btn variant="danger" size="icon" outline tooltip="Anulează grupul"
                                    x-on:click="askCancel('{{ $b->batch }}', '{{ $cancelInfo }}')">
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
                             </x-btn>
+                            @endpermitsAction
                         @endif
                     </div>
                 </div>

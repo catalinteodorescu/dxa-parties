@@ -34,10 +34,12 @@
             <h2 class="text-lg font-semibold text-ink">Anunțuri</h2>
             <p class="mt-1 text-sm text-ink-soft">Apar în app, în carusel și/sau în zona de anunțuri.</p>
         </div>
+        @permits('announcements', 'edit')
         <x-btn variant="primary" :href="route('admin.announcements.create')" wire:navigate class="self-start">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             Anunț nou
         </x-btn>
+        @endpermits
     </div>
 
     {{-- Filtre + căutare — pe ecrane mici (<md) sunt ascunse într-un toggle (deschis automat dacă există filtre active); de la md în sus sunt mereu vizibile, fără buton. --}}
@@ -143,10 +145,13 @@
                 {{-- Acțiuni --}}
                 <div class="flex items-center gap-2 flex-wrap md:flex-nowrap md:shrink-0">
                     @if ($a->isDraft())
+                        @permitsAction('publish_announcements')
                         <x-btn variant="primary" size="icon" outline tooltip="Publică" wire:click="publish({{ $a->id }})">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
                         </x-btn>
+                        @endpermitsAction
                     @else
+                        @permits('announcements', 'edit')
                         <x-btn variant="info" size="icon" outline
                                tooltip="{{ $a->is_active ? 'Ascunde din app' : 'Afișează în app' }}"
                                wire:click="toggleActive({{ $a->id }})">
@@ -158,20 +163,27 @@
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
                             @endif
                         </x-btn>
+                        @endpermits
                     @endif
 
+                    @permits('announcements', 'edit')
                     <x-btn variant="warning" size="icon" outline tooltip="Editează" :href="route('admin.announcements.edit', $a)" wire:navigate>
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                     </x-btn>
+                    @endpermits
 
+                    @permits('announcements', 'edit')
                     <x-btn variant="purple" size="icon" outline tooltip="Duplică" wire:click="duplicate({{ $a->id }})">
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                     </x-btn>
+                    @endpermits
 
+                    @permits('announcements', 'delete')
                     <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                            x-on:click="askConfirm('Șterge anunț', 'Sigur vrei să ștergi anunțul „{{ addslashes($a->title) }}”? Acțiunea nu poate fi anulată.', 'delete', [{{ $a->id }}])">
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </x-btn>
+                    @endpermits
                 </div>
             </div>
         @empty

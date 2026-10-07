@@ -30,10 +30,15 @@
 >
     @php
         $isSuper = $currentAdmin->isSuperAdmin();
+        // DXA: runda 46 — permisiuni: vizualizare = lista; modificare = invitații, status, acces; ștergere = ștergerea
+        // conturilor. Rolul și permisiunile detaliate rămân doar ale superadmin-ului.
+        $canEdit = $currentAdmin->permits('users', 'edit');
+        $canDelete = $currentAdmin->permits('users', 'delete');
+        $showActions = $isSuper || $canDelete;
         // Sablon de coloane pentru desktop; pe mobil totul devine card stivuit.
-        $cols = $isSuper
-            ? 'md:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.9fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_44px]'
-            : 'md:grid-cols-[minmax(0,1.8fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.8fr)]';
+        $cols = $showActions
+            ? 'md:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.9fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_84px]'
+            : 'md:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.9fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]';
     @endphp
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -41,7 +46,7 @@
             <h2 class="text-lg font-semibold text-ink">Utilizatori</h2>
             <p class="mt-1 text-sm text-ink-soft">Conturile care se pot autentifica în panoul de administrare, în aplicația de bar și în cea de recepție.</p>
         </div>
-        @if ($isSuper)
+        @if ($canEdit)
             <x-btn variant="primary" :href="route('admin.users.create')" wire:navigate class="self-start">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Adaugă utilizator
@@ -58,15 +63,19 @@
                     text-xs font-semibold uppercase tracking-wide text-ink-soft/70">
             <div>Nume</div>
             <div>Telefon</div>
-            @if ($isSuper)<div>Rol</div><div>Acces</div>@endif
+            <div>Rol</div><div>Acces</div>
             <div>Status</div>
             <div>Creat la</div>
-            @if ($isSuper)<div class="text-right">Acțiuni</div>@endif
+            @if ($showActions)<div class="text-right">Acțiuni</div>@endif
         </div>
 
         <div class="space-y-3">
             @forelse ($admins as $admin)
-                @php $isSelf = $admin->id === $currentAdmin->id; @endphp
+                @php
+                    $isSelf = $admin->id === $currentAdmin->id;
+                    // Un superadmin nu poate fi modificat de cineva care nu e superadmin.
+                    $mayTouch = $isSuper || ! $admin->isSuperAdmin();
+                @endphp
                 <div class="rounded-2xl border border-border bg-surface p-4 space-y-3
                             md:px-5 md:py-3 md:space-y-0 md:grid {{ $cols }} md:items-center md:gap-4">
 
@@ -90,12 +99,12 @@
                         <span class="text-ink-soft">{{ $admin->phone }}</span>
                     </div>
 
-                    {{-- Rol (doar superadmin vede si editeaza) --}}
-                    @if ($isSuper)
+                    {{-- Rol (doar superadmin-ul îl schimbă) --}}
+                    @if (true)
                         <div class="flex items-center justify-between gap-3 md:block">
                             <span class="text-xs font-medium text-ink-soft md:hidden">Rol</span>
                             <div>
-                                @if (! $isSelf)
+                                @if ($isSuper && ! $isSelf)
                                     <div class="relative inline-block" @click.stop>
                                         <button type="button" @click="toggleDropdown('role-{{ $admin->id }}')"
                                                 class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 transition-colors
@@ -131,8 +140,8 @@
                         </div>
                     @endif
 
-                    {{-- Acces pe aplicație (doar superadmin vede și editează) --}}
-                    @if ($isSuper)
+                    {{-- Acces pe aplicație (se editează cu „modificare” la Utilizatori) --}}
+                    @if (true)
                         <div class="flex items-center justify-between gap-3 md:block">
                             <span class="text-xs font-medium text-ink-soft md:hidden">Acces</span>
                             <div class="flex flex-wrap items-center justify-end gap-1.5 md:justify-start">
@@ -142,7 +151,9 @@
                                     @foreach (['admin' => 'Panou', 'bar' => 'Bar', 'reception' => 'Recepție'] as $app => $appShort)
                                         @php $has = $admin->canAccess($app); @endphp
                                         <button type="button" wire:key="acc-{{ $admin->id }}-{{ $app }}"
-                                                @if ($has)
+                                                @unless ($canEdit) disabled @endunless
+                                                @if (! $canEdit)
+                                                @elseif ($has)
                                                     @click="askConfirm('Scoate accesul', 'Scoți accesul lui {{ addslashes($admin->name ?: $admin->phone) }} la „{{ \App\Models\Admin::APP_LABELS[$app] }}”? Va fi delogat din aplicație la următoarea acțiune.', 'updateAccess', [{{ $admin->id }}, '{{ $app }}', false])"
                                                 @else
                                                     wire:click="updateAccess({{ $admin->id }}, '{{ $app }}', true)"
@@ -165,7 +176,7 @@
                     <div class="flex items-center justify-between gap-3 md:block">
                         <span class="text-xs font-medium text-ink-soft md:hidden">Status</span>
                         <div>
-                            @if ($isSuper && ! $isSelf)
+                            @if ($canEdit && $mayTouch && ! $isSelf)
                                 <div class="relative inline-block" @click.stop>
                                     <button type="button" @click="toggleDropdown('status-{{ $admin->id }}')"
                                             class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 transition-colors
@@ -218,11 +229,17 @@
                         <span class="text-ink-soft">{{ $admin->created_at->format('d.m.Y') }}</span>
                     </div>
 
-                    {{-- Acțiuni (doar superadmin) --}}
-                    @if ($isSuper)
-                        <div class="{{ $isSelf ? 'hidden md:block' : 'flex items-center justify-between gap-3 md:block' }} md:text-right">
+                    {{-- Acțiuni: permisiunile detaliate (superadmin) și ștergerea (nivelul „ștergere”) --}}
+                    @if ($showActions)
+                        <div class="{{ $isSelf ? 'hidden md:flex' : 'flex' }} items-center justify-between gap-3 md:justify-end md:gap-2">
                             <span class="text-xs font-medium text-ink-soft md:hidden">Acțiuni</span>
-                            @unless ($isSelf)
+                            <span class="inline-flex items-center gap-2">
+                            @if ($isSuper && ! $admin->isSuperAdmin())
+                                <x-btn variant="secondary" size="icon" outline tooltip="Permisiuni" :href="route('admin.users.permissions', $admin)" wire:navigate data-user-permissions>
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                                </x-btn>
+                            @endif
+                            @if ($canDelete && $mayTouch && ! $isSelf)
                                 <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                                        x-on:click="askConfirm('Șterge admin', 'Sigur vrei să ștergi contul lui {{ addslashes($admin->name ?: $admin->phone) }}? Acțiunea nu poate fi anulată.', 'deleteAdmin', [{{ $admin->id }}])">
                                     <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -233,7 +250,8 @@
                                         <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                     </svg>
                                 </x-btn>
-                            @endunless
+                            @endif
+                            </span>
                         </div>
                     @endif
                 </div>

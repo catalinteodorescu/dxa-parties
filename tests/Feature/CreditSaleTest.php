@@ -12,6 +12,7 @@ use App\Models\ReceptionSession;
 use App\Services\CreditLedger;
 use App\Services\ParticipantRegistry;
 use App\Support\PaymentMethods;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -25,7 +26,7 @@ function csAdmin(): Admin
     return Admin::create([
         'name' => 'Casier Credite',
         'phone' => '+40700'.random_int(100000, 999999),
-        'role' => 'admin',
+        'role' => 'admin', 'permissions' => Permissions::legacyAdmin(),
         'is_active' => true,
         'password' => 'secret-pass',
     ]);

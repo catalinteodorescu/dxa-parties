@@ -55,7 +55,7 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless(Auth::guard('admin')->user()->isSuperAdmin(), 403);
+        abort_unless(Auth::guard('admin')->user()->permits('logs'), 403); // DXA: runda 46 — permisiune, nu doar superadmin
     }
 
     public function updated(string $name): void

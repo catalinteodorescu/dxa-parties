@@ -18,6 +18,11 @@
     @livewireStyles
 </head>
 <body class="bg-bg text-ink font-sans antialiased">
+    {{-- DXA: runda 46 — permisiuni: meniul arată doar ce are voie utilizatorul. --}}
+    @php
+        $me = auth('admin')->user();
+        $can = fn (string $section, string $level = 'view') => $me ? $me->permits($section, $level) : false;
+    @endphp
 
     <div x-data="{ sidebarOpen: false }" class="min-h-screen md:flex">
 
@@ -51,6 +56,7 @@
 
                 {{-- Grup collapsabil: Petreceri --}}
                 {{-- DXA: adaugat (Petreceri) — Adaugă + Listă + Statistici (agregate, all-time). --}}
+                @if ($me && $me->permitsAny('parties', 'party_stats', 'reconciliation', 'promoters'))
                 <div x-data="{ partiesOpen: true }" class="pt-4">
                     <button type="button" @click="partiesOpen = ! partiesOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -70,6 +76,7 @@
                          x-transition:enter-end="opacity-100 translate-y-0"
                          class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
 
+                        @if ($can('parties', 'edit'))
                         <a href="{{ route('admin.parties.create') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.parties.create') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -78,7 +85,9 @@
                             </svg>
                             Adaugă
                         </a>
+                        @endif
 
+                        @if ($can('parties', 'view'))
                         <a href="{{ route('admin.parties.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.parties.index') || request()->routeIs('admin.parties.show') || request()->routeIs('admin.parties.edit') || request()->routeIs('admin.parties.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -87,7 +96,9 @@
                             </svg>
                             Listă
                         </a>
+                        @endif
 
+                        @if ($can('party_stats', 'view'))
                         <a href="{{ route('admin.parties.overview') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.parties.overview') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -96,26 +107,33 @@
                             </svg>
                             Statistici
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (Bilanțul serii) --}}
+                        @if ($can('reconciliation', 'view'))
                         <a href="{{ route('admin.reconciliation') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.reconciliation') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
                             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
                             Bilanțul serii
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (Coduri de reducere - promotori) --}}
+                        @if ($can('promoters', 'view'))
                         <a href="{{ route('admin.promoters.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.promoters.index') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
                             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
                             Promotori
                         </a>
+                        @endif
                     </div>
                 </div>
+                @endif
 
                 {{-- Grup collapsabil: Conținut --}}
+                @if ($me && $me->permitsAny('announcements'))
                 <div x-data="{ contentOpen: true }" class="pt-4">
                     <button type="button" @click="contentOpen = ! contentOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -135,6 +153,7 @@
                          x-transition:enter-end="opacity-100 translate-y-0"
                          class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
 
+                        @if ($can('announcements', 'view'))
                         <a href="{{ route('admin.announcements.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.announcements.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -143,11 +162,14 @@
                             </svg>
                             Anunțuri
                         </a>
+                        @endif
                     </div>
                 </div>
+                @endif
 
                 {{-- Grup collapsabil: Bar --}}
                 {{-- DXA: adaugat (Bar) — Meniu + Stocuri + Necesare; Raportări/Rapoarte se adaugă aici mai târziu. --}}
+                @if ($me && $me->permitsAny('sales', 'menu', 'stocks', 'requisitions', 'stock_reports', 'bar_reports', 'bar_stats'))
                 <div x-data="{ menuBarOpen: true }" class="pt-4">
                     <button type="button" @click="menuBarOpen = ! menuBarOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -168,6 +190,7 @@
                          class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
 
                         {{-- DXA: adaugat (Bar - vanzari) --}}
+                        @if ($can('sales', 'view'))
                         <a href="{{ route('admin.sales.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.sales.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -176,7 +199,9 @@
                             </svg>
                             Vânzări
                         </a>
+                        @endif
 
+                        @if ($can('menu', 'view'))
                         <a href="{{ route('admin.menu-items.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.menu-items.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -185,7 +210,9 @@
                             </svg>
                             Meniu
                         </a>
+                        @endif
 
+                        @if ($can('stocks', 'view'))
                         <a href="{{ route('admin.stock-items.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.stock-items.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -194,8 +221,10 @@
                             </svg>
                             Stocuri
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (Bar - necesare) --}}
+                        @if ($can('requisitions', 'view'))
                         <a href="{{ route('admin.stock-requisitions.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.stock-requisitions.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -204,8 +233,10 @@
                             </svg>
                             Necesare
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (Bar - raportari) --}}
+                        @if ($can('stock_reports', 'view'))
                         <a href="{{ route('admin.stock-reports.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.stock-reports.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -214,8 +245,10 @@
                             </svg>
                             Raportări stoc
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (Bar - raportări casă) --}}
+                        @if ($can('bar_reports', 'view'))
                         <a href="{{ route('admin.bar.reports.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.bar.reports.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -223,8 +256,10 @@
                             Raportări casă
                             @if (($n = \App\Models\BarReport::awaitingAdmin()->count()) > 0)<span class="ml-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $n }}</span>@endif
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (Bar - statistici agregate) --}}
+                        @if ($can('bar_stats', 'view'))
                         <a href="{{ route('admin.bar.stats') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.bar.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -233,11 +268,14 @@
                             </svg>
                             Statistici
                         </a>
+                        @endif
                     </div>
                 </div>
+                @endif
 
                 {{-- Grup collapsabil: Recepție --}}
                 {{-- DXA: adaugat (Recepție) — Intrări + Tokeni + Raportări (închiderea casei). --}}
+                @if ($me && $me->permitsAny('reception', 'reception_tokens', 'reception_reports', 'reception_stats'))
                 <div x-data="{ receptionOpen: true }" class="pt-4">
                     <button type="button" @click="receptionOpen = ! receptionOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -257,6 +295,7 @@
                          x-transition:enter-end="opacity-100 translate-y-0"
                          class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
 
+                        @if ($can('reception', 'view'))
                         <a href="{{ route('admin.reception.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.reception.index') || request()->routeIs('admin.reception.create') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -265,7 +304,9 @@
                             </svg>
                             Intrări
                         </a>
+                        @endif
 
+                        @if ($can('reception_tokens', 'view'))
                         <a href="{{ route('admin.reception.tokens') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.reception.tokens') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -274,7 +315,9 @@
                             </svg>
                             Tokeni
                         </a>
+                        @endif
 
+                        @if ($can('reception_reports', 'view'))
                         <a href="{{ route('admin.reception.reports.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.reception.reports.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -284,8 +327,10 @@
                             Raportări casă
                             @if (($n = \App\Models\ReceptionReport::awaitingAdmin()->count()) > 0)<span class="ml-auto inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $n }}</span>@endif
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (Receptie - statistici agregate) --}}
+                        @if ($can('reception_stats', 'view'))
                         <a href="{{ route('admin.reception.stats') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.reception.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -294,11 +339,14 @@
                             </svg>
                             Statistici
                         </a>
+                        @endif
                     </div>
                 </div>
+                @endif
 
                 {{-- Grup collapsabil: Participanți --}}
                 {{-- DXA: adaugat (Participanți) — Listă + Statistici (topuri) + Carduri (fidelitate). --}}
+                @if ($me && $me->permitsAny('participants', 'loyalty', 'credits'))
                 <div x-data="{ participantsOpen: true }" class="pt-4">
                     <button type="button" @click="participantsOpen = ! participantsOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -318,6 +366,7 @@
                          x-transition:enter-end="opacity-100 translate-y-0"
                          class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
 
+                        @if ($can('participants', 'view'))
                         <a href="{{ route('admin.participants.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.participants.index') || request()->routeIs('admin.participants.show') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -326,8 +375,10 @@
                             </svg>
                             Listă
                         </a>
+                        @endif
 
                         @if (\App\Services\LoyaltyLedger::enabled())
+                            @if ($can('loyalty', 'view'))
                             <a href="{{ route('admin.loyalty.cards') }}" wire:navigate @click="sidebarOpen = false"
                                class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                       {{ request()->routeIs('admin.loyalty.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -336,10 +387,12 @@
                                 </svg>
                                 Carduri
                             </a>
+                            @endif
                         @endif
 
                         {{-- DXA: adaugat (Credite - pagina Credite): apare cât creditele sunt active sau există mișcări. --}}
                         @if (\App\Services\CreditsOverview::visible())
+                            @if ($can('credits', 'view'))
                             <a href="{{ route('admin.credits.index') }}" wire:navigate @click="sidebarOpen = false"
                                class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                       {{ request()->routeIs('admin.credits.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -348,8 +401,10 @@
                                 </svg>
                                 Credite
                             </a>
+                            @endif
                         @endif
 
+                        @if ($can('participants', 'view'))
                         <a href="{{ route('admin.participants.stats') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.participants.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -358,8 +413,10 @@
                             </svg>
                             Statistici
                         </a>
+                        @endif
                     </div>
                 </div>
+                @endif
 
                 {{-- Grupul următor (Credite utilizatori) se adaugă aici, pe măsură ce-l construim. --}}
 
@@ -384,6 +441,7 @@
                          x-transition:enter-end="opacity-100 translate-y-0"
                          class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
 
+                        @if ($can('users', 'view'))
                         <a href="{{ route('admin.users.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.users.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -392,6 +450,7 @@
                             </svg>
                             Listă useri
                         </a>
+                        @endif
 
                         <a href="{{ route('admin.account.edit') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
@@ -402,7 +461,7 @@
                             Contul meu
                         </a>
 
-                        @if (auth('admin')->user()->isSuperAdmin())
+                        @if ($can('logs', 'view'))
                             <a href="{{ route('admin.logs.index') }}" wire:navigate @click="sidebarOpen = false"
                                class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                       {{ request()->routeIs('admin.logs.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -417,6 +476,7 @@
 
                 {{-- Grup collapsabil: Setări --}}
                 {{-- DXA: adaugat (Setari) --}}
+                @if ($me && $me->permitsAny('settings'))
                 <div x-data="{ settingsOpen: true }" class="pt-4">
                     <button type="button" @click="settingsOpen = ! settingsOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -437,6 +497,7 @@
                          x-transition:enter-end="opacity-100 translate-y-0"
                          class="mt-1 ml-4 pl-3 border-l border-border space-y-1">
 
+                        @if ($can('settings', 'view'))
                         <a href="{{ route('admin.settings.index') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.settings.index') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -446,8 +507,10 @@
                             </svg>
                             Setări generale
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (PWA Recepție - setări aplicație): temă, nume, logo --}}
+                        @if ($can('settings', 'view'))
                         <a href="{{ route('admin.settings.reception-app') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.settings.reception-app') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -456,8 +519,10 @@
                             </svg>
                             Aplicație recepție
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (PWA Bar - setări aplicație): nume, logo, temă --}}
+                        @if ($can('settings', 'view'))
                         <a href="{{ route('admin.settings.bar-app') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.settings.bar-app') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -466,8 +531,10 @@
                             </svg>
                             Aplicație bar
                         </a>
+                        @endif
 
                         {{-- DXA: adaugat (runda 23 — setări aplicație participanți): identitate, texte, conturi, contact, legal, SMS --}}
+                        @if ($can('settings', 'view'))
                         <a href="{{ route('admin.settings.participant-app') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.settings.participant-app') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -476,8 +543,10 @@
                             </svg>
                             Aplicație participanți
                         </a>
+                        @endif
                     </div>
                 </div>
+                @endif
 
                 {{-- Deconectare: acum in fluxul normal al meniului (nu mai e fix jos), dupa Setari --}}
                 <div class="pt-4 mt-4 border-t border-border">

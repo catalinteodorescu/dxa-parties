@@ -42,14 +42,18 @@
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
                 </span>
                 <div class="flex md:hidden flex-col shrink-0">
+                    @permits('menu', 'edit')
                     <button type="button" wire:click="moveUp({{ $c->id }})" @if ($loop->first) disabled @endif
                             class="inline-flex items-center justify-center w-6 h-5 rounded text-ink-soft/60 hover:text-ink hover:bg-bg disabled:opacity-30 disabled:pointer-events-none">
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
                     </button>
+                    @endpermits
+                    @permits('menu', 'edit')
                     <button type="button" wire:click="moveDown({{ $c->id }})" @if ($loop->last) disabled @endif
                             class="inline-flex items-center justify-center w-6 h-5 rounded text-ink-soft/60 hover:text-ink hover:bg-bg disabled:opacity-30 disabled:pointer-events-none">
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                     </button>
+                    @endpermits
                 </div>
 
                 {{-- Nume editabil inline (Enter sau părăsirea câmpului = salvează) --}}
@@ -62,6 +66,7 @@
 
                 {{-- Acțiuni --}}
                 <div class="flex items-center gap-2 shrink-0">
+                    @permits('menu', 'edit')
                     <x-btn variant="info" size="icon" outline
                            tooltip="{{ $c->is_active ? 'Ascunde din meniu' : 'Afișează în meniu' }}"
                            wire:click="toggleActive({{ $c->id }})">
@@ -71,6 +76,7 @@
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
                         @endif
                     </x-btn>
+                    @endpermits
 
                     @if ($c->items_count > 0)
                         <x-btn variant="danger" size="icon" outline disabled
@@ -79,10 +85,12 @@
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </x-btn>
                     @else
+                        @permits('menu', 'delete')
                         <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                                x-on:click="ask({{ $c->id }}, '{{ addslashes($c->name) }}')">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </x-btn>
+                        @endpermits
                     @endif
                 </div>
             </div>

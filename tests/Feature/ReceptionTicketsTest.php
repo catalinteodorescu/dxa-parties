@@ -13,6 +13,7 @@ use App\Services\EntryRecorder;
 use App\Services\ParticipantRegistry;
 use App\Services\TicketOrders;
 use App\Support\PartyPublic;
+use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -51,7 +52,7 @@ function rtUser(string $name = 'Ana Cumpărător', string $phone = '0722111222')
 
 function rtAdmin(): Admin
 {
-    return Admin::create(['name' => 'Recepție', 'phone' => '07'.random_int(10000000, 99999999), 'role' => 'admin', 'is_active' => true, 'access_admin' => false, 'access_reception' => true, 'password' => 'secret-pass']);
+    return Admin::create(['name' => 'Recepție', 'phone' => '07'.random_int(10000000, 99999999), 'role' => 'admin', 'permissions' => Permissions::legacyAdmin(), 'is_active' => true, 'access_admin' => false, 'access_reception' => true, 'password' => 'secret-pass']);
 }
 
 /** Cumpără un bilet la ora $at (setează și „acum" la acea oră) și revine la „acum" = $back. */

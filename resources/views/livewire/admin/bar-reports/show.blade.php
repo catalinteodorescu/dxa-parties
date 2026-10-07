@@ -25,7 +25,9 @@
                 <x-btn variant="neutral" size="sm" :href="route('admin.bar.reports.pdf', $report)">PDF</x-btn>
             @endif
             @if ($awaiting)
+                @permitsAction('reopen_bar_reports')
                 <x-btn variant="warning" size="sm" outline wire:click="askReopen({{ $report->id }})">Redeschide</x-btn>
+                @endpermitsAction
             @endif
         </div>
     </div>

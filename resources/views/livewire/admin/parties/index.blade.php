@@ -35,10 +35,12 @@
             <h2 class="text-lg font-semibold text-ink">Petreceri</h2>
             <p class="mt-1 text-sm text-ink-soft">Petreceri simple (periodice) și festivaluri pe mai multe zile.</p>
         </div>
+        @permits('parties', 'edit')
         <x-btn variant="primary" :href="route('admin.parties.create')" wire:navigate class="self-start">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             Petrecere nouă
         </x-btn>
+        @endpermits
     </div>
 
     {{-- Filtre + căutare — pe ecrane mici (<md) sunt ascunse într-un toggle (deschis automat dacă există filtre active); de la md în sus sunt mereu vizibile, fără buton. --}}
@@ -198,10 +200,13 @@
                 {{-- Acțiuni --}}
                 <div class="flex items-center gap-2 flex-wrap md:flex-nowrap md:shrink-0">
                     @if ($p->isDraft())
+                        @permitsAction('publish_parties')
                         <x-btn variant="primary" size="icon" outline tooltip="Publică" wire:click="publish({{ $p->id }})">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
                         </x-btn>
+                        @endpermitsAction
                     @else
+                        @permits('parties', 'edit')
                         <x-btn variant="info" size="icon" outline
                                tooltip="{{ $p->is_active ? 'Ascunde din app' : 'Afișează în app' }}"
                                wire:click="toggleActive({{ $p->id }})">
@@ -211,6 +216,7 @@
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
                             @endif
                         </x-btn>
+                        @endpermits
                     @endif
 
                     <x-btn variant="neutral" size="icon" outline tooltip="Vezi" :href="route('admin.parties.show', $p)" wire:navigate>
@@ -221,18 +227,24 @@
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
                     </x-btn>
 
+                    @permits('parties', 'edit')
                     <x-btn variant="warning" size="icon" outline tooltip="Editează" :href="route('admin.parties.edit', $p)" wire:navigate>
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                     </x-btn>
+                    @endpermits
 
+                    @permits('parties', 'edit')
                     <x-btn variant="purple" size="icon" outline tooltip="Duplică" wire:click="duplicate({{ $p->id }})">
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                     </x-btn>
+                    @endpermits
 
+                    @permits('parties', 'delete')
                     <x-btn variant="danger" size="icon" outline tooltip="Șterge"
                            x-on:click="askConfirm('Șterge petrecerea', 'Sigur vrei să ștergi „{{ addslashes($p->name) }}”? Acțiunea nu poate fi anulată.', 'delete', [{{ $p->id }}])">
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </x-btn>
+                    @endpermits
                 </div>
             </div>
         @empty

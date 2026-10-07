@@ -29,10 +29,12 @@
             <h2 class="text-lg font-semibold text-ink">Bar — Raportări</h2>
             <p class="mt-1 text-sm text-ink-soft">Intrări, vânzări și pierderi. Cât e draft nu se atinge stocul; la finalizare se creează mișcările reale.</p>
         </div>
+        @permits('stock_reports', 'edit')
         <x-btn variant="primary" :href="route('admin.stock-reports.create')" wire:navigate class="self-start">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             Raportare nouă
         </x-btn>
+        @endpermits
     </div>
 
     {{-- DXA: adaugat — Sesiuni deschise (ca la Vanzari), cu "Adu in raportare" per sesiune --}}
@@ -51,9 +53,13 @@
                 </div>
                 <div class="mt-3 md:mt-0 shrink-0">
                     @if ($openDraft && (int) $openDraft->sales_group_id === $s->id)
+                        @permits('stock_reports', 'edit')
                         <x-btn variant="warning" size="sm" :href="route('admin.stock-reports.edit', $openDraft)" wire:navigate>Continuă raportarea</x-btn>
+                        @endpermits
                     @else
+                        @permits('stock_reports', 'edit')
                         <x-btn variant="primary" size="sm" outline :href="route('admin.stock-reports.create', array_filter(['party' => $s->party_id, 'sales_group' => $s->id]))" wire:navigate>Adu în raportare</x-btn>
+                        @endpermits
                     @endif
                 </div>
             </div>
@@ -151,17 +157,23 @@
                             <x-btn variant="info" size="icon" outline tooltip="Vezi detalii" :href="route('admin.stock-reports.edit', $report)" wire:navigate>
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
                             </x-btn>
+                            @permitsAction('export_stock_reports')
                             <x-btn variant="neutral" size="icon" outline tooltip="Export PDF" wire:click="exportPdf({{ $report->id }})" wire:loading.attr="disabled" wire:target="exportPdf({{ $report->id }})">
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
                             </x-btn>
+                            @endpermitsAction
                         @else
+                            @permits('stock_reports', 'edit')
                             <x-btn variant="warning" size="icon" outline tooltip="Continuă editarea" :href="route('admin.stock-reports.edit', $report)" wire:navigate>
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                             </x-btn>
+                            @endpermits
+                            @permits('stock_reports', 'delete')
                             <x-btn variant="danger" size="icon" outline tooltip="Șterge draftul"
                                    x-on:click="askConfirm('Șterge draftul', 'Sigur vrei să ștergi draftul nr. {{ $report->number() }}? Nu a atins stocul, deci nu se pierde nimic real. Acțiunea nu poate fi anulată.', 'delete', [{{ $report->id }}])">
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                             </x-btn>
+                            @endpermits
                         @endif
                     </div>
                 </div>

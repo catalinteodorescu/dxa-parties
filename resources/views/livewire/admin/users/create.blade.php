@@ -1,9 +1,9 @@
-<div class="max-w-md">
+<div class="max-w-xl">
     <div class="mb-6">
         <h2 class="text-lg font-semibold text-ink">Adaugă utilizator</h2>
         <p class="mt-1 text-sm text-ink-soft leading-relaxed">
             Introdu numărul de telefon și alege aplicațiile în care are acces. Noul utilizator va primi un SMS cu un
-            link prin care își completează numele și își setează parola.
+            link prin care își completează numele și își setează parola. Permisiunile se setează de la început, ca să le aibă imediat ce își activează contul.
         </p>
     </div>
 
@@ -25,6 +25,14 @@
             </div>
             @error('accessAdmin') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
         </div>
+
+        @if ($isSuper)
+            <div class="border-t border-border pt-4">
+                @include('livewire.admin.users._permissions')
+            </div>
+        @else
+            <p class="text-xs text-ink-soft border-t border-border pt-4">Permisiunile în panou le setează un superadmin. Contul nou va porni fără nicio permisiune.</p>
+        @endif
 
         <div class="flex items-center gap-4 pt-2">
             <button type="submit"

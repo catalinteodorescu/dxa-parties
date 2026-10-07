@@ -32,10 +32,12 @@
             </p>
         </div>
         @if (! $draft)
+            @permitsAction('export_reception_reports')
             <x-btn variant="neutral" wire:click="exportPdf" wire:loading.attr="disabled" wire:target="exportPdf" class="self-start">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
                 Export PDF
             </x-btn>
+            @endpermitsAction
         @endif
     </div>
 
@@ -46,7 +48,9 @@
                 de {{ $report->submitter?->name ?? '—' }}, {{ $report->submitted_at->format('d.m.Y H:i') }}.
                 Recepția nu mai poate înregistra sau anula nimic. Verifică cifrele și finalizează, sau redeschide dacă e o greșeală.
             </div>
+            @permitsAction('reopen_reception_reports')
             <x-btn variant="neutral" wire:click="askReopen" class="shrink-0">Redeschide</x-btn>
+            @endpermitsAction
         </div>
     @endif
 
@@ -279,7 +283,9 @@
                 </p>
                 <div class="flex items-center gap-2">
                     <x-btn variant="neutral" :href="route('admin.reception.reports.index')" wire:navigate>Înapoi la listă</x-btn>
+                    @permitsAction('finalize_reception_reports')
                     <x-btn variant="primary" wire:click="askFinalize" wire:loading.attr="disabled" wire:target="askFinalize">Finalizează</x-btn>
+                    @endpermitsAction
                 </div>
             </div>
         </div>

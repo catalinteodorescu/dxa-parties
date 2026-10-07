@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -39,6 +40,7 @@ class Admin extends Authenticatable
         'access_admin',
         'access_bar',
         'access_reception',
+        'permissions',
         'phone_needs_setup',
         'activated_at',
     ];
@@ -63,6 +65,7 @@ class Admin extends Authenticatable
             'access_admin' => 'boolean',
             'access_bar' => 'boolean',
             'access_reception' => 'boolean',
+            'permissions' => 'array',
             'phone_needs_setup' => 'boolean',
             'activated_at' => 'datetime',
         ];
@@ -83,6 +86,51 @@ class Admin extends Authenticatable
         $column = self::ACCESS_COLUMNS[$app] ?? null;
 
         return $column !== null && (bool) $this->{$column};
+    }
+
+    /**
+     * DXA: adaugat (runda 46 — permisiuni). Nivelul contului într-o secțiune (0 fără acces … 3 ștergere).
+     * Superadmin-ul are mereu nivelul maxim; ceilalți după matricea lor (fără matrice = fără acces).
+     */
+    public function permissionLevel(string $section): int
+    {
+        $max = Permissions::maxFor($section);
+
+        if ($this->isSuperAdmin()) {
+            return $max;
+        }
+
+        return min((int) ($this->permissions['levels'][$section] ?? Permissions::NONE), $max);
+    }
+
+    /** Are cel puțin nivelul cerut („view”, „edit”, „delete” sau numărul) în secțiune? */
+    public function permits(string $section, int|string $level = 'view'): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $level = Permissions::levelFrom($level);
+
+        return $level <= Permissions::NONE || $this->permissionLevel($section) >= $level;
+    }
+
+    /** Are bifa pentru o acțiune sensibilă (anulare, ajustare, export…)? */
+    public function permitsAction(string $action): bool
+    {
+        return $this->isSuperAdmin() || in_array($action, (array) ($this->permissions['actions'] ?? []), true);
+    }
+
+    /** Vede cel puțin una dintre secțiuni? (pentru grupurile din meniu) */
+    public function permitsAny(string ...$sections): bool
+    {
+        foreach ($sections as $section) {
+            if ($this->permits($section)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** Conturile cu acces la o aplicație (superadmin-ii intră mereu). */
