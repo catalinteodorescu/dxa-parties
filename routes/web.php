@@ -72,12 +72,13 @@ use App\Livewire\Participant\Parties as ParticipantParties;
 use App\Livewire\Participant\PartyShow as ParticipantPartyShow;
 use App\Livewire\Participant\Register as ParticipantRegister; // DXA: adaugat (PWA Recepție)
 use App\Livewire\Participant\ResetPassword as ParticipantResetPassword;
+use App\Livewire\Participant\Terms;
 use App\Livewire\Participant\TicketLink as ParticipantTicketLink;
 use App\Livewire\Participant\Tickets as ParticipantTickets;
 use App\Livewire\Participant\TicketShortLink as ParticipantTicketShortLink;
 use App\Livewire\Participant\Topup as ParticipantTopup;
-use App\Livewire\Participant\TopupPay as ParticipantTopupPay;
-use App\Livewire\Participant\Verify as ParticipantVerify; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\TopupPay as ParticipantTopupPay; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\Verify as ParticipantVerify;
 use App\Livewire\Participant\Wallet as ParticipantWallet;
 use App\Livewire\Reception\CreditSale as ReceptieCreditSale;
 use App\Livewire\Reception\Entry as ReceptieEntry;
@@ -285,6 +286,7 @@ Route::name('app.')->group(function () {
 
     Route::post('/m', [ContentMetricsController::class, 'store'])->middleware('throttle:120,1')->name('metrics'); // DXA: adaugat (runda 40)
     Route::get('/', ParticipantHome::class)->name('home');
+    Route::get('/termeni', Terms::class)->name('terms'); // DXA: adaugat (runda 60)
     Route::get('/petreceri', ParticipantParties::class)->name('parties');
     Route::get('/anunturi', ParticipantAnnouncements::class)->name('announcements');
     Route::get('/anunturi/{announcement}', ParticipantAnnouncementShow::class)->name('announcement');

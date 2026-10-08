@@ -14,7 +14,7 @@ class Participant extends Authenticatable
 {
     public const ANONYMIZED_NAME = 'Participant șters';
 
-    protected $fillable = ['uuid', 'name', 'phone', 'password', 'phone_verified_at', 'avatar_path', 'avatar_updated_at', 'source', 'created_by', 'anonymized_at'];
+    protected $fillable = ['uuid', 'name', 'phone', 'password', 'phone_verified_at', 'terms_version_id', 'terms_accepted_at', 'avatar_path', 'avatar_updated_at', 'source', 'created_by', 'anonymized_at'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -23,6 +23,7 @@ class Participant extends Authenticatable
         return [
             'anonymized_at' => 'datetime',
             'phone_verified_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'avatar_updated_at' => 'datetime',
             'password' => 'hashed',
             'credit_balance' => 'decimal:2',

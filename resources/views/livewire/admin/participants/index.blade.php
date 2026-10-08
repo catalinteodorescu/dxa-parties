@@ -29,7 +29,7 @@
     <div class="mb-5 flex items-start justify-between gap-3">
         <div>
             <h2 class="text-xl font-semibold text-ink">Participanți</h2>
-            <p class="mt-1 text-sm text-ink-soft">{{ $total }} {{ $total === 1 ? 'participant identificat' : 'participanți identificați' }}. Se adaugă aici sau direct la recepție, când înregistrezi o intrare.</p>
+            <p class="mt-1 text-sm text-ink-soft">{{ $total }} {{ $total === 1 ? 'participant identificat' : 'participanți identificați' }}, din care {{ $withAccount }} cu cont în aplicație @if ($provisional > 0) și {{ $provisional }} {{ $provisional === 1 ? 'provizoriu' : 'provizorii' }} (primit un bilet prin trimitere, fără cont făcut de el)@endif. Se adaugă aici sau direct la recepție, când înregistrezi o intrare.</p>
         </div>
         @permits('participants', 'edit')
         <x-btn variant="primary" wire:click="toggleAdd" class="shrink-0">{{ $adding ? 'Renunță' : 'Adaugă' }}</x-btn>
@@ -91,7 +91,7 @@
                     <div class="min-w-0 flex items-center gap-3">
                         @include('livewire.admin.participants._avatar', ['p' => $p])
                         <div class="min-w-0">
-                            <div class="text-sm font-semibold {{ $anonymized ? 'text-ink-soft' : 'text-ink' }}">{{ $p->name }}</div>
+                            <div class="text-sm font-semibold {{ $anonymized ? 'text-ink-soft' : 'text-ink' }}">{{ $p->name }}@if (! $anonymized && $p->source === 'transfer' && ! $p->hasAccount()) <span class="ml-1 inline-flex items-center rounded-full bg-bg text-ink-soft text-[10px] font-medium px-1.5 py-0.5" data-provisional>provizoriu · fără cont</span>@endif</div>
                             <div class="mt-0.5 text-xs text-ink-soft md:hidden">{{ $p->phone ?: 'fără telefon' }}</div>
                         </div>
                     </div>

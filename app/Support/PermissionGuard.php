@@ -67,6 +67,7 @@ final class PermissionGuard
         'Settings\\DashboardSections' => 'settings',
         'Settings\\Index' => 'settings',
         'Settings\\PaymentMethods' => 'settings',
+        'Settings\\TermsPanel' => 'settings',
         'StockReports\\Form' => 'stock_reports',
         'StockReports\\Index' => 'stock_reports',
         'StockRequisitions\\Form' => 'requisitions',

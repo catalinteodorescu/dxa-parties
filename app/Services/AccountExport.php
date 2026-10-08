@@ -30,6 +30,8 @@ class AccountExport
                 'phone' => $p->phone,
                 'created_at' => $date($p->created_at),
                 'phone_verified_at' => $date($p->phone_verified_at),
+                'terms_version_accepted' => $p->terms_version_id,
+                'terms_accepted_at' => $date($p->terms_accepted_at),
                 'has_photo' => $p->hasAvatar(),
             ],
             'credit_balance' => round(CreditLedger::balance($p), 2),

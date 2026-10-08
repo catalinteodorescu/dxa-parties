@@ -148,7 +148,7 @@
                     <p class="pa-err">{{ $quoteError }}</p>
                 @endif
 
-                <div class="pa-soft" style="font-size: .8rem">Comanda nu se poate anula din aplicație.</div>
+                <div class="pa-soft" style="font-size: .8rem">Comanda nu se poate anula din aplicație.@if (\App\Services\Terms::enabled()) Prin cumpărare ești de acord cu <a href="{{ route('app.terms') }}" target="_blank" rel="noopener" class="pa-link" data-buy-terms>Termenii și condițiile</a>.@endif</div>
 
                 @if ($creditBalance !== null && $quote)
                     {{-- Plata cu credite (runda 50): apare doar dacă soldul acoperă totalul; cere confirmare înainte de debitare. --}}

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Services\Terms;
 use App\Support\Settings\Settings;
 use App\Support\Settings\SettingsRegistry;
 
@@ -90,7 +91,8 @@ class ParticipantAppSettings
     public static function legalLinks(): array
     {
         $links = [];
-        if (($t = self::raw('app_terms_url')) !== '') {
+        // Runda 60: dacă există Termeni publicați în aplicație, apar ca buton în subsol (partials-participant-footer); linkul extern rămâne doar fără ei.
+        if (! Terms::enabled() && ($t = self::raw('app_terms_url')) !== '') {
             $links[] = ['label' => 'Termeni și condiții', 'href' => $t];
         }
         if (($p = self::raw('app_privacy_url')) !== '') {

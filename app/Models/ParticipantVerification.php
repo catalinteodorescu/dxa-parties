@@ -12,10 +12,10 @@ use Illuminate\Database\Eloquent\Model;
 class ParticipantVerification extends Model
 {
     protected $fillable = [
-        'phone', 'name', 'password_hash', 'code_hash', 'expires_at', 'attempts', 'send_count', 'last_sent_at',
+        'phone', 'name', 'password_hash', 'terms_version_id', 'code_hash', 'expires_at', 'attempts', 'send_count', 'last_sent_at',
     ];
 
-    protected $hidden = ['password_hash', 'code_hash'];
+    protected $hidden = ['password_hash', 'terms_version_id', 'code_hash'];
 
     protected function casts(): array
     {

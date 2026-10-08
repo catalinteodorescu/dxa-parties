@@ -2,7 +2,7 @@
 <div class="pa-between pa-line" style="padding-top: .5rem; font-size: .9rem">
     <div style="min-width: 0">
         <div style="font-weight: 700">{{ $t->party?->name ?? 'Petrecere' }}</div>
-        <div class="pa-soft" style="font-size: .8rem">{{ $t->ticket_type }} · {{ $t->party ? \App\Support\PartyPublic::dateLabel($t->party) : '' }}@if ((int) $t->owner_participant_id !== (int) auth('participant')->id()) · trimis lui {{ $t->owner?->name ?? 'altcuiva' }}@if ($t->owner?->phone) · {{ $t->owner->phone }}@endif @elseif ($t->holder) · {{ $t->holder->name }} @endif</div>
+        <div class="pa-soft" style="font-size: .8rem">{{ $t->ticket_type }} · {{ $t->party ? \App\Support\PartyPublic::dateLabel($t->party) : '' }}@if ((int) $t->owner_participant_id !== (int) auth('participant')->id()) @if ($t->owner && $t->owner->phone && $t->owner->name === $t->owner->phone) · trimis la {{ $t->owner->phone }}@else · trimis lui {{ $t->owner?->name ?? 'altcuiva' }}@if ($t->owner?->phone) · {{ $t->owner->phone }}@endif @endif @elseif ($t->holder) · {{ $t->holder->name }} @endif</div>
     </div>
     <div style="text-align: right; white-space: nowrap">
         <div style="font-weight: 800">{{ (float) $t->price > 0 ? number_format((float) $t->price, 2, ',', '.').' lei' : 'gratis' }}</div>

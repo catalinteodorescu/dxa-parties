@@ -4,6 +4,7 @@ namespace App\Livewire\Participant;
 
 use App\Contracts\SmsSender;
 use App\Services\ParticipantAccounts;
+use App\Services\Terms;
 use App\Support\ParticipantAppSettings;
 use DomainException;
 use Livewire\Attributes\Layout;
@@ -26,6 +27,8 @@ class Register extends Component
 
     public string $password_confirmation = '';
 
+    public bool $accept_terms = false;
+
     public string $error = '';
 
     public function mount(): void
@@ -44,15 +47,17 @@ class Register extends Component
             'name' => ['required', 'string', 'max:120'],
             'phone' => ['required', 'string', 'max:40'],
             'password' => ['required', 'string', 'confirmed'],
+            'accept_terms' => [Terms::enabled() ? 'accepted' : 'nullable'],
         ], [
             'name.required' => 'Scrie numele tău.',
             'phone.required' => 'Scrie telefonul.',
             'password.required' => 'Alege o parolă.',
             'password.confirmed' => 'Parolele nu coincid.',
+            'accept_terms.accepted' => 'Bifează acceptarea Termenilor și condițiilor.',
         ]);
 
         try {
-            $phone = ParticipantAccounts::startRegistration($this->name, $this->phone, $this->password, $sms);
+            $phone = ParticipantAccounts::startRegistration($this->name, $this->phone, $this->password, $sms, $this->accept_terms);
         } catch (DomainException $e) {
             $this->error = $e->getMessage();
 

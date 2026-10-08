@@ -54,10 +54,15 @@ class ParticipantAccounts
      * (cheia cererii, pentru pasul de verificare). Reapelată pentru același telefon, înlocuiește cererea și retrimite codul
      * (cu aceleași pauze / plafon ca retrimiterea).
      */
-    public static function startRegistration(string $name, string $phone, string $password, SmsSender $sms): string
+    public static function startRegistration(string $name, string $phone, string $password, SmsSender $sms, bool $acceptTerms = false): string
     {
         if (! ParticipantAppSettings::registrationOpen()) {
             throw new DomainException('Înregistrarea conturilor noi este închisă momentan.');
+        }
+
+        // Runda 60: cât timp există Termeni și condiții publicați, contul nou cere acceptarea lor.
+        if (Terms::enabled() && ! $acceptTerms) {
+            throw new DomainException('Bifează acceptarea Termenilor și condițiilor ca să-ți faci cont.');
         }
 
         $name = trim($name);
@@ -80,6 +85,7 @@ class ParticipantAccounts
             'phone' => $normalized,
             'name' => $name,
             'password_hash' => Hash::make($password),
+            'terms_version_id' => Terms::current()?->id,
         ]);
         self::issueCode($verification, $sms);
 
@@ -149,7 +155,7 @@ class ParticipantAccounts
                 // Participant creat la Recepție: contul se leagă de el (id, credite, ștampile, istoric rămân).
                 // Numele scris de el în aplicație (telefonul e confirmat cu cod) înlocuiește numele pus la Recepție.
                 $oldName = $participant->name;
-                $participant->forceFill(['name' => $verification->name, 'password' => $verification->password_hash, 'phone_verified_at' => now()])->save();
+                $participant->forceFill(['name' => $verification->name, 'password' => $verification->password_hash, 'phone_verified_at' => now()] + self::termsFields($verification))->save();
                 $how = 'legat de participantul existent din Recepție'.($oldName !== $verification->name ? ', nume schimbat din „'.$oldName.'”' : '');
             } else {
                 $participant = Participant::create([
@@ -158,7 +164,7 @@ class ParticipantAccounts
                     'password' => $verification->password_hash,
                     'phone_verified_at' => now(),
                     'source' => 'app',
-                ]);
+                ] + self::termsFields($verification));
                 $how = 'nou';
             }
 
@@ -168,6 +174,14 @@ class ParticipantAccounts
 
             return $participant;
         });
+    }
+
+    /** Runda 60: versiunea de Termeni bifată la înregistrare (dacă a fost). @return array<string, mixed> */
+    private static function termsFields(ParticipantVerification $verification): array
+    {
+        return $verification->terms_version_id
+            ? ['terms_version_id' => $verification->terms_version_id, 'terms_accepted_at' => now()]
+            : [];
     }
 
     /** Autentifică pe guard-ul `participant`. Aceeași eroare pentru orice eșec; limitat per telefon + IP. */

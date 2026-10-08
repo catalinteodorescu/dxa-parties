@@ -29,6 +29,10 @@
             @endif
         </header>
 
+        @if ($me)
+            @livewire(\App\Livewire\Participant\TermsBanner::class)
+        @endif
+
         <main>
             {{ $slot }}
         </main>

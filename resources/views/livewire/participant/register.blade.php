@@ -32,6 +32,16 @@
             <input type="password" id="password_confirmation" wire:model="password_confirmation" autocomplete="new-password" class="pa-input">
         </div>
 
+        @if (\App\Services\Terms::enabled())
+            <div>
+                <label style="display: flex; gap: .6rem; align-items: flex-start; cursor: pointer; font-size: .9rem">
+                    <input type="checkbox" wire:model="accept_terms" data-accept-terms style="margin-top: .2rem; width: 1.1rem; height: 1.1rem;">
+                    <span>Am citit și sunt de acord cu <a href="{{ route('app.terms') }}" target="_blank" rel="noopener" class="pa-link">Termenii și condițiile</a>.</span>
+                </label>
+                @error('accept_terms') <p class="pa-err">{{ $message }}</p> @enderror
+            </div>
+        @endif
+
         <button type="submit" wire:loading.attr="disabled" class="pa-btn pa-btn-block">Trimite codul</button>
     </form>
 

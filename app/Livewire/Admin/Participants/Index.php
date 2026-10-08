@@ -184,6 +184,9 @@ class Index extends Component
                 'credits' => 'Credite cheltuite',
             ],
             'total' => Participant::query()->whereNull('anonymized_at')->count(),
+            // Runda 60: cont real = parolă + telefon confirmat; restul sunt participanți fără cont (din Recepție sau provizorii, primiți prin trimiterea unui bilet).
+            'withAccount' => Participant::query()->whereNull('anonymized_at')->whereNotNull('password')->whereNotNull('phone_verified_at')->count(),
+            'provisional' => Participant::query()->whereNull('anonymized_at')->where('source', 'transfer')->where(fn ($q) => $q->whereNull('password')->orWhereNull('phone_verified_at'))->count(),
             // DXA: adaugat (Card de fidelitate).
             'loyaltyOn' => LoyaltyLedger::enabled(),
             'loyaltyPopupParticipant' => $loyaltyPopupParticipant,
