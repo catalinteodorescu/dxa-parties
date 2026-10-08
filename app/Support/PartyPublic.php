@@ -30,6 +30,36 @@ class PartyPublic
     }
 
     /** „sâmbătă, 3 octombrie” sau, la festival, „3 – 5 octombrie”. */
+    /**
+     * Runda 62. Descrierea din aplicație, fără numele petrecerii repetat: descrierea generată din admin începe cu un rând cu numele
+     * (la blocurile pe limbă, precedat de steag + [RO]/[EN]/[ES]). Rândul se scoate doar dacă e chiar numele petrecerii; marcajul de limbă rămâne.
+     */
+    public static function description(Party $party): string
+    {
+        $text = trim(str_replace("\r\n", "\n", (string) $party->description));
+        $name = mb_strtolower(trim((string) $party->name));
+        if ($text === '' || $name === '') {
+            return $text;
+        }
+
+        $blocks = array_map(function (string $block) use ($name): string {
+            $lines = explode("\n", $block, 2);
+            $first = trim($lines[0]);
+            $tag = '';
+            if (preg_match('/^(.*?\[(?:RO|EN|ES)\])\s*(.*)$/u', $first, $m)) {
+                $tag = $m[1];
+                $first = trim($m[2]);
+            }
+            if (mb_strtolower($first) !== $name) {
+                return $block;
+            }
+
+            return trim($tag.($tag !== '' && isset($lines[1]) ? "\n\n" : '').ltrim($lines[1] ?? ''));
+        }, explode("\n\n———\n\n", $text));
+
+        return trim(implode("\n\n———\n\n", array_filter($blocks, fn (string $b) => trim($b) !== '')));
+    }
+
     public static function dateLabel(Party $party): string
     {
         $start = self::day($party);

@@ -1203,10 +1203,10 @@ class Form extends Component
     /** DXA: adaugat (runda 29). Bifa de lângă „Generează descriere”: adaugă disclaimerul „INFORMAȚII IMPORTANTE” la finalul fiecărei limbi. */
     public bool $add_disclaimer = true;
 
-    /** Bifa „Și în engleză și spaniolă” (implicit nebifată): doar atunci descrierea are și blocurile EN/ES, iar fiecare bloc poartă steagul. */
+    /** Bifa „Și în engleză” (implicit nebifată): doar atunci descrierea are și blocul EN, iar fiecare bloc poartă steagul. */
     public bool $other_langs = false;
 
-    /** Implicit doar în română (fără marcaj). Cu „Și în EN/ES” bifat: câte un bloc pe limbă, marcat cu steag + [RO] / [EN] / [ES]. */
+    /** Implicit doar în română (fără marcaj). Cu „Și în engleză” bifat: câte un bloc pe limbă, marcat cu steag + [RO] / [EN]. */
     public function generateDescription(): void
     {
         $blocks = [];

@@ -134,4 +134,16 @@
     .pa-prose { white-space: pre-line; line-height: 1.55; }
     .pa-clamp10 { display: -webkit-box; -webkit-line-clamp: 10; -webkit-box-orient: vertical; overflow: hidden; }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+    /* DXA: adaugat (runda 61). Loader între ecrane (inel degrade care se rotește) + indicatorul de swipe înapoi. */
+    .dxa-loader { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; background: rgba(18,8,16,.82); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+    .dxa-loader.on { opacity: 1; pointer-events: auto; }
+    .dxa-ring { position: relative; width: 4.6rem; height: 4.6rem; }
+    .dxa-ring i { position: absolute; display: block; border-radius: 50%; }
+    .dxa-ring-arc { inset: 0; background: conic-gradient(from 0deg, transparent 0 12%, #FFB36B, #E0489A, #7C4DBC 88%, transparent 94%);
+        -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%); mask: radial-gradient(circle, transparent 62%, #000 64%); animation: dxa-rot 1.1s linear infinite; }
+    @keyframes dxa-rot { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .dxa-ring-arc { animation-duration: 4s; } }
+    .dxa-swipe-hint { position: fixed; left: 0; top: 50%; z-index: 80; width: 2.4rem; height: 2.4rem; margin-top: -1.2rem; border-radius: 50%; display: grid; place-items: center; color: var(--pa-ink); background: rgba(255,255,255,.16); border: 1px solid var(--pa-line); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transform: translateX(-3rem); }
+    .dxa-swipe-hint svg { width: 1.2rem; height: 1.2rem; }
 </style>

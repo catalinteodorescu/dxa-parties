@@ -94,6 +94,7 @@
 
     @include('layouts.partials-participant-toast')
 
+    @include('layouts.partials-participant-motion')
     @include('layouts.partials-participant-track')
     @livewireScripts
     @include('layouts.partials-participant-sw')

@@ -3,14 +3,14 @@
 namespace App\Support;
 
 /**
- * DXA: adaugat (runda 29). Textele fixe ale descrierii generate a unei petreceri, în română, engleză și spaniolă:
+ * DXA: adaugat (runda 29). Textele fixe ale descrierii generate a unei petreceri, în română și engleză:
  * etichetele rândurilor, zilele săptămânii, metodele de plată predefinite și disclaimerul „INFORMAȚII IMPORTANTE”.
  */
 class PartyDescriptionTexts
 {
-    public const LANGS = ['ro', 'en', 'es'];
+    public const LANGS = ['ro', 'en'];
 
-    public const FLAGS = ['ro' => '🇷🇴', 'en' => '🇬🇧', 'es' => '🇪🇸'];
+    public const FLAGS = ['ro' => '🇷🇴', 'en' => '🇬🇧'];
 
     /** @return array<string, string|array<int|string, string>> */
     public static function labels(string $lang): array
@@ -30,31 +30,20 @@ class PartyDescriptionTexts
                 'days' => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
                 'pay_names' => ['cash' => 'Cash', 'card' => 'Card', 'transfer' => 'Bank transfer', 'revolut' => 'Revolut', 'token' => 'Tokens', 'credit' => 'Credits'],
             ],
-            'es' => [
-                'when' => 'Cuándo', 'where' => 'Lugar', 'dress' => 'Código de vestimenta', 'guests' => 'Invitados', 'price' => 'Precios', 'entry' => 'Entrada',
-                'free' => 'gratuita', 'pay' => 'Pago', 'contact' => 'Contacto', 'default_party' => 'Fiesta', 'default_type' => 'Entrada', 'offer' => 'oferta',
-                'buy_until' => 'compra hasta', 'enter_until' => 'entra hasta', 'currency' => 'RON',
-                'days' => ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
-                'pay_names' => ['cash' => 'Efectivo', 'card' => 'Tarjeta', 'transfer' => 'Transferencia bancaria', 'revolut' => 'Revolut', 'token' => 'Fichas', 'credit' => 'Créditos'],
-            ],
         ][$lang];
     }
 
     public static function disclaimer(string $lang): string
     {
         return [
-            'ro' => "INFORMAȚII IMPORTANTE\n"
-                ."Organizatorul și locația își rezervă dreptul de a refuza accesul.\n"
-                ."Prin achiziționarea unui bilet și participarea la eveniment, îți dai automat acordul de a fi fotografiat și filmat în locație. Organizatorul și locația pot publica aceste fotografii și filmări în scopuri promoționale.\n"
-                .'Participi la eveniment pe propriul risc. Organizatorul și locația nu răspund pentru bunurile personale ale participanților.',
-            'en' => "IMPORTANT INFORMATION\n"
-                ."The organizer and the venue reserve the right to refuse entry.\n"
-                ."By purchasing a ticket and attending the event, you automatically consent to being photographed and filmed at the venue. The organizer and the venue may publish these photos and videos for promotional purposes.\n"
-                .'You attend the event at your own risk. The organizer and the venue are not responsible for the personal belongings of participants.',
-            'es' => "INFORMACIÓN IMPORTANTE\n"
-                ."El organizador y el local se reservan el derecho de admisión.\n"
-                ."Al comprar una entrada y asistir al evento, consientes automáticamente que te fotografíen y filmen en el local. El organizador y el local podrán publicar estas fotos y vídeos con fines promocionales.\n"
-                .'Asistes al evento bajo tu propia responsabilidad. El organizador y el local no se hacen responsables de las pertenencias personales de los participantes.',
+            'ro' => "INFORMAȚII IMPORTANTE\n\n"
+                ."* Organizatorul și locația își rezervă dreptul de a refuza accesul sau de a solicita părăsirea locației.\n"
+                ."* Prin participarea la eveniment, îți dai acordul ca în timpul evenimentului să poți fi fotografiat(ă) și/sau filmat(ă), iar fotografiile și filmările să fie utilizate de către organizator și locație în scopuri promoționale.\n"
+                .'* Participarea la eveniment se face pe propria răspundere. Organizatorul și locația nu își asumă răspunderea pentru pierderea, dispariția sau deteriorarea bunurilor personale.',
+            'en' => "IMPORTANT INFORMATION\n\n"
+                ."* The organizer and the venue reserve the right to refuse entry or ask guests to leave the venue.\n"
+                ."* By attending the event, you agree that you may be photographed and/or filmed during the event, and that such photos and footage may be used by the organizer and the venue for promotional purposes.\n"
+                .'* Attendance is at your own risk. The organizer and the venue are not responsible for any loss, disappearance, or damage to personal belongings.',
         ][$lang];
     }
 }

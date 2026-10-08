@@ -183,7 +183,7 @@ it('cod valabil pentru 10 bilete: la 11 bilete primele 10 au reducere, ultimul p
     expect(fn () => TicketOrders::quote($party, 'VIP', 1, 'LIM10'))->toThrow(DomainException::class, 'numărul maxim');
 });
 
-it('formular nou: ștampile, carusel și vânzare online bifate implicit; descrierea e doar în română, iar cu bifa EN/ES are 3 limbi cu steaguri și disclaimer', function () {
+it('formular nou: ștampile, carusel și vânzare online bifate implicit; descrierea e doar în română, iar cu bifa „engleză” are 2 limbi (RO și EN) cu steaguri și disclaimer', function () {
     $this->actingAs(Admin::create(['name' => 'Admin', 'phone' => '+40700987654', 'role' => 'superadmin', 'is_active' => true, 'password' => 'secret-pass']), 'admin');
 
     $c = Livewire::test(PartyForm::class)
@@ -200,16 +200,18 @@ it('formular nou: ștampile, carusel și vânzare online bifate implicit; descri
 
     $c->set('other_langs', true)->call('generateDescription');
     $d = $c->get('description');
-    expect($d)->toContain('🇷🇴 [RO] Seara test')->toContain('🇬🇧 [EN] Seara test')->toContain('🇪🇸 [ES] Seara test')
-        ->toContain('sâmbătă, 03.10.2026')->toContain('Saturday, 03.10.2026')->toContain('sábado, 03.10.2026')
+    expect($d)->toContain('🇷🇴 [RO] Seara test')->toContain('🇬🇧 [EN] Seara test')->not->toContain('[ES]')->not->toContain('🇪🇸')
+        ->toContain('sâmbătă, 03.10.2026')->toContain('Saturday, 03.10.2026')->not->toContain('sábado')
         ->toContain('Bilet 50 lei')->toContain('Bilet 50 RON')
-        ->toContain('INFORMAȚII IMPORTANTE')->toContain('IMPORTANT INFORMATION')->toContain('INFORMACIÓN IMPORTANTE')
-        ->toContain('The organizer and the venue are not responsible for the personal belongings of participants.')
+        ->toContain('INFORMAȚII IMPORTANTE')->toContain('IMPORTANT INFORMATION')->not->toContain('INFORMACIÓN IMPORTANTE')
+        ->toContain('* Organizatorul și locația își rezervă dreptul de a refuza accesul sau de a solicita părăsirea locației.')
+        ->toContain('* The organizer and the venue reserve the right to refuse entry or ask guests to leave the venue.')
+        ->toContain('not responsible for any loss, disappearance, or damage to personal belongings.')
         ->and(substr_count($d, 'reserve the right to refuse entry'))->toBe(1);
     expect(mb_strlen($d))->toBeLessThan(5000);
 
     $c->set('add_disclaimer', false)->call('generateDescription');
-    expect($c->get('description'))->not->toContain('IMPORTANT INFORMATION')->toContain('🇪🇸 [ES] Seara test');
+    expect($c->get('description'))->not->toContain('IMPORTANT INFORMATION')->toContain('🇬🇧 [EN] Seara test');
 });
 
 it('aplicația: descrierea e restrânsă la 10 rânduri cu buton „Arată toată descrierea”', function () {

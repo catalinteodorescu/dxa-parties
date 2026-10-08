@@ -16,6 +16,7 @@
 
     @include('layouts.partials-participant-toast')
 
+    @include('layouts.partials-participant-motion')
     @livewireScripts
     @include('layouts.partials-participant-sw')
 </body>

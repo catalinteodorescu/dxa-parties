@@ -63,12 +63,13 @@
         </div>
     </section>
 
-    @if ($party->description)
+    @php $descriptionText = PartyPublic::description($party); @endphp
+    @if ($descriptionText !== '')
         <section class="pa-section">
             <h2 class="pa-h2">Despre petrecere</h2>
-            {{-- Descrierea e restrânsă la ~10 rânduri; butonul apare doar dacă textul e mai lung (runda 30). --}}
-            <div x-data="{ open: false, long: false }" x-init="$nextTick(() => { long = $refs.d.scrollHeight > $refs.d.clientHeight + 2 })">
-                <div x-ref="d" class="pa-prose pa-soft pa-clamp10" :class="{ 'pa-clamp10': ! open }">{{ $party->description }}</div>
+            {{-- Descrierea e într-un box „glass”, ca anunțurile (runda 62); fără numele petrecerii repetat. Restrânsă la ~10 rânduri; butonul apare doar dacă textul e mai lung (runda 30). --}}
+            <div class="pa-glass pa-pad" x-data="{ open: false, long: false }" x-init="$nextTick(() => { long = $refs.d.scrollHeight > $refs.d.clientHeight + 2 })" data-party-description>
+                <div x-ref="d" class="pa-prose pa-clamp10" :class="{ 'pa-clamp10': ! open }">{{ $descriptionText }}</div>
                 <button type="button" x-show="long || open" x-cloak class="pa-link" style="margin-top: .5rem; font-size: .9rem; font-weight: 800" @click="open = ! open" x-text="open ? 'Arată mai puțin' : 'Arată toată descrierea'">Arată toată descrierea</button>
             </div>
         </section>

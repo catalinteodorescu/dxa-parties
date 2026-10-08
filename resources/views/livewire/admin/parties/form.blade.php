@@ -747,7 +747,7 @@
                 </label>
                 <label class="flex items-center gap-2 text-xs text-ink">
                     <input type="checkbox" wire:model="other_langs" class="w-4 h-4 rounded border-border accent-primary" style="accent-color: var(--color-primary);">
-                    Și în engleză și spaniolă
+                    Și în engleză
                 </label>
                 <x-btn variant="info" size="sm" outline wire:click="generateDescription" wire:loading.attr="disabled" wire:target="generateDescription">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
@@ -755,7 +755,7 @@
                 </x-btn>
                 </div>
             </div>
-            <p class="text-xs text-ink-soft/80">Compune un text în română din câmpurile completate mai sus (cu „Și în engleză și spaniolă” bifat, adaugă și blocurile EN/ES, fiecare cu steagul ei); cu „Adaugă disclaimer” bifat, pune la final informațiile importante (acces, foto/video, răspundere) în limbile generate. Îl poți edita apoi liber.</p>
+            <p class="text-xs text-ink-soft/80">Compune un text în română din câmpurile completate mai sus (cu „Și în engleză” bifat, adaugă și blocul EN, fiecare cu steagul ei); cu „Adaugă disclaimer” bifat, pune la final informațiile importante (acces, foto/video, răspundere) în limbile generate. Îl poți edita apoi liber.</p>
             <textarea id="description" wire:model="description" rows="5" class="mt-1 {{ $in }}"></textarea>
             @error('description') <p class="{{ $err }}">{{ $message }}</p> @enderror
         </div>
