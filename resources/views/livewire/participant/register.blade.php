@@ -42,6 +42,10 @@
             </div>
         @endif
 
+        @if (\App\Services\PrivacyPolicy::enabled())
+            <p class="pa-soft" style="margin: 0; font-size: .85rem" data-register-privacy>Cum folosim datele tale: <a href="{{ route('app.privacy') }}" target="_blank" rel="noopener" class="pa-link">Politica de confidențialitate</a>.</p>
+        @endif
+
         <button type="submit" wire:loading.attr="disabled" class="pa-btn pa-btn-block">Trimite codul</button>
     </form>
 

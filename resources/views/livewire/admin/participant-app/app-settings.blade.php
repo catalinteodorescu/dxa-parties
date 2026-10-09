@@ -5,7 +5,7 @@
 <div class="max-w-2xl">
     <div class="mb-5">
         <h2 class="text-xl font-semibold text-ink">{{ $heading }}</h2>
-        <p class="mt-1 text-sm text-ink-soft">Identitatea aplicației participanților (nume, logo, iconița de pe telefon), textele din Acasă, regulile conturilor, contactul, linkurile legale și mesajele SMS.</p>
+        <p class="mt-1 text-sm text-ink-soft">Identitatea aplicației participanților (nume, logo, iconița de pe telefon), textele din Acasă, regulile conturilor, contactul și mesajele SMS.</p>
     </div>
 
     <x-flash class="mb-4" />

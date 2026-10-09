@@ -94,7 +94,7 @@
                     <div class="pa-soft" style="font-size: .82rem; color: #ffd9a0" data-qty-cap>{{ $capReason }}</div>
                 @endif
 
-                <div class="pa-soft" style="font-size: .82rem">Primul bilet e pe numele tău.@if ($count > 1) Celelalte rămân în contul tău, libere: le poți trimite altcuiva din Bilete. @endif</div>
+                <div class="pa-soft" style="font-size: .82rem">Primul bilet e pe numele tău.</div>
 
                 {{-- Cod de reducere: buton care deschide formularul (deschis din start dacă e aplicat sau are eroare) --}}
                 <div x-data="{ o: {{ $appliedCode || $codeError ? 'true' : 'false' }} }">

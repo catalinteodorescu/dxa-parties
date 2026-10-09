@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Settings;
 
+use App\Livewire\Concerns\ScrollsToFirstError;
 use App\Services\ActivityLogger;
 use App\Support\Branding;
 use App\Support\Settings\Settings;
@@ -15,6 +16,7 @@ use Livewire\WithFileUploads;
 #[Layout('layouts.admin')]
 class Index extends Component
 {
+    use ScrollsToFirstError;
     use WithFileUploads;
 
     /** @var array<string, mixed> cheie de camp => valoare curenta din formular */
@@ -133,7 +135,7 @@ class Index extends Component
 
     public function save(): void
     {
-        $this->validate();
+        $this->validateOrScroll();
 
         $previousTheme = Theme::key();
         $previousName = Branding::name();

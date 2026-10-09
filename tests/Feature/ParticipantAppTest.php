@@ -28,6 +28,8 @@ use App\Services\LoyaltyLedger;
 use App\Services\ParticipantAccounts;
 use App\Services\ParticipantAvatar;
 use App\Services\ParticipantRegistry;
+use App\Services\PrivacyPolicy;
+use App\Services\Terms;
 use App\Services\TicketOrders;
 use App\Support\ParticipantApp;
 use App\Support\ParticipantAppSettings;
@@ -713,10 +715,9 @@ it('setări: pagina Aplicație participanți are implicite corecte, salvează ș
         ->and(ParticipantAppSettings::registrationOpen())->toBeTrue()
         ->and(ParticipantAppSettings::codeTtlMinutes())->toBe(10)
         ->and(ParticipantAppSettings::codeMaxAttempts())->toBe(5)
-        ->and(ParticipantAppSettings::contacts())->toBe([])
-        ->and(ParticipantAppSettings::legalLinks())->toBe([]);
+        ->and(ParticipantAppSettings::contacts())->toBe([]);
 
-    $this->get(route('admin.settings.participant-app'))->assertOk()->assertSee('Participanți · Aplicație')->assertSee('Texte SMS')->assertSee('Legal');
+    $this->get(route('admin.settings.participant-app'))->assertOk()->assertSee('Participanți · Aplicație')->assertSee('Texte SMS')->assertDontSee('Politica de confidențialitate (link)');
 
     Livewire::test(AdminParticipantAppSettings::class)
         ->set('values.app_home_title', 'Dansăm împreună')
@@ -724,20 +725,18 @@ it('setări: pagina Aplicație participanți are implicite corecte, salvează ș
         ->set('values.app_code_max_attempts', '3')
         ->set('values.app_registration_open', false)
         ->set('values.app_contact_phone', '0722 111 222')
-        ->set('values.app_terms_url', 'https://exemplu.ro/termeni')
         ->call('save')->assertHasNoErrors();
 
     expect(ParticipantAppSettings::homeTitle())->toBe('Dansăm împreună')
         ->and(ParticipantAppSettings::homeParties())->toBe(2)
         ->and(ParticipantAppSettings::codeMaxAttempts())->toBe(3)
         ->and(ParticipantAppSettings::registrationOpen())->toBeFalse()
-        ->and(ParticipantAppSettings::contacts()[0])->toMatchArray(['label' => 'Telefon', 'text' => '0722 111 222', 'href' => 'tel:0722111222'])
-        ->and(ParticipantAppSettings::legalLinks()[0])->toMatchArray(['label' => 'Termeni și condiții', 'href' => 'https://exemplu.ro/termeni']);
+        ->and(ParticipantAppSettings::contacts()[0])->toMatchArray(['label' => 'Telefon', 'text' => '0722 111 222', 'href' => 'tel:0722111222']);
 
     Livewire::test(AdminParticipantAppSettings::class)
-        ->set('values.app_home_parties', '99')->set('values.app_contact_email', 'nu-e-email')->set('values.app_privacy_url', 'nu-e-link')
+        ->set('values.app_home_parties', '99')->set('values.app_contact_email', 'nu-e-email')
         ->set('values.app_sms_activation', 'Codul tău e gata')->set('values.app_sms_reset', 'Resetează parola')
-        ->call('save')->assertHasErrors(['values.app_home_parties', 'values.app_contact_email', 'values.app_privacy_url', 'values.app_sms_activation', 'values.app_sms_reset']);
+        ->call('save')->assertHasErrors(['values.app_home_parties', 'values.app_contact_email', 'values.app_sms_activation', 'values.app_sms_reset']);
 });
 
 it('setări: numele și logo-ul aplicației se salvează și apar în antet și în manifest', function () {
@@ -754,20 +753,20 @@ it('setări: numele și logo-ul aplicației se salvează și apar în antet și 
     expect($this->get(route('app.manifest'))->json('name'))->toBe('Dance Parties');
 });
 
-it('setări: contactul și linkurile legale apar în subsolul aplicației, iar fără ele nu apare nimic', function () {
+it('setări: contactul și paginile legale publicate apar în subsolul aplicației, iar fără ele nu apare nimic', function () {
     $this->get('/')->assertOk()->assertDontSee('data-app-footer', false);
 
     Settings::set('app_contact_phone', '0722 111 222');
     Settings::set('app_contact_email', 'salut@exemplu.ro');
     Settings::set('app_contact_instagram', 'https://instagram.com/dxa');
-    Settings::set('app_terms_url', 'https://exemplu.ro/termeni');
-    Settings::set('app_privacy_url', 'https://exemplu.ro/confidentialitate');
+    Terms::publish('Termeni de probă', true);
+    PrivacyPolicy::publish('Politică de probă');
 
     $this->get('/')->assertOk()->assertSee('data-app-footer', false)->assertSee('href="tel:0722111222"', false)->assertSee('mailto:salut@exemplu.ro', false)
         ->assertSee('Instagram')->assertSee('Termeni și condiții')->assertSee('Politica de confidențialitate');
 
     // Pe login / înregistrare apar doar linkurile legale, nu și contactul.
-    $this->get('/inregistrare')->assertOk()->assertSee('Termeni și condiții')->assertDontSee('salut@exemplu.ro');
+    $this->get('/inregistrare')->assertOk()->assertSee('Termeni și condiții')->assertSee('Politica de confidențialitate')->assertDontSee('salut@exemplu.ro');
 });
 
 it('setări: SMS-urile folosesc șabloanele editate (cu {cod}, {minute}, {aplicatie}, {link}); un șablon invalid revine la cel implicit', function () {

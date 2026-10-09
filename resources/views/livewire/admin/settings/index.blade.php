@@ -149,9 +149,6 @@
                 Salvează setările
             </x-btn>
         </div>
-
-        {{-- Runda 60: ultimul panou, cu salvare pe loc --}}
-        @livewire(\App\Livewire\Admin\Settings\TermsPanel::class)
     </div>
 
 </div>

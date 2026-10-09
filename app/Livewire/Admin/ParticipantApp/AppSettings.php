@@ -13,7 +13,7 @@ use Livewire\Attributes\Layout;
 
 /**
  * DXA: adaugat (runda 23). Setări › Aplicație participanți: identitate (nume, logo, temă pentru iconiță, din PwaAppSettings)
- * plus textele și conținutul din Acasă, regulile conturilor, contact, linkuri legale și textele SMS. Valorile se citesc
+ * plus textele și conținutul din Acasă, regulile conturilor, contact și textele SMS. Valorile se citesc
  * prin App\Support\ParticipantAppSettings (cheile sunt în SettingsRegistry::hiddenFields).
  */
 #[Layout('layouts.admin')]
@@ -82,14 +82,6 @@ class AppSettings extends PwaAppSettings
                 ],
             ],
             [
-                'title' => 'Legal',
-                'description' => 'Linkurile apar în subsolul aplicației și sub formularul de cont nou.',
-                'fields' => [
-                    ['key' => 'app_terms_url', 'type' => 'text', 'label' => 'Termeni și condiții (link)', 'placeholder' => 'https://…', 'max' => 2048],
-                    ['key' => 'app_privacy_url', 'type' => 'text', 'label' => 'Politica de confidențialitate (link)', 'placeholder' => 'https://…', 'max' => 2048],
-                ],
-            ],
-            [
                 'title' => 'Texte SMS',
                 'description' => 'Mesajele trimise participanților. Locurile din acolade se completează automat; fără ele, textul nu e valid.',
                 'fields' => [
@@ -149,8 +141,6 @@ class AppSettings extends PwaAppSettings
             'values.app_contact_instagram' => $url,
             'values.app_contact_facebook' => $url,
             'values.app_contact_website' => $url,
-            'values.app_terms_url' => $url,
-            'values.app_privacy_url' => $url,
             'values.app_sms_activation' => ['required', 'string', 'max:320', $needs('{cod}')],
             'values.app_sms_reset' => ['required', 'string', 'max:320', $needs('{link}')],
             'values.app_sms_ticket' => ['required', 'string', 'max:320', $needs('{link}')],

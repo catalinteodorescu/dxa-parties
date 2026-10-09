@@ -16,6 +16,7 @@ use App\Livewire\Admin\Credits\Index as CreditsIndex;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\ForgotPassword;
 use App\Livewire\Admin\Invite\Complete as InviteComplete;
+use App\Livewire\Admin\Legal\Index as LegalIndex;
 use App\Livewire\Admin\Login;
 use App\Livewire\Admin\Logs\Index as LogsIndex;
 use App\Livewire\Admin\Loyalty\Cards as LoyaltyCardsPage;
@@ -73,7 +74,8 @@ use App\Livewire\Participant\Home as ParticipantHome;
 use App\Livewire\Participant\Login as ParticipantLogin;
 use App\Livewire\Participant\Parties as ParticipantParties;
 use App\Livewire\Participant\PartyShow as ParticipantPartyShow;
-use App\Livewire\Participant\Register as ParticipantRegister; // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\Privacy; // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\Register as ParticipantRegister;
 use App\Livewire\Participant\ResetPassword as ParticipantResetPassword;
 use App\Livewire\Participant\Terms;
 use App\Livewire\Participant\TicketLink as ParticipantTicketLink;
@@ -146,6 +148,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/menu/items/create', MenuItemForm::class)->middleware('admin.can:menu,edit')->name('menu-items.create');
             Route::get('/menu/items/{menuItem}/edit', MenuItemForm::class)->middleware('admin.can:menu,edit')->name('menu-items.edit');
 
+            Route::get('/legal', LegalIndex::class)->middleware('admin.can:legal,view')->name('legal.index'); // DXA: adaugat (runda 68)
             Route::get('/logs', LogsIndex::class)->middleware('admin.can:logs,view')->name('logs.index');
 
             // DXA: adaugat (Bar - stocuri)
@@ -294,6 +297,7 @@ Route::name('app.')->group(function () {
     Route::post('/webhooks/stripe', StripeWebhookController::class)->name('webhooks.stripe'); // DXA: adaugat (runda 64)
     Route::get('/', ParticipantHome::class)->name('home');
     Route::get('/termeni', Terms::class)->name('terms'); // DXA: adaugat (runda 60)
+    Route::get('/confidentialitate', Privacy::class)->name('privacy'); // DXA: adaugat (runda 68)
     Route::get('/petreceri', ParticipantParties::class)->name('parties');
     Route::get('/anunturi', ParticipantAnnouncements::class)->name('announcements');
     Route::get('/anunturi/{announcement}', ParticipantAnnouncementShow::class)->name('announcement');

@@ -34,6 +34,9 @@ final class PermissionGuard
         'BarReports\\Index' => 'bar_reports',
         'BarReports\\Show' => 'bar_reports',
         'Credits\\Index' => 'credits',
+        'Legal\\Index' => 'legal',   // runda 68
+        'Legal\\PrivacyPanel' => 'legal',
+        'Legal\\TermsPanel' => 'legal',
         'Logs\\Index' => 'logs',
         'Loyalty\\Cards' => 'loyalty',
         'MenuItems\\Categories' => 'menu',
@@ -69,7 +72,6 @@ final class PermissionGuard
         'Settings\\DashboardSections' => 'settings',
         'Settings\\Index' => 'settings',
         'Settings\\PaymentMethods' => 'settings',
-        'Settings\\TermsPanel' => 'settings',
         'StockReports\\Form' => 'stock_reports',
         'StockReports\\Index' => 'stock_reports',
         'StockRequisitions\\Form' => 'requisitions',

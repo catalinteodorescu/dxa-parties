@@ -1,8 +1,8 @@
 <?php
 
 use App\Contracts\SmsSender;
+use App\Livewire\Admin\Legal\TermsPanel;
 use App\Livewire\Admin\Participants\Index;
-use App\Livewire\Admin\Settings\TermsPanel;
 use App\Livewire\Participant\Register;
 use App\Livewire\Participant\TermsBanner;
 use App\Livewire\Participant\Tickets;
@@ -16,7 +16,6 @@ use App\Services\ParticipantRegistry;
 use App\Services\Terms;
 use App\Services\TicketOrders;
 use App\Services\TicketTransfers;
-use App\Support\ParticipantAppSettings;
 use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -169,9 +168,6 @@ it('Termenii apar ca buton în subsol și în fereastra de cumpărare, nu și î
     Terms::publish('Termeni de probă', true);
     $this->get('/cont')->assertSee('data-footer-terms', false)->assertDontSee('data-account-terms', false);
     $this->get('/petreceri/'.$party->id)->assertSee('data-buy-terms', false)->assertSee('data-footer-terms', false);
-
-    // fără Termeni în aplicație rămâne linkul extern din Setări; cu ei, apare doar butonul din subsol
-    expect(collect(ParticipantAppSettings::legalLinks())->pluck('label')->all())->not->toContain('Termeni și condiții');
 });
 
 it('pagina Termeni: textul stă într-o fereastră cu scroll, iar butonul de acceptare apare sub text doar cui n-a acceptat', function () {
@@ -230,7 +226,7 @@ it('panoul din Setări: pornește cu textul de probă (nepublicat), publică dup
     $c->assertSee('data-terms-history', false)->assertSee('Admin R60')->set('body', '')->call('publish')->assertSet('error', 'Scrie textul Termenilor și condițiilor.');
 });
 
-it('panoul Termeni cere permisiunea Setări', function () {
+it('panoul Termeni cere permisiunea Legal', function () {
     $fara = r60Admin(array_fill_keys(array_keys(Permissions::legacyAdmin()), 0));
 
     Livewire::actingAs($fara, 'admin')->test(TermsPanel::class)->call('publish')->assertForbidden();

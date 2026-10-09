@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Services\Terms;
 use App\Support\Settings\Settings;
 use App\Support\Settings\SettingsRegistry;
 
@@ -59,47 +58,36 @@ class ParticipantAppSettings
     }
 
     /**
-     * Datele de contact completate, pentru afișare în aplicație: [['label' => ..., 'text' => ..., 'href' => ...], ...].
-     * Adresa și linkul de hartă vin din Setări generale (Branding), nu se repetă aici.
+     * Datele de contact completate, pentru afișare în aplicație: [['label' => ..., 'text' => ..., 'href' => ..., 'group' => 'contact'|'social'], ...].
+     * Adresa și linkul de hartă vin din Setări generale (Branding), nu se repetă aici. Site-ul se afișează cu adresa lui (fără https:// și fără „/” final),
+     * rețelele cu numele lor (Instagram, Facebook).
      *
-     * @return array<int, array{label: string, text: string, href: string}>
+     * @return array<int, array{label: string, text: string, href: string, group: string}>
      */
     public static function contacts(): array
     {
         $items = [];
 
         if (($phone = self::raw('app_contact_phone')) !== '') {
-            $items[] = ['label' => 'Telefon', 'text' => $phone, 'href' => 'tel:'.preg_replace('/[^\d+]/', '', $phone)];
+            $items[] = ['label' => 'Telefon', 'text' => $phone, 'href' => 'tel:'.preg_replace('/[^\d+]/', '', $phone), 'group' => 'contact'];
         }
         if (($email = self::raw('app_contact_email')) !== '') {
-            $items[] = ['label' => 'Email', 'text' => $email, 'href' => 'mailto:'.$email];
+            $items[] = ['label' => 'Email', 'text' => $email, 'href' => 'mailto:'.$email, 'group' => 'contact'];
         }
-        foreach (['app_contact_instagram' => 'Instagram', 'app_contact_facebook' => 'Facebook', 'app_contact_website' => 'Site'] as $key => $label) {
-            if (($url = self::raw($key)) !== '') {
-                $items[] = ['label' => $label, 'text' => $label, 'href' => $url];
-            }
+        if (($site = self::raw('app_contact_website')) !== '') {
+            $items[] = ['label' => 'Site', 'text' => rtrim((string) preg_replace('#^https?://(www\.)?#i', '', $site), '/'), 'href' => $site, 'group' => 'contact'];
         }
         if (($address = trim((string) Branding::address())) !== '') {
             $maps = trim((string) Branding::mapsUrl());
-            $items[] = ['label' => 'Adresă', 'text' => $address, 'href' => $maps];
+            $items[] = ['label' => 'Adresă', 'text' => $address, 'href' => $maps, 'group' => 'contact'];
+        }
+        foreach (['app_contact_instagram' => 'Instagram', 'app_contact_facebook' => 'Facebook'] as $key => $label) {
+            if (($url = self::raw($key)) !== '') {
+                $items[] = ['label' => $label, 'text' => $label, 'href' => $url, 'group' => 'social'];
+            }
         }
 
         return $items;
-    }
-
-    /** @return array<int, array{label: string, href: string}> */
-    public static function legalLinks(): array
-    {
-        $links = [];
-        // Runda 60: dacă există Termeni publicați în aplicație, apar ca buton în subsol (partials-participant-footer); linkul extern rămâne doar fără ei.
-        if (! Terms::enabled() && ($t = self::raw('app_terms_url')) !== '') {
-            $links[] = ['label' => 'Termeni și condiții', 'href' => $t];
-        }
-        if (($p = self::raw('app_privacy_url')) !== '') {
-            $links[] = ['label' => 'Politica de confidențialitate', 'href' => $p];
-        }
-
-        return $links;
     }
 
     /** Textul SMS-ului cu codul de activare ({cod}, {minute}, {aplicatie}). */

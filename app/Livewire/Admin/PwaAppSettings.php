@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Livewire\Concerns\ScrollsToFirstError;
 use App\Services\ActivityLogger;
 use App\Support\Branding;
 use App\Support\PwaApp;
@@ -18,6 +19,7 @@ use Livewire\WithFileUploads;
  */
 abstract class PwaAppSettings extends Component
 {
+    use ScrollsToFirstError;
     use WithFileUploads;
 
     public string $theme = '';
@@ -105,7 +107,7 @@ abstract class PwaAppSettings extends Component
 
     public function save(): void
     {
-        $this->validate();
+        $this->validateOrScroll();
 
         $current = trim((string) Settings::get($this->appClass()::KEY_LOGO));
 

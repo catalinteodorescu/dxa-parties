@@ -67,6 +67,7 @@ final class Permissions
         'loyalty' => ['Carduri de fidelitate', 'participants', self::EDIT],
         'credits' => ['Credite', 'participants', self::VIEW],
         'tickets' => ['Bilete', 'participants', self::VIEW],   // runda 66
+        'legal' => ['Legal', 'admin', self::EDIT],   // runda 68: Termeni și condiții + Politica de confidențialitate
         'users' => ['Utilizatori', 'admin', self::DELETE],
         'logs' => ['Jurnal activitate', 'admin', self::VIEW],
         'settings' => ['Setări', 'admin', self::DELETE],

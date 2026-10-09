@@ -87,8 +87,13 @@
     .pa-chip-link { text-decoration: none; }
     /* DXA: adaugat (runda 23). Subsolul cu contact și linkuri legale. */
     .pa-foot { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--pa-line); font-size: .85rem; }
-    .pa-foot-items { display: flex; flex-wrap: wrap; gap: .5rem; }
-    .pa-foot-legal { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; margin-top: .9rem; font-size: .8rem; }
+    /* Runda 69: pe roluri (Contact / Social / Legal), linkuri albe subțiri, fără butoane. */
+    .pa-foot-row { display: flex; align-items: baseline; gap: .9rem; padding: .4rem 0; }
+    .pa-foot-h { flex: none; width: 4rem; font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: var(--pa-soft); }
+    .pa-foot-links { display: flex; flex-wrap: wrap; gap: .25rem 1.1rem; min-width: 0; }
+    .pa-foot-link { color: #fff; font-size: .82rem; font-weight: 400; text-decoration: none; opacity: .88; overflow-wrap: anywhere; border-bottom: 1px solid rgba(255,255,255,.28); line-height: 1.5; }
+    a.pa-foot-link:hover { opacity: 1; border-bottom-color: rgba(255,255,255,.7); }
+    .pa-foot-plain { border-bottom: 0; }
     .pa-chip-amber { background: var(--pa-amber); border-color: var(--pa-amber); color: #2a1208; }
     .pa-hero { position: relative; overflow: hidden; border-radius: 1.9rem; min-height: 22rem; display: flex; flex-direction: column; justify-content: flex-end; color: #fff; text-decoration: none;
         background: radial-gradient(60% 50% at 25% 30%, #FFB36B, transparent 62%), radial-gradient(70% 60% at 85% 20%, #E0489A, transparent 64%), radial-gradient(80% 70% at 55% 95%, #7C4DBC, transparent 68%), linear-gradient(160deg, #DD6441, #4a1740); }

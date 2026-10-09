@@ -483,6 +483,17 @@
                             Contul meu
                         </a>
 
+                        @if ($can('legal', 'view'))
+                            <a href="{{ route('admin.legal.index') }}" wire:navigate @click="sidebarOpen = false"
+                               class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                      {{ request()->routeIs('admin.legal.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/>
+                                </svg>
+                                Legal
+                            </a>
+                        @endif
+
                         @if ($can('logs', 'view'))
                             <a href="{{ route('admin.logs.index') }}" wire:navigate @click="sidebarOpen = false"
                                class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
@@ -608,6 +619,18 @@
 
     </div>
 
+    {{-- Runda 68: după o salvare cu erori, derulează la primul câmp invalid (evenimentul vine din ScrollsToFirstError). --}}
+    <script>
+        window.addEventListener('dxa-scroll-error', () => {
+            setTimeout(() => {
+                const err = document.querySelector('main p.text-danger, form p.text-danger');
+                if (!err) { return; }
+                const field = err.parentElement?.querySelector('input, textarea, select, button');
+                (field || err).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (field && typeof field.focus === 'function') { field.focus({ preventScroll: true }); }
+            }, 80);
+        });
+    </script>
     @livewireScripts
 </body>
 </html>
