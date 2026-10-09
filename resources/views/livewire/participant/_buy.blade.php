@@ -1,6 +1,6 @@
 {{-- DXA: adaugat (Aplicația participanților - runda 14). Cumpărarea de bilete: buton + dialog centrat (comandă) sau, pentru
      vizitatorii neconectați, dialog de logare / înregistrare. Variabile: $party, $me, $options, $maxQty, $quote, $quoteError, $combos (combo-urile tipului ales), $count (biletele din comandă), $creditBalance (soldul, doar dacă acoperă totalul).
-     Componenta părinte: Livewire\Participant\PartyShow. Plata cu cardul e simulată (Confirmă); runda 50: „Plătesc cu credite”, cu confirmare, doar dacă soldul acoperă totalul. --}}
+     Componenta părinte: Livewire\Participant\PartyShow. „Confirmă” = plata cu cardul prin Stripe când e activ (runda 65), altfel comanda de plătit la intrare; runda 50: „Plătesc cu credite”, cu confirmare, doar dacă soldul acoperă totalul. --}}
 @php
     use App\Support\PartyPublic;
     $soldOut = $maxQty < 1;
@@ -148,6 +148,10 @@
                     <p class="pa-err">{{ $quoteError }}</p>
                 @endif
 
+                @if ($cardPay)
+                    <div class="pa-soft" style="font-size: .85rem" data-card-note>Plătești cu cardul, în siguranță, pe pagina Stripe. Biletele îți sunt rezervate {{ \App\Services\TicketOrders::RESERVATION_MINUTES }} de minute.</div>
+                @endif
+
                 <div class="pa-soft" style="font-size: .8rem">Comanda nu se poate anula din aplicație.@if (\App\Services\Terms::enabled()) Prin cumpărare ești de acord cu <a href="{{ route('app.terms') }}" target="_blank" rel="noopener" class="pa-link" data-buy-terms>Termenii și condițiile</a>.@endif</div>
 
                 @if ($creditBalance !== null && $quote)
@@ -171,7 +175,7 @@
                         @endif
                         <div style="display: flex; gap: .5rem">
                             <button type="button" class="pa-btn pa-btn-ghost" style="flex: 1" @click="buy = false">Renunță</button>
-                            <button type="button" class="pa-btn" style="flex: 1" wire:click="buy" wire:loading.attr="disabled" wire:target="buy" @if (! $quote) disabled @endif>Confirmă</button>
+                            <button type="button" class="pa-btn" style="flex: 1" wire:click="buy" wire:loading.attr="disabled" wire:target="buy" @if (! $quote) disabled @endif @if ($cardPay) data-pay-card @endif>{{ $cardPay ? 'Plătește cu cardul' : 'Confirmă' }}</button>
                         </div>
                     </div>
                 </div>

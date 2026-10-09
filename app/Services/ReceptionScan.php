@@ -42,9 +42,11 @@ class ReceptionScan
                 return self::error('Biletul e pentru altă petrecere.');
             }
             if ($ticket->status !== Ticket::VALID) {
-                return self::error($ticket->status === Ticket::USED
-                    ? 'Biletul a fost deja folosit'.($ticket->used_at ? ' (la '.$ticket->used_at->format('H:i').')' : '').'.'
-                    : 'Biletul a fost anulat.');
+                return self::error(match ($ticket->status) {
+                    Ticket::USED => 'Biletul a fost deja folosit'.($ticket->used_at ? ' (la '.$ticket->used_at->format('H:i').')' : '').'.',
+                    Ticket::PENDING => 'Biletul nu e plătit încă (așteaptă plata cu cardul).',
+                    default => 'Biletul a fost anulat.',
+                });
             }
 
             return self::enter($party, collect([$ticket]), $adminId);

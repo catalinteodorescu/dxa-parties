@@ -51,6 +51,8 @@ final class PermissionGuard
         'Parties\\Show' => 'parties',
         'Parties\\Stats' => 'party_stats',
         'Promoters\\Index' => 'promoters',
+        'Tickets\\Index' => 'tickets',   // runda 66
+        'Tickets\\Show' => 'tickets',
         'PwaAppSettings' => 'settings',
         'Reception\\CreditSale' => 'reception',
         'Reception\\Form' => 'reception',

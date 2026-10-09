@@ -161,7 +161,11 @@ trait HandlesEntryForm
                 return ['ok' => false, 'message' => 'Biletul e pentru altă petrecere.'];
             }
             if ($ticket->status !== Ticket::VALID) {
-                return ['ok' => false, 'message' => $ticket->status === Ticket::USED ? 'Biletul a fost deja folosit.' : 'Biletul a fost anulat.'];
+                return ['ok' => false, 'message' => match ($ticket->status) {
+                    Ticket::USED => 'Biletul a fost deja folosit.',
+                    Ticket::PENDING => 'Biletul nu e plătit încă (așteaptă plata cu cardul).',
+                    default => 'Biletul a fost anulat.',
+                }];
             }
 
             // Același bilet scanat a doua oară: nu se adaugă nimic, deci nu e „succes”.

@@ -22,14 +22,18 @@ class Ticket extends Model
 
     public const VOID = 'void';
 
+    /** DXA: adaugat (runda 65). Rezervat, în așteptarea plății cu cardul: ocupă loc (stoc, trepte, coduri), dar nu poate fi folosit, afișat sau trimis. */
+    public const PENDING = 'pending';
+
     protected $fillable = [
         'uuid', 'order_id', 'party_id', 'ticket_type', 'owner_participant_id', 'holder_participant_id', 'holder_phone',
         'list_price', 'discount_amount', 'price', 'discount_code_id', 'valid_until', 'combo_label', 'combo_free', 'status', 'party_entry_id', 'used_at',
+        'cancelled_at', 'cancelled_by', 'cancel_reason', 'refunded_amount',   // runda 67
     ];
 
     protected function casts(): array
     {
-        return ['list_price' => 'decimal:2', 'discount_amount' => 'decimal:2', 'price' => 'decimal:2', 'used_at' => 'datetime', 'valid_until' => 'datetime', 'combo_free' => 'boolean'];
+        return ['list_price' => 'decimal:2', 'discount_amount' => 'decimal:2', 'price' => 'decimal:2', 'used_at' => 'datetime', 'valid_until' => 'datetime', 'combo_free' => 'boolean', 'cancelled_at' => 'datetime', 'refunded_amount' => 'decimal:2'];
     }
 
     protected static function booted(): void
@@ -37,6 +41,12 @@ class Ticket extends Model
         static::creating(function (Ticket $t) {
             $t->uuid ??= (string) Str::uuid();
         });
+    }
+
+    /** Codul scurt al biletului (primele 8 caractere din uuid, litere mari): îl poate dicta participantul, iar adminul îl caută în lista de bilete. */
+    public function shortCode(): string
+    {
+        return strtoupper(substr($this->uuid, 0, 8));
     }
 
     public function order(): BelongsTo
@@ -67,7 +77,13 @@ class Ticket extends Model
             ->orWhereIn('id', TicketTransfer::query()->select('ticket_id')->where('from_participant_id', $participantId)));   // biletele trimise de mine rămân în istoric
     }
 
-    /** Biletele care încă ocupă un loc (valabile sau deja folosite); cele anulate nu. */
+    /** Biletele cu adevărat emise (valabile sau folosite): fără cele anulate și fără cele rezervate, încă neplătite. Pentru statistici și liste. */
+    public function scopeIssued(Builder $query): Builder
+    {
+        return $query->whereIn('status', [self::VALID, self::USED]);
+    }
+
+    /** Biletele care încă ocupă un loc (valabile, folosite sau rezervate în așteptarea plății); cele anulate nu. */
     public function scopeCounted(Builder $query): Builder
     {
         return $query->where('status', '!=', self::VOID);

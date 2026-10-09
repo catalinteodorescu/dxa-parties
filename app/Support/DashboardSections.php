@@ -34,7 +34,7 @@ class DashboardSections
         'bar' => ['sales', 'menu', 'stocks', 'requisitions', 'stock_reports', 'bar_reports', 'bar_stats'],
         'reception' => ['reception', 'reception_tokens', 'reception_reports', 'reception_stats'],
         'discount_codes' => ['promoters'],
-        'participants' => ['participants', 'loyalty', 'credits'],
+        'participants' => ['participants', 'loyalty', 'credits', 'tickets'],
         'admins' => ['users', 'logs'],
     ];
 

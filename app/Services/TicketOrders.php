@@ -38,6 +38,9 @@ class TicketOrders
     /** Plafon de siguranță când petrecerea n-are limită de bilete per comandă. */
     public const SAFETY_MAX = 100;
 
+    /** DXA: adaugat (runda 65). Cât timp rămân rezervate biletele unei comenzi cu cardul (minute). Mai mult decât sesiunea Stripe (31), ca o plată de ultim moment să nu găsească locurile eliberate. */
+    public const RESERVATION_MINUTES = 35;
+
     /** Poate petrecerea vinde bilete online acum? Motivul refuzului, sau null dacă da. */
     public static function saleBlockReason(Party $party): ?string
     {
@@ -367,13 +370,15 @@ class TicketOrders
      *
      * @throws DomainException cu motivul în română
      */
-    public static function place(Participant $buyer, Party $party, string $ticketName, int $count, ?string $codeInput = null, ?Carbon $at = null, ?string $combo = null, bool $withCredits = false): Order
+    public static function place(Participant $buyer, Party $party, string $ticketName, int $count, ?string $codeInput = null, ?Carbon $at = null, ?string $combo = null, bool $withCredits = false, bool $withCard = false): Order
     {
+        self::expireStalePending();
+
         if (! $buyer->hasAccount()) {
             throw new DomainException('Ai nevoie de un cont activ ca să cumperi bilete.');
         }
 
-        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $codeInput, $at, $combo, $withCredits) {
+        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $codeInput, $at, $combo, $withCredits, $withCard) {
             // Blochează petrecerea (stocul) și codul (utilizările) înainte de a recalcula.
             $party = Party::query()->whereKey($party->id)->lockForUpdate()->firstOrFail();
             $code = $codeInput !== null && trim($codeInput) !== '' ? DiscountCodes::find($party, $codeInput) : null;
@@ -398,6 +403,9 @@ class TicketOrders
                 }
             }
 
+            // Runda 65: cu cardul (doar dacă e ceva de plătit) biletele se rezervă `pending` până vine plata; comenzile gratuite merg ca până acum.
+            $card = $withCard && ! $withCredits && $quote->total > 0;
+
             $order = Order::create([
                 'uuid' => (string) Str::uuid(),
                 'participant_id' => $buyer->id,
@@ -407,7 +415,9 @@ class TicketOrders
                 'discount_total' => $quote->discount,
                 'total' => $quote->total,
                 'discount_code_id' => $quote->code?->id,
-                'payment_status' => $withCredits ? Order::PAY_CREDITS : (config('app.dxa_tickets_auto_paid') ? Order::PAY_PAID : Order::PAY_AT_ENTRY),
+                'payment_status' => $card ? Order::PAY_CARD_PENDING : ($withCredits ? Order::PAY_CREDITS : (config('app.dxa_tickets_auto_paid') ? Order::PAY_PAID : Order::PAY_AT_ENTRY)),
+                'payment_expires_at' => $card ? now()->addMinutes(self::RESERVATION_MINUTES) : null,
+                'payment_provider' => $card ? 'stripe' : null,
             ]);
 
             foreach ($quote->lines as $i => $line) {
@@ -425,7 +435,7 @@ class TicketOrders
                     'valid_until' => Party::enterUntilAt($line['valid_until']),
                     'combo_label' => $line['combo'],
                     'combo_free' => $line['free'],
-                    'status' => Ticket::VALID,
+                    'status' => $card ? Ticket::PENDING : Ticket::VALID,
                 ]);
             }
 
@@ -434,8 +444,8 @@ class TicketOrders
                 $buyer->credit_balance = $wallet->credit_balance;
             }
 
-            ActivityLogger::log('tickets.ordered', sprintf(
-                '%s a cumpărat %d %s „%s” la „%s” (total %s lei%s%s%s).',
+            ActivityLogger::log($card ? 'tickets.reserved' : 'tickets.ordered', sprintf(
+                $card ? '%s a rezervat %d %s „%s” la „%s” în așteptarea plății cu cardul (total %s lei%s%s%s).' : '%s a cumpărat %d %s „%s” la „%s” (total %s lei%s%s%s).',
                 $buyer->name, $count, $count === 1 ? 'bilet' : 'bilete', $ticketName, $party->name,
                 number_format($quote->total, 2, ',', '.'), $quote->code ? ', cod '.$quote->code->code : '', $combo ? ', combo '.$combo : '',
                 $withCredits ? ', plătit cu credite' : ''
@@ -443,5 +453,93 @@ class TicketOrders
 
             return $order->load('tickets');
         });
+    }
+
+    // ---- Plata cu cardul (runda 65) -------------------------------------------
+
+    /**
+     * Rezervările cu cardul al căror termen a trecut: biletele devin `void` (locurile se eliberează), comanda `card_expired`.
+     * Rulează înainte de orice comandă nouă și la afișarea petrecerii; plata sosită totuși mai târziu se tratează în completeCard().
+     */
+    public static function expireStalePending(): int
+    {
+        $orders = Order::query()->where('payment_status', Order::PAY_CARD_PENDING)->where('payment_expires_at', '<', now())->get();
+        foreach ($orders as $order) {
+            self::releaseCard($order, Order::PAY_CARD_EXPIRED);
+        }
+
+        return $orders->count();
+    }
+
+    /** Eliberează o comandă încă în așteptare: biletele rezervate devin `void`, comanda primește statusul dat. Idempotent. */
+    public static function releaseCard(Order $order, string $status = Order::PAY_CARD_FAILED): void
+    {
+        DB::transaction(function () use ($order, $status) {
+            $locked = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+            if (! $locked || $locked->payment_status !== Order::PAY_CARD_PENDING) {
+                return;
+            }
+            Ticket::query()->where('order_id', $locked->id)->where('status', Ticket::PENDING)->update(['status' => Ticket::VOID]);
+            $locked->update(['payment_status' => $status]);
+        });
+        $order->refresh();
+    }
+
+    /**
+     * Plata cu cardul a reușit (apelată DOAR de webhook-ul semnat). Idempotent.
+     * - comandă în așteptare: biletele devin valabile;
+     * - comandă expirată/eșuată (plata a venit târziu): dacă locurile mai sunt libere, biletele se reactivează; altfel suma intră în portofel
+     *   ca credite (nu avem rambursări), iar comanda rămâne anulată.
+     *
+     * @return string statusul final al comenzii
+     */
+    public static function completeCard(Order $order, ?string $providerRef = null): string
+    {
+        return DB::transaction(function () use ($order, $providerRef) {
+            $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+
+            if (in_array($locked->payment_status, [Order::PAY_CARD, Order::PAY_CARD_CREDITED], true)) {
+                return $locked->payment_status;   // webhook repetat
+            }
+
+            $party = Party::query()->whereKey($locked->party_id)->lockForUpdate()->firstOrFail();
+            $tickets = Ticket::query()->where('order_id', $locked->id)->get();
+            $mark = ['payment_ref' => $providerRef ?? $locked->payment_ref, 'paid_at' => now()];
+
+            if ($locked->payment_status === Order::PAY_CARD_PENDING) {
+                Ticket::query()->where('order_id', $locked->id)->where('status', Ticket::PENDING)->update(['status' => Ticket::VALID]);
+                $locked->update($mark + ['payment_status' => Order::PAY_CARD]);
+                ActivityLogger::log('tickets.paid_card', sprintf('Comanda de %s lei la „%s” a fost plătită cu cardul.', PaymentRows::money((float) $locked->total), $party->name), actor: null);
+
+                return Order::PAY_CARD;
+            }
+
+            // Plată târzie: biletele fuseseră eliberate. Le reactivăm doar dacă încap din nou.
+            $fits = $tickets->groupBy('ticket_type')->every(fn ($group, $type) => (self::available($party, (string) $type) ?? PHP_INT_MAX) >= $group->count())
+                && ($party->tickets_for_sale === null || self::soldTotal($party) + $tickets->count() <= (int) $party->tickets_for_sale);
+
+            if ($fits) {
+                Ticket::query()->where('order_id', $locked->id)->where('status', Ticket::VOID)->update(['status' => Ticket::VALID]);
+                $locked->update($mark + ['payment_status' => Order::PAY_CARD]);
+                ActivityLogger::log('tickets.paid_card', sprintf('Plată cu cardul sosită după expirare: biletele comenzii de %s lei la „%s” au fost reactivate.', PaymentRows::money((float) $locked->total), $party->name), actor: null);
+
+                return Order::PAY_CARD;
+            }
+
+            $buyer = Participant::query()->findOrFail($locked->participant_id);
+            CreditLedger::load($buyer, (float) $locked->total, CreditTransaction::SOURCE_APP, null,
+                Str::limit('Plată bilete returnată în portofel · '.$party->name, 255, ''), Order::class, $locked->id);
+            $locked->update($mark + ['payment_status' => Order::PAY_CARD_CREDITED]);
+            ActivityLogger::log('tickets.paid_card_credited', sprintf('Plată cu cardul sosită după expirare, fără locuri libere: %s lei au intrat în portofelul lui %s.', PaymentRows::money((float) $locked->total), $buyer->label()), actor: null);
+
+            return Order::PAY_CARD_CREDITED;
+        });
+    }
+
+    /** La ștergerea contului: rezervările cu cardul ale participantului se eliberează. */
+    public static function releaseFor(Participant $buyer): void
+    {
+        Order::query()->where('participant_id', $buyer->id)->where('payment_status', Order::PAY_CARD_PENDING)->get()
+            ->each(fn (Order $o) => self::releaseCard($o, Order::PAY_CARD_FAILED));
     }
 }

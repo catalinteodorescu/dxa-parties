@@ -6,6 +6,7 @@ use App\Contracts\SmsSender;
 use App\Services\CreditLedger;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\PlaceholderGateway;
+use App\Services\Payments\StripeGateway;
 use App\Services\Sms\AsciiSmsSender;
 use App\Services\Sms\LogSmsSender;
 use App\Services\TokenLedger;
@@ -23,8 +24,8 @@ class AppServiceProvider extends ServiceProvider
         // Implementare de dezvoltare (loghează SMS-urile în loc să le trimită).
         // Se înlocuiește cu un provider real când e ales.
         $this->app->bind(SmsSender::class, fn () => new AsciiSmsSender(new LogSmsSender));
-        // DXA: adaugat (runda 51). Plata online: până la Stripe, pagina „plata cu cardul urmează”.
-        $this->app->bind(PaymentGateway::class, PlaceholderGateway::class);
+        // DXA: adaugat (runda 51, runda 64). Plata online: Stripe dacă STRIPE_SECRET e setat, altfel pagina „plata cu cardul urmează”.
+        $this->app->bind(PaymentGateway::class, fn () => filled(config('services.stripe.secret')) ? new StripeGateway : new PlaceholderGateway);
     }
 
     public function boot(): void

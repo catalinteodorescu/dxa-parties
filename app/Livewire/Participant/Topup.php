@@ -4,7 +4,6 @@ namespace App\Livewire\Participant;
 
 use App\Services\CreditBonus;
 use App\Services\CreditTopups;
-use App\Services\PaymentRows;
 use App\Services\Payments\PaymentGateway;
 use App\Support\PaymentMethods;
 use DomainException;
@@ -47,19 +46,20 @@ class Topup extends Component
             if (config('app.dxa_tickets_auto_paid')) {
                 // Plată simulată (până la Stripe): creditele intră direct în cont, ca la comenzile de bilete marcate achitate.
                 CreditTopups::complete($topup, null, 'simulated');
-                session()->flash('status', $topup->bonus > 0
-                    ? 'Ai încărcat '.PaymentRows::money((float) $topup->amount).' lei credite și ai primit bonus '.PaymentRows::money((float) $topup->bonus).' lei.'
-                    : 'Ai încărcat '.PaymentRows::money((float) $topup->amount).' lei credite.');
+                session()->flash('status', CreditTopups::paidMessage($topup));
 
                 return $this->redirectRoute('app.wallet', navigate: true);
             }
+
+            // Stripe: pagina de plată e pe alt domeniu, deci redirecționare completă (fără wire:navigate).
+            $url = $gateway->checkoutUrl($topup);
         } catch (DomainException $e) {
             $this->error = $e->getMessage();
 
             return null;
         }
 
-        return $this->redirect($gateway->checkoutUrl($topup), navigate: true);
+        return $this->redirect($url, navigate: ! $gateway->online());
     }
 
     private static function parse(string $raw): float

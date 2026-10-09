@@ -386,7 +386,9 @@ class EntryRecorder
                 throw new DomainException('Un bilet este pentru altă petrecere.');
             }
             if ($t->status !== Ticket::VALID) {
-                throw new DomainException('Biletul '.$t->ticket_type.' a fost deja '.($t->status === Ticket::USED ? 'folosit' : 'anulat').'.');
+                throw new DomainException($t->status === Ticket::PENDING
+                    ? 'Biletul '.$t->ticket_type.' nu e plătit încă (așteaptă plata cu cardul).'
+                    : 'Biletul '.$t->ticket_type.' a fost deja '.($t->status === Ticket::USED ? 'folosit' : 'anulat').'.');
             }
             $out->push($t);
         }

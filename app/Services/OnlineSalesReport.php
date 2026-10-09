@@ -33,7 +33,7 @@ class OnlineSalesReport
             ->groupBy('ticket_type', 'combo_label', 'combo_free', 'status', 'discount_code_id')
             ->get();
 
-        $counted = $rows->where('status', '!=', Ticket::VOID);
+        $counted = $rows->whereIn('status', [Ticket::VALID, Ticket::USED]);   // runda 65: rezervările cu cardul (pending) nu sunt vânzări încă
 
         // Tipurile: cele definite acum (în ordinea din admin) + orice nume cu vânzări care nu mai există.
         $defined = collect($party->entryTicketTypes())->keyBy('name');
@@ -45,11 +45,15 @@ class OnlineSalesReport
         $totals->orders = (int) Order::query()->where('party_id', $party->id)->count();
         $totals->buyers = (int) Order::query()->where('party_id', $party->id)->distinct()->count('participant_id');
         $totals->voided = (int) $rows->where('status', Ticket::VOID)->sum('n');
+        $totals->pending = (int) $rows->where('status', Ticket::PENDING)->sum('n');   // runda 65: rezervate, în așteptarea plății
+        $cardOrders = Order::query()->where('party_id', $party->id)->where('payment_status', Order::PAY_CARD);
+        $totals->card_orders = (int) (clone $cardOrders)->count();
+        $totals->card_amount = round((float) (clone $cardOrders)->sum('total'), 2);
         $creditOrders = Order::query()->where('party_id', $party->id)->where('payment_status', Order::PAY_CREDITS);   // runda 50
         $totals->credit_orders = (int) (clone $creditOrders)->count();
         $totals->credit_amount = round((float) (clone $creditOrders)->sum('total'), 2);
         $totals->limit = $party->tickets_for_sale;
-        $totals->left = $party->tickets_for_sale !== null ? max(0, (int) $party->tickets_for_sale - $totals->tickets) : null;
+        $totals->left = $party->tickets_for_sale !== null ? max(0, (int) $party->tickets_for_sale - $totals->tickets - $totals->pending) : null;
 
         return (object) [
             'has_data' => $totals->tickets > 0 || $totals->voided > 0,

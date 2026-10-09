@@ -4,6 +4,7 @@ use App\Http\Controllers\BarReportPdfController;
 use App\Http\Controllers\ContentMetricsController;
 use App\Http\Controllers\PartyCalendarController;
 use App\Http\Controllers\PwaController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Livewire\Admin\Account\Edit as AccountEdit; // DXA: adaugat (Bar - statistici agregate)
 use App\Livewire\Admin\Announcements\Form as AnnouncementForm;
 use App\Livewire\Admin\Announcements\Index as AnnouncementsIndex;
@@ -16,40 +17,42 @@ use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\ForgotPassword;
 use App\Livewire\Admin\Invite\Complete as InviteComplete;
 use App\Livewire\Admin\Login;
-use App\Livewire\Admin\Logs\Index as LogsIndex;          // DXA: adaugat (Card de fidelitate - pagina Carduri)
+use App\Livewire\Admin\Logs\Index as LogsIndex;
 use App\Livewire\Admin\Loyalty\Cards as LoyaltyCardsPage;
-use App\Livewire\Admin\MenuItems\Categories as MenuCategoriesPage; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\MenuItems\Categories as MenuCategoriesPage;          // DXA: adaugat (Card de fidelitate - pagina Carduri)
 use App\Livewire\Admin\MenuItems\Form as MenuItemForm;
-use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex;          // DXA: adaugat (Meniu bar - produse)
-use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;         // DXA: adaugat (Petreceri)
-use App\Livewire\Admin\Participants\Index as ParticipantsIndex;     // DXA: adaugat (Petreceri)
-use App\Livewire\Admin\Participants\Show as ParticipantsShow;   // DXA: adaugat (Participanți - statistici)
-use App\Livewire\Admin\Participants\Stats as ParticipantsStats;       // DXA: adaugat (Petreceri - view single)
-use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;
-use App\Livewire\Admin\Parties\Form as PartyForm;     // DXA: adaugat (Petreceri - statistici)
-use App\Livewire\Admin\Parties\Index as PartiesIndex; // DXA: adaugat (Petreceri - statistici agregate)
-use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage;
-use App\Livewire\Admin\Parties\Show as PartiesShow; // DXA: adaugat (Coduri de reducere - promotori)
-use App\Livewire\Admin\Parties\Stats as PartiesStats; // DXA: adaugat (Setari)
-use App\Livewire\Admin\Promoters\Index as PromotersIndex;
-use App\Livewire\Admin\Reception\Form as ReceptionForm;       // DXA: adaugat (Bar - raportari)
-use App\Livewire\Admin\Reception\Index as ReceptionIndex;  // DXA: adaugat (Receptie - statistici agregate)
-use App\Livewire\Admin\Reception\Stats as ReceptionStatsPage;    // DXA: adaugat (runda 23)
-use App\Livewire\Admin\Reception\Tokens as ReceptionTokens;    // DXA: adaugat (Bar - raportari)
-use App\Livewire\Admin\ReceptionApp\AppSettings as ReceptionAppSettings;      // DXA: adaugat (Participanți)
-use App\Livewire\Admin\ReceptionReports\Form as ReceptionReportForm;        // DXA: adaugat (Participanți)
-use App\Livewire\Admin\ReceptionReports\Index as ReceptionReportsIndex;              // DXA: adaugat (Recepție - intrări = adăugare)
-use App\Livewire\Admin\Reconciliation\Index as ReconciliationIndex;            // DXA: adaugat (Recepție - intrări = listă)
-use App\Livewire\Admin\ResetPassword;          // DXA: adaugat (Recepție - tokeni)
-use App\Livewire\Admin\Sales\Form as SaleForm;    // DXA: adaugat (Recepție - raportări)
-use App\Livewire\Admin\Sales\Index as SalesIndex; // DXA: adaugat (Recepție - raportări)
-use App\Livewire\Admin\Settings\Index as SettingsIndex;                         // DXA: adaugat (Bar - vanzari)
-use App\Livewire\Admin\SetupPhone;                      // DXA: adaugat (Bar - vanzari)
-use App\Livewire\Admin\StockReports\Form as StockReportForm;   // DXA: adaugat (Bar - necesare)
-use App\Livewire\Admin\StockReports\Index as StockReportsIndex; // DXA: adaugat (Bar - necesare)
-use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm; // DXA: adaugat (Bar - stocuri)
-use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex;
-use App\Livewire\Admin\Stocks\Index as StockItemsIndex;
+use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;
+use App\Livewire\Admin\Participants\Index as ParticipantsIndex;          // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\Participants\Show as ParticipantsShow;         // DXA: adaugat (Petreceri)
+use App\Livewire\Admin\Participants\Stats as ParticipantsStats;     // DXA: adaugat (Petreceri)
+use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;   // DXA: adaugat (Participanți - statistici)
+use App\Livewire\Admin\Parties\Form as PartyForm;       // DXA: adaugat (Petreceri - view single)
+use App\Livewire\Admin\Parties\Index as PartiesIndex;
+use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage;     // DXA: adaugat (Petreceri - statistici)
+use App\Livewire\Admin\Parties\Show as PartiesShow; // DXA: adaugat (Petreceri - statistici agregate)
+use App\Livewire\Admin\Parties\Stats as PartiesStats;
+use App\Livewire\Admin\Promoters\Index as PromotersIndex; // DXA: adaugat (Coduri de reducere - promotori)
+use App\Livewire\Admin\Reception\Form as ReceptionForm; // DXA: adaugat (Setari)
+use App\Livewire\Admin\Reception\Index as ReceptionIndex;
+use App\Livewire\Admin\Reception\Stats as ReceptionStatsPage;       // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\Reception\Tokens as ReceptionTokens;  // DXA: adaugat (Receptie - statistici agregate)
+use App\Livewire\Admin\ReceptionApp\AppSettings as ReceptionAppSettings;    // DXA: adaugat (runda 23)
+use App\Livewire\Admin\ReceptionReports\Form as ReceptionReportForm;    // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\ReceptionReports\Index as ReceptionReportsIndex;      // DXA: adaugat (Participanți)
+use App\Livewire\Admin\Reconciliation\Index as ReconciliationIndex;        // DXA: adaugat (Participanți)
+use App\Livewire\Admin\ResetPassword;              // DXA: adaugat (Recepție - intrări = adăugare)
+use App\Livewire\Admin\Sales\Form as SaleForm;            // DXA: adaugat (Recepție - intrări = listă)
+use App\Livewire\Admin\Sales\Index as SalesIndex;          // DXA: adaugat (Recepție - tokeni)
+use App\Livewire\Admin\Settings\Index as SettingsIndex;    // DXA: adaugat (Recepție - raportări)
+use App\Livewire\Admin\SetupPhone; // DXA: adaugat (Recepție - raportări)
+use App\Livewire\Admin\StockReports\Form as StockReportForm;                         // DXA: adaugat (Bar - vanzari)
+use App\Livewire\Admin\StockReports\Index as StockReportsIndex;                      // DXA: adaugat (Bar - vanzari)
+use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm;   // DXA: adaugat (Bar - necesare)
+use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex; // DXA: adaugat (Bar - necesare)
+use App\Livewire\Admin\Stocks\Index as StockItemsIndex; // DXA: adaugat (Bar - stocuri)
+use App\Livewire\Admin\Tickets\Index as TicketsIndex;
+use App\Livewire\Admin\Tickets\Show as TicketsShow;
 use App\Livewire\Admin\Users\Create as UsersCreate;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Admin\Users\Permissions as UsersPermissions; // DXA: adaugat (PWA Bar)
@@ -74,6 +77,7 @@ use App\Livewire\Participant\Register as ParticipantRegister; // DXA: adaugat (P
 use App\Livewire\Participant\ResetPassword as ParticipantResetPassword;
 use App\Livewire\Participant\Terms;
 use App\Livewire\Participant\TicketLink as ParticipantTicketLink;
+use App\Livewire\Participant\TicketPay as ParticipantTicketPay;
 use App\Livewire\Participant\Tickets as ParticipantTickets;
 use App\Livewire\Participant\TicketShortLink as ParticipantTicketShortLink;
 use App\Livewire\Participant\Topup as ParticipantTopup;
@@ -169,6 +173,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             // DXA: adaugat (Credite - pagina Credite, doar afișare, pe modelul paginii Carduri)
             Route::get('/credits', CreditsIndex::class)->middleware('admin.can:credits,view')->name('credits.index');
+            Route::get('/tickets', TicketsIndex::class)->middleware('admin.can:tickets,view')->name('tickets.index'); // DXA: adaugat (runda 66)
+            Route::get('/tickets/{ticket}', TicketsShow::class)->middleware('admin.can:tickets,view')->name('tickets.show');
 
             // DXA: adaugat (Card de fidelitate - pagina Carduri, pe modelul paginii Tokeni)
             Route::get('/loyalty/cards', LoyaltyCardsPage::class)->middleware('admin.can:loyalty,view')->name('loyalty.cards');
@@ -285,6 +291,7 @@ Route::name('app.')->group(function () {
     Route::get('/icon/{size}.png', [PwaController::class, 'participantIcon'])->whereNumber('size')->name('icon');
 
     Route::post('/m', [ContentMetricsController::class, 'store'])->middleware('throttle:120,1')->name('metrics'); // DXA: adaugat (runda 40)
+    Route::post('/webhooks/stripe', StripeWebhookController::class)->name('webhooks.stripe'); // DXA: adaugat (runda 64)
     Route::get('/', ParticipantHome::class)->name('home');
     Route::get('/termeni', Terms::class)->name('terms'); // DXA: adaugat (runda 60)
     Route::get('/petreceri', ParticipantParties::class)->name('parties');
@@ -319,6 +326,7 @@ Route::name('app.')->group(function () {
         })->middleware('throttle:6,1')->name('account.export');
         Route::get('/bilete', ParticipantTickets::class)->name('tickets');
         Route::get('/bilete/toate', ParticipantHistory::class)->defaults('kind', 'tickets')->name('tickets.all');
+        Route::get('/bilete/plata/{order}', ParticipantTicketPay::class)->name('tickets.pay'); // DXA: adaugat (runda 65)
         Route::get('/portofel', ParticipantWallet::class)->name('wallet');
         Route::get('/portofel/incarcari', ParticipantHistory::class)->defaults('kind', 'credits')->name('wallet.all');
         // DXA: adaugat (runda 51/51b). Încărcarea de credite: pagina de alegere a sumei + confirmare, apoi (fără plată simulată) pagina de plată, loc rezervat până la Stripe.

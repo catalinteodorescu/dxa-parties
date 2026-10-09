@@ -116,6 +116,7 @@ class ParticipantRegistry
         PartyInterest::query()->where('participant_id', $participant->id)->delete();   // runda 40: petrecerile salvate
         Ticket::query()->where('holder_participant_id', $participant->id)->where('status', Ticket::VALID)->update(['holder_participant_id' => null]);   // runda 52
         CreditTopup::query()->where('participant_id', $participant->id)->where('status', CreditTopup::PENDING)->update(['status' => CreditTopup::CANCELLED]);   // runda 52
+        TicketOrders::releaseFor($participant);   // runda 65: rezervările cu cardul neplătite se eliberează
 
         ActivityLogger::log($action, $message.' „'.$label.'”.');
     }

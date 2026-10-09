@@ -28,7 +28,7 @@ class PartyAttendees
      */
     public static function for(Party $party): object
     {
-        $tickets = Ticket::query()->where('party_id', $party->id)->counted()
+        $tickets = Ticket::query()->where('party_id', $party->id)->issued()
             ->get(['id', 'holder_participant_id', 'holder_phone', 'status']);
         $entries = PartyEntry::query()->where('party_id', $party->id)->active()->get(['id', 'participant_id']);
 

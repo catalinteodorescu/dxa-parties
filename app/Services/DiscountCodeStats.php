@@ -37,7 +37,7 @@ class DiscountCodeStats
         $entries = self::codedEntries(fn ($q) => $q->where('party_id', $party->id));
         $new = self::newParticipants($entries);
 
-        $partyEntries = (int) Ticket::query()->where('party_id', $party->id)->counted()->count();
+        $partyEntries = (int) Ticket::query()->where('party_id', $party->id)->issued()->count();
 
         $rows = $codes->map(fn (PartyDiscountCode $c) => self::row(
             $entries->where('discount_code_id', $c->id), $new,
@@ -114,7 +114,7 @@ class DiscountCodeStats
         $since = $now->copy()->subDays($days);
 
         $period = self::overall(null, $since)->totals;
-        $periodEntries = (int) Ticket::query()->counted()->where('created_at', '>=', $since)->count();
+        $periodEntries = (int) Ticket::query()->issued()->where('created_at', '>=', $since)->count();
 
         // Petrecerea curentă: cea în desfășurare, altfel cea mai apropiată viitoare (publicată, activă, neîncheiată).
         $party = Party::query()
@@ -144,7 +144,7 @@ class DiscountCodeStats
      */
     private static function codedEntries(\Closure $scope): Collection
     {
-        return $scope(Ticket::query()->counted()->whereNotNull('discount_code_id'))
+        return $scope(Ticket::query()->issued()->whereNotNull('discount_code_id'))
             ->get(['id', 'party_id', 'discount_code_id', 'holder_participant_id', 'price', 'discount_amount', 'created_at'])
             ->map(fn (Ticket $t) => (object) [
                 'id' => $t->id,
@@ -174,7 +174,7 @@ class DiscountCodeStats
         $fromEntries = PartyEntry::query()->active()->whereIn('participant_id', $ids)
             ->join('parties', 'parties.id', '=', 'party_entries.party_id')
             ->get(['party_entries.participant_id', 'party_entries.party_id', 'parties.starts_at as p_starts']);
-        $fromTickets = Ticket::query()->where('tickets.status', '!=', Ticket::VOID)->whereIn('tickets.holder_participant_id', $ids)
+        $fromTickets = Ticket::query()->whereIn('tickets.status', [Ticket::VALID, Ticket::USED])->whereIn('tickets.holder_participant_id', $ids)
             ->join('parties', 'parties.id', '=', 'tickets.party_id')
             ->get(['tickets.holder_participant_id', 'tickets.party_id', 'parties.starts_at as p_starts'])
             ->map(fn ($t) => (object) ['participant_id' => $t->holder_participant_id, 'party_id' => $t->party_id, 'p_starts' => $t->p_starts]);

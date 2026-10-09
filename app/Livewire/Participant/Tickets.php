@@ -108,7 +108,7 @@ class Tickets extends Component
     public function render()
     {
         $me = auth('participant')->user();
-        $base = fn () => Ticket::query()->visibleTo($me->id)->with(['party', 'holder', 'owner']);
+        $base = fn () => Ticket::query()->where('status', '!=', Ticket::PENDING)->visibleTo($me->id)->with(['party', 'holder', 'owner']);   // runda 65: rezervările cu cardul nu se văd până la plată
 
         // Caruselul: ultima comandă cumpărată prima (biletele aceleiași comenzi rămân în ordinea lor).
         // Biletele „valabile” ale unei petreceri încheiate nu mai sunt valabile: trec în lista de jos, ca „expirate” (runda 32).

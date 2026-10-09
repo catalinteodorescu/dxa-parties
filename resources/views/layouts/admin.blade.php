@@ -356,7 +356,7 @@
 
                 {{-- Grup collapsabil: Participanți --}}
                 {{-- DXA: adaugat (Participanți) — Listă + Statistici (topuri) + Carduri (fidelitate). --}}
-                @if ($me && $me->permitsAny('participants', 'loyalty', 'credits'))
+                @if ($me && $me->permitsAny('participants', 'loyalty', 'credits', 'tickets'))
                 <div x-data="{ participantsOpen: true }" class="pt-4">
                     <button type="button" @click="participantsOpen = ! participantsOpen"
                             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-ink-soft/70 hover:bg-bg hover:text-ink-soft transition-colors">
@@ -412,6 +412,18 @@
                                 Credite
                             </a>
                             @endif
+                        @endif
+
+                        {{-- DXA: adaugat (runda 66): lista biletelor cumpărate din aplicație. --}}
+                        @if ($can('tickets', 'view'))
+                        <a href="{{ route('admin.tickets.index') }}" wire:navigate @click="sidebarOpen = false"
+                           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                                  {{ request()->routeIs('admin.tickets.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>
+                            </svg>
+                            Bilete
+                        </a>
                         @endif
 
                         @if ($can('participants', 'view'))

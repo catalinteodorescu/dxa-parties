@@ -42,7 +42,7 @@ class CreditTopups
 
         $bonus = CreditBonus::bonusFor($amount);
         $next = CreditBonus::nextTier($amount);
-        $fee = 0.0;   // taxa de serviciu vine odată cu Stripe
+        $fee = 0.0;   // comisionul Stripe îl suportă școala: participantul plătește exact suma încărcată
 
         return (object) [
             'amount' => $amount,
@@ -123,6 +123,14 @@ class CreditTopups
 
             return $tx;
         });
+    }
+
+    /** Mesajul de după o încărcare plătită (aceleași cuvinte pentru plata simulată și pentru întoarcerea de la Stripe). */
+    public static function paidMessage(CreditTopup $topup): string
+    {
+        return (float) $topup->bonus > 0
+            ? 'Ai încărcat '.PaymentRows::money((float) $topup->amount).' lei credite și ai primit bonus '.PaymentRows::money((float) $topup->bonus).' lei.'
+            : 'Ai încărcat '.PaymentRows::money((float) $topup->amount).' lei credite.';
     }
 
     /** Plata a eșuat: se marchează, fără efect în ledger (doar dacă încă nu e plătită). */

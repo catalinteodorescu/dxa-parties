@@ -21,7 +21,7 @@
 <div class="mb-4">
     <div class="{{ $card }} mb-4">
         <h3 class="text-sm font-semibold text-ink">Vânzări online</h3>
-        <p class="mt-1 text-xs text-ink-soft">Din biletele cumpărate în aplicație (nu depinde de raportări). Comenzile sunt „de plătit la intrare”, deci „valoare” înseamnă prețul biletelor, nu bani încasați. Biletele anulate nu se numără.</p>
+        <p class="mt-1 text-xs text-ink-soft">Din biletele cumpărate în aplicație (nu depinde de raportări). Comenzile fără card sunt „de plătit la intrare”, deci „valoare” înseamnă prețul biletelor, nu bani încasați. Biletele anulate nu se numără.</p>
 
         @if (! $report->has_data)
             <p class="mt-3 text-sm text-ink-soft">Nu s-a vândut încă niciun bilet online la această petrecere.</p>
@@ -52,6 +52,9 @@
                     <div class="text-[11px] text-ink-soft">Valoare bilete</div>
                     <div class="text-lg font-semibold text-ink">{{ $money($t->revenue) }}</div>
                     <div class="text-[11px] text-ink-soft">{{ $int($t->orders) }} {{ $t->orders === 1 ? 'comandă' : 'comenzi' }} · {{ $int($t->buyers) }} {{ $t->buyers === 1 ? 'cumpărător' : 'cumpărători' }}</div>
+                    @if ($t->card_orders > 0)
+                        <div class="text-[11px] text-ink-soft" data-card-orders>din care {{ $money($t->card_amount) }} plătiți cu cardul ({{ $int($t->card_orders) }} {{ $t->card_orders === 1 ? 'comandă' : 'comenzi' }})</div>
+                    @endif
                     @if ($t->credit_orders > 0)
                         <div class="text-[11px] text-ink-soft" data-credit-orders>din care {{ $money($t->credit_amount) }} plătiți cu credite ({{ $int($t->credit_orders) }} {{ $t->credit_orders === 1 ? 'comandă' : 'comenzi' }})</div>
                     @endif
@@ -66,6 +69,7 @@
             </div>
             <p class="mt-3 text-xs text-ink-soft">
                 {{ $int($t->paid) }} plătite · {{ $int($t->free) }} gratuite · {{ $int($t->used) }} deja intrate
+                @if ($t->pending > 0) · {{ $int($t->pending) }} rezervate (așteaptă plata cu cardul) @endif
                 @if ($t->voided > 0) · {{ $int($t->voided) }} anulate @endif
             </p>
         @endif

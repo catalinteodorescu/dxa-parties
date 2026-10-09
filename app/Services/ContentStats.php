@@ -144,7 +144,7 @@ class ContentStats
         $t = self::totals('party', $party->id);
         $interested = PartyInterests::count($party);
 
-        $buyers = Ticket::query()->where('party_id', $party->id)->where('status', '!=', Ticket::VOID)
+        $buyers = Ticket::query()->where('party_id', $party->id)->issued()
             ->whereIn('owner_participant_id', PartyInterest::query()->where('party_id', $party->id)->select('participant_id'))
             ->distinct()->count('owner_participant_id');
 

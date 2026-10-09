@@ -66,6 +66,7 @@ final class Permissions
         'participants' => ['Participanți', 'participants', self::DELETE],
         'loyalty' => ['Carduri de fidelitate', 'participants', self::EDIT],
         'credits' => ['Credite', 'participants', self::VIEW],
+        'tickets' => ['Bilete', 'participants', self::VIEW],   // runda 66
         'users' => ['Utilizatori', 'admin', self::DELETE],
         'logs' => ['Jurnal activitate', 'admin', self::VIEW],
         'settings' => ['Setări', 'admin', self::DELETE],
@@ -92,6 +93,7 @@ final class Permissions
         'reopen_reception_reports' => ['Redeschidere rapoarte', 'Redeschide rapoarte de recepție finalizate.', 'reception_reports', ['askReopen', 'reopen']],
         'export_reception_reports' => ['Export PDF', 'Descarcă rapoartele de recepție în PDF.', 'reception_reports', ['exportPdf']],
         'credits_adjust' => ['Ajustare credite', 'Încărcare, ajustare și rambursare de credite.', 'participants', ['loadCredits', 'adjustCredits', 'refundCredits']],
+        'cancel_tickets' => ['Anulare bilete', 'Anulează bilete și returnează banii în credite.', 'tickets', ['cancel']],   // runda 67
         'loyalty_adjust' => ['Ajustare ștampile', 'Modifică manual ștampilele cardului de fidelitate.', 'participants', ['adjustLoyaltyStamps']],
         'anonymize' => ['Anonimizare', 'Șterge datele personale ale unui participant.', 'participants', ['anonymize']],
     ];

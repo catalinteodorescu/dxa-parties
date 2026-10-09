@@ -28,6 +28,7 @@
          })()">
         <div x-ref="qr" data-ticket-qr="{{ $t->qrPayload() }}" style="width: 200px; height: 200px; background: #fff; padding: 10px; border-radius: .9rem"></div>
     </div>
+    <div class="pa-soft" style="font-size: .8rem; letter-spacing: .08em" data-ticket-code>Cod {{ $t->shortCode() }}</div>
     @if ($t->status === \App\Models\Ticket::USED)
         <div style="font-weight: 800; color: #ffb36b">Biletul a fost folosit{{ $t->used_at ? ' la '.$t->used_at->format('H:i') : '' }}.</div>
     @endif
@@ -38,7 +39,7 @@
             <span class="pa-soft">Fără nume{{ $t->holder_phone ? ' · '.$t->holder_phone : '' }}</span>
         @endif
         @php $payStatus = $t->order?->payment_status ?? \App\Models\Order::PAY_AT_ENTRY; @endphp
-        <span class="pa-soft"> · {{ (float) $t->price > 0 ? number_format((float) $t->price, 2, ',', '.').' lei, '.($payStatus === \App\Models\Order::PAY_CREDITS ? 'achitat cu credite' : ($payStatus === \App\Models\Order::PAY_AT_ENTRY ? 'de plătit la intrare' : 'achitat')) : 'gratuit' }}</span>
+        <span class="pa-soft"> · {{ (float) $t->price > 0 ? number_format((float) $t->price, 2, ',', '.').' lei, '.($payStatus === \App\Models\Order::PAY_CREDITS ? 'achitat cu credite' : ($payStatus === \App\Models\Order::PAY_CARD ? 'achitat cu cardul' : ($payStatus === \App\Models\Order::PAY_AT_ENTRY ? 'de plătit la intrare' : 'achitat'))) : 'gratuit' }}</span>
     </div>
     @if (! $public && $me && \App\Services\TicketTransfers::canSend($t, $me))
         <button type="button" class="pa-btn pa-btn-ghost pa-btn-sm" wire:click="startSend({{ $t->id }})" data-send-ticket="{{ $t->id }}">Trimite biletul</button>

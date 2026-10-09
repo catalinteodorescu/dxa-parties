@@ -34,7 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         // DXA: adaugat (runda 40). Contoarele din aplicație (sendBeacon, fără token): doar numără, nu citesc nimic.
-        $middleware->validateCsrfTokens(except: ['m']);
+        // DXA: runda 64 — webhook-ul Stripe vine de la server, fără token CSRF; autenticitatea se verifică prin semnătura Stripe.
+        $middleware->validateCsrfTokens(except: ['m', 'webhooks/stripe']);
 
         // DXA: runda 46 — permisiunea se verifică ÎNAINTE de model binding (fără permisiune → 403, nu 404 care ar trăda existența).
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdminHasPermission::class);

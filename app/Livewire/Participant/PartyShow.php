@@ -5,6 +5,7 @@ namespace App\Livewire\Participant;
 use App\Livewire\Concerns\TogglesPartyInterest;
 use App\Models\Party;
 use App\Services\ContentStats;
+use App\Services\Payments\PaymentGateway;
 use App\Services\TicketOrders;
 use App\Support\PartyPublic;
 use DomainException;
@@ -159,13 +160,31 @@ class PartyShow extends Component
             return;
         }
 
+        // Runda 65: cu Stripe activ, „Confirmă” înseamnă plata cu cardul (biletele se rezervă, apoi redirecționare la Stripe).
+        $gateway = app(PaymentGateway::class);
+        $card = ! $withCredits && $gateway->online();
+
         try {
             $party = Party::findOrFail($this->partyId);
             $count = $this->ticketCount($party);
             $order = TicketOrders::place(
                 $me, $party, $this->ticketName, $count,
-                $this->appliedCode ?: null, null, $this->combo ?: null, $withCredits
+                $this->appliedCode ?: null, null, $this->combo ?: null, $withCredits, $card
             );
+
+            if ($order->isAwaitingCard()) {
+                try {
+                    $url = $gateway->orderCheckoutUrl($order);
+                } catch (DomainException $e) {
+                    TicketOrders::releaseCard($order);   // nu lăsăm locuri blocate dacă pagina de plată nu a putut fi creată
+
+                    throw $e;
+                }
+
+                $this->redirect($url);   // pagină pe alt domeniu: redirecționare completă
+
+                return;
+            }
         } catch (DomainException $e) {
             $this->buyError = $e->getMessage();
 
@@ -186,6 +205,7 @@ class PartyShow extends Component
 
     public function render()
     {
+        TicketOrders::expireStalePending();   // runda 65: rezervările cu cardul neplătite eliberează locurile
         $party = Party::findOrFail($this->partyId);
         $me = auth('participant')->user();
 
@@ -253,6 +273,7 @@ class PartyShow extends Component
             'quote' => $quote,
             'quoteError' => $quoteError,
             'creditBalance' => $creditBalance,
+            'cardPay' => $quote && (float) $quote->total > 0 && app(PaymentGateway::class)->online(),   // runda 65: „Confirmă” = plata cu cardul
             'capReason' => $capReason,
         ])->title($party->name);
     }
