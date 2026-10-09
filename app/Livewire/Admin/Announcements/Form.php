@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Announcements;
 
 use App\Models\Announcement;
 use App\Services\ActivityLogger;
+use App\Services\Push\Events;
 use App\Support\AnnouncementLink;
 use App\Support\HandlesImageUploads;
 use Illuminate\Support\Carbon;
@@ -189,6 +190,8 @@ class Form extends Component
 
             session()->flash('status', 'Anunțul a fost creat.');
         }
+
+        Events::announcementsNow();   // runda 70: un anunț publicat și vizibil acum pleacă imediat (notificare push)
 
         $this->redirectRoute('admin.announcements.index', navigate: true);
     }

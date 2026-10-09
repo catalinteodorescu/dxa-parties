@@ -7,6 +7,7 @@ use App\Models\LoyaltyStamp;
 use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyEntry;
+use App\Services\Push\Events;
 use App\Support\Settings\Settings;
 use DomainException;
 use Illuminate\Support\Carbon;
@@ -262,6 +263,10 @@ class LoyaltyLedger
         ]);
 
         $card->refresh();
+        // Runda 70d: a strâns toate cele X ștampile -> următoarea intrare e gratuită (o notificare pe card, după comitere).
+        if ($card->activeStampsCount() === $card->stamps_required) {
+            DB::afterCommit(fn () => Events::safely(fn () => Events::cardCompleted($card)));
+        }
         if ($card->activeStampsCount() >= $card->totalCircles()) {
             $card->update(['status' => LoyaltyCard::COMPLETED, 'completed_at' => now()]);
             self::startNextCard($card->participant);

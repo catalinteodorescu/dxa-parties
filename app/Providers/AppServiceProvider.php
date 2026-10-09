@@ -7,6 +7,8 @@ use App\Services\CreditLedger;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\PlaceholderGateway;
 use App\Services\Payments\StripeGateway;
+use App\Services\Push\PushGateway;
+use App\Services\Push\WebPushGateway;
 use App\Services\Sms\AsciiSmsSender;
 use App\Services\Sms\LogSmsSender;
 use App\Services\TokenLedger;
@@ -26,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SmsSender::class, fn () => new AsciiSmsSender(new LogSmsSender));
         // DXA: adaugat (runda 51, runda 64). Plata online: Stripe dacă STRIPE_SECRET e setat, altfel pagina „plata cu cardul urmează”.
         $this->app->bind(PaymentGateway::class, fn () => filled(config('services.stripe.secret')) ? new StripeGateway : new PlaceholderGateway);
+        // DXA: adaugat (runda 70). Notificări push (Web Push); testele leagă o implementare falsă.
+        $this->app->bind(PushGateway::class, fn () => new WebPushGateway);
     }
 
     public function boot(): void

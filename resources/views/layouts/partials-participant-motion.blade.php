@@ -8,6 +8,7 @@
 
     /* ---------- Loader ---------- */
     var loader = null, showTimer = null, safetyTimer = null;
+    var navigating = false, backLock = false;   // runda 70g: o navigare e în curs / un „înapoi” a fost deja confirmat
     function ensureLoader() {
         if (loader) return loader;
         loader = document.createElement('div');
@@ -18,9 +19,17 @@
         document.documentElement.appendChild(loader);
         return loader;
     }
+    /* Runda 70g: Livewire salvează pentru butonul „înapoi” tot <html>.outerHTML, deci loaderul / indicatorul de swipe / caseta de debug
+       (puse în <html>, în afara <body>) ajung în copie, iar la restaurare apar ca ELEMENTE NOI în <body>, pe care scriptul nu le mai
+       controlează (un loader cu clasa „on” blochează pagina). Le ștergem din <body>; cele reale stau doar direct sub <html>. */
+    function purgeStale() {
+        var stale = document.body ? document.body.querySelectorAll('.dxa-loader, .dxa-swipe-hint, [data-dxa-dbg]') : [];
+        for (var i = 0; i < stale.length; i++) { stale[i].remove(); }
+    }
     function hideLoader() {
         clearTimeout(showTimer); clearTimeout(safetyTimer);
         showTimer = safetyTimer = null;
+        navigating = false; backLock = false;
         if (loader) loader.classList.remove('on');
     }
     function scheduleLoader() {
@@ -29,12 +38,19 @@
             ensureLoader();
             // un frame mai târziu, ca tranziția de opacitate să pornească
             requestAnimationFrame(function () { loader.classList.add('on'); });
-            safetyTimer = setTimeout(hideLoader, 15000);   // plasă de siguranță: nu rămâne blocat dacă navigarea eșuează
+            safetyTimer = setTimeout(hideLoader, 6000);   // plasă de siguranță: nu rămâne blocat dacă navigarea eșuează (runda 70g: 6 s, nu 15)
         }, 250);
     }
-    document.addEventListener('livewire:navigate', scheduleLoader);
-    document.addEventListener('livewire:navigated', hideLoader);
-    window.addEventListener('pageshow', hideLoader);
+    document.addEventListener('livewire:navigate', function () {
+        // loaderul și indicatorul nu trebuie să intre „aprinse” în copia paginii care se salvează acum
+        hideLoader();
+        if (hint) { hint.style.transition = 'none'; hint.style.opacity = '0'; }
+        navigating = true;
+        scheduleLoader();
+    });
+    document.addEventListener('livewire:navigated', function () { purgeStale(); hideLoader(); });
+    window.addEventListener('pageshow', function () { purgeStale(); hideLoader(); });
+    document.addEventListener('DOMContentLoaded', purgeStale);
     window.addEventListener('popstate', function () { /* popstate trece tot prin livewire:navigate; dacă nu, loaderul nu apare */ });
     window.dxaLoader = { show: function () { ensureLoader(); loader.classList.add('on'); }, hide: hideLoader };
 
@@ -58,6 +74,7 @@
         if (!debugOn) return;
         if (!dbgBox) {
             dbgBox = document.createElement('pre');
+            dbgBox.setAttribute('data-dxa-dbg', '');
             dbgBox.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99;margin:0;padding:6px 8px;max-width:92vw;font:11px/1.35 monospace;color:#9fffb0;background:rgba(0,0,0,.78);border-radius:8px;pointer-events:none;white-space:pre-wrap';
             document.documentElement.appendChild(dbgBox);
         }
@@ -114,6 +131,7 @@
         if (e.touches.length !== 1) { dbg('start: mai multe degete'); return; }
         if (t0.clientX > EDGE) { dbg('start x=' + Math.round(t0.clientX) + ': nu e pe margine (<=' + EDGE + ')'); return; }
         if (modalOpen()) { dbg('start x=' + Math.round(t0.clientX) + ': popup deschis'); return; }
+        if (navigating || backLock) { dbg('start x=' + Math.round(t0.clientX) + ': navigare în curs'); return; }
         if (!canGoBack()) { dbg('start x=' + Math.round(t0.clientX) + ': nu există pagină anterioară'); return; }
         var t = t0;
         dbg('start x=' + Math.round(t.clientX) + ': ok');
@@ -140,9 +158,11 @@
         var v = s.dx / Math.max(Date.now() - s.t, 1);
         dbg('sfârșit dx=' + Math.round(s.dx) + ' v=' + v.toFixed(2) + (s.dx >= COMMIT_DX || (s.dx > 50 && v >= COMMIT_V) ? ' → înapoi' : ' → renunț'));
         if (s.dx >= COMMIT_DX || (s.dx > 50 && v >= COMMIT_V)) {
+            if (navigating || backLock) { reset(); return; }   // un „înapoi” e deja în curs: nu cerem încă unul
+            backLock = true;
             paint(window.innerWidth, true);
             setTimeout(goBack, 120);
-            setTimeout(reset, 900);   // dacă navigarea nu a schimbat pagina, ecranul revine
+            setTimeout(function () { backLock = false; reset(); }, 900);   // dacă navigarea nu a schimbat pagina, ecranul revine
         } else {
             reset();
         }

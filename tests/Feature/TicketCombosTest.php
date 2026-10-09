@@ -258,7 +258,7 @@ it('după comandă, mesajul spune că toate biletele sunt la tine și că cele l
     Livewire::test(PartyShow::class, ['party' => $party])
         ->set('qty', 3)->call('buy')->assertRedirect(route('app.tickets'));
 
-    expect(session('status'))->toContain('Cele 3 bilete')->toContain('le poți trimite altcuiva');
+    expect(session('status'))->toContain('Ai cumpărat 3 bilete')->toContain('le poți trimite altcuiva');
 });
 
 it('biletul trimis altui cont iese din carusel și rămâne la cumpărător doar ca istoric („Trimise de mine”), fără QR', function () {

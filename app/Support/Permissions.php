@@ -94,6 +94,7 @@ final class Permissions
         'reopen_reception_reports' => ['Redeschidere rapoarte', 'Redeschide rapoarte de recepție finalizate.', 'reception_reports', ['askReopen', 'reopen']],
         'export_reception_reports' => ['Export PDF', 'Descarcă rapoartele de recepție în PDF.', 'reception_reports', ['exportPdf']],
         'credits_adjust' => ['Ajustare credite', 'Încărcare, ajustare și rambursare de credite.', 'participants', ['loadCredits', 'adjustCredits', 'refundCredits']],
+        'manage_notifications' => ['Notificări', 'Alege ce notificări push se trimit (Setări › Aplicație participanți) și vezi ultimele notificări trimise.', 'settings', ['toggleType', 'saveThreshold']],   // runda 70c
         'cancel_tickets' => ['Anulare bilete', 'Anulează bilete și returnează banii în credite.', 'tickets', ['cancel']],   // runda 67
         'loyalty_adjust' => ['Ajustare ștampile', 'Modifică manual ștampilele cardului de fidelitate.', 'participants', ['adjustLoyaltyStamps']],
         'anonymize' => ['Anonimizare', 'Șterge datele personale ale unui participant.', 'participants', ['anonymize']],

@@ -27,6 +27,14 @@ it('layout-ul aplicației include scriptul de mișcare (loader + swipe înapoi),
         ->and($html)->toContain('livewire:navigate')->toContain('dxa-loader')->toContain('navigator.standalone')->toContain('dxa-ring-arc');
 });
 
+it('runda 70g: scriptul curăță copiile vechi ale loaderului din body, blochează „înapoi” dublu și are plasa de 6 secunde', function () {
+    $html = $this->get('/')->assertOk()->getContent();
+
+    expect($html)->toContain('function purgeStale()')->toContain('.dxa-loader, .dxa-swipe-hint, [data-dxa-dbg]')
+        ->toContain('setTimeout(hideLoader, 6000)')->not->toContain('setTimeout(hideLoader, 15000)')
+        ->toContain('navigare în curs')->toContain('backLock');
+});
+
 it('și paginile pentru oaspeți (login, înregistrare) și cele din cont au loaderul', function () {
     $this->get('/intra')->assertOk()->assertSee('__dxaMotion', false);
     $this->get('/inregistrare')->assertOk()->assertSee('__dxaMotion', false);

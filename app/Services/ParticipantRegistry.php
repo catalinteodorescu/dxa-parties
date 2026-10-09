@@ -7,6 +7,8 @@ use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyEntry;
 use App\Models\PartyInterest;
+use App\Models\PushNotification;
+use App\Models\PushSubscription;
 use App\Models\ReceptionSession;
 use App\Models\Ticket;
 use App\Support\Phone;
@@ -116,6 +118,8 @@ class ParticipantRegistry
         PartyInterest::query()->where('participant_id', $participant->id)->delete();   // runda 40: petrecerile salvate
         Ticket::query()->where('holder_participant_id', $participant->id)->where('status', Ticket::VALID)->update(['holder_participant_id' => null]);   // runda 52
         CreditTopup::query()->where('participant_id', $participant->id)->where('status', CreditTopup::PENDING)->update(['status' => CreditTopup::CANCELLED]);   // runda 52
+        PushSubscription::query()->where('participant_id', $participant->id)->delete();   // runda 70: abonările push
+        PushNotification::query()->where('participant_id', $participant->id)->delete();
         TicketOrders::releaseFor($participant);   // runda 65: rezervările cu cardul neplătite se eliberează
 
         ActivityLogger::log($action, $message.' „'.$label.'”.');

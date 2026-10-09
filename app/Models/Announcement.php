@@ -33,6 +33,7 @@ class Announcement extends Model
         return [
             'in_carousel' => 'boolean',
             'in_list' => 'boolean',
+            'push_sent_at' => 'datetime',
             'is_active' => 'boolean',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',

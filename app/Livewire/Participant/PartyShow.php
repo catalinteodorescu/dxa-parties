@@ -200,7 +200,7 @@ class PartyShow extends Component
     {
         $total = $order->tickets->count();
 
-        return $total === 1 ? 'Biletul tău e gata! Îl găsești la Bilete.' : 'Cele '.$total.' bilete sunt gata! Le găsești la Bilete, iar pe cele libere le poți trimite altcuiva.';
+        return $total === 1 ? 'Ai cumpărat biletul. Îl găsești la Bilete.' : 'Ai cumpărat '.$total.' bilete. Le găsești la Bilete, iar pe cele libere le poți trimite altcuiva.';
     }
 
     public function render()

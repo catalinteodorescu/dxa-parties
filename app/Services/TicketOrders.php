@@ -8,6 +8,7 @@ use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\Ticket;
+use App\Services\Push\Events;
 use App\Support\PaymentMethods;
 use App\Support\Settings\Settings;
 use DomainException;
@@ -378,7 +379,7 @@ class TicketOrders
             throw new DomainException('Ai nevoie de un cont activ ca să cumperi bilete.');
         }
 
-        return DB::transaction(function () use ($buyer, $party, $ticketName, $count, $codeInput, $at, $combo, $withCredits, $withCard) {
+        $order = DB::transaction(function () use ($buyer, $party, $ticketName, $count, $codeInput, $at, $combo, $withCredits, $withCard) {
             // Blochează petrecerea (stocul) și codul (utilizările) înainte de a recalcula.
             $party = Party::query()->whereKey($party->id)->lockForUpdate()->firstOrFail();
             $code = $codeInput !== null && trim($codeInput) !== '' ? DiscountCodes::find($party, $codeInput) : null;
@@ -453,6 +454,24 @@ class TicketOrders
 
             return $order->load('tickets');
         });
+
+        // Runda 70: locurile s-au împuținat? Cei care au petrecerea la favorite află imediat (rezervările cu cardul ocupă loc abia la plată).
+        if ($order->payment_status !== Order::PAY_CARD_PENDING) {
+            self::pushAfterSale($party);
+            Events::safely(fn () => Events::ticketsBought($order));   // runda 70d: cumpărătorul află imediat
+        }
+
+        return $order;
+    }
+
+    /** Runda 70: o eroare de notificare nu trebuie să strice vânzarea. */
+    private static function pushAfterSale(Party $party): void
+    {
+        try {
+            Events::afterSale($party);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     // ---- Plata cu cardul (runda 65) -------------------------------------------
@@ -495,7 +514,7 @@ class TicketOrders
      */
     public static function completeCard(Order $order, ?string $providerRef = null): string
     {
-        return DB::transaction(function () use ($order, $providerRef) {
+        $status = DB::transaction(function () use ($order, $providerRef) {
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
             if (in_array($locked->payment_status, [Order::PAY_CARD, Order::PAY_CARD_CREDITED], true)) {
@@ -534,6 +553,13 @@ class TicketOrders
 
             return Order::PAY_CARD_CREDITED;
         });
+
+        if ($status === Order::PAY_CARD && ($party = Party::query()->find($order->party_id))) {
+            self::pushAfterSale($party);   // runda 70
+            Events::safely(fn () => Events::ticketsBought($order));   // runda 70d
+        }
+
+        return $status;
     }
 
     /** La ștergerea contului: rezervările cu cardul ale participantului se eliberează. */

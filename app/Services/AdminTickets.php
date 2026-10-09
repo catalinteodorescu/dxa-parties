@@ -6,6 +6,7 @@ use App\Models\CreditTransaction;
 use App\Models\Order;
 use App\Models\Participant;
 use App\Models\Ticket;
+use App\Services\Push\Events;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -136,7 +137,7 @@ class AdminTickets
             throw new DomainException('Spune de ce anulezi biletul (motiv obligatoriu).');
         }
 
-        return DB::transaction(function () use ($ticket, $reason, $refund, $adminId) {
+        $amount = DB::transaction(function () use ($ticket, $reason, $refund, $adminId) {
             $t = Ticket::query()->whereKey($ticket->id)->lockForUpdate()->firstOrFail();
             if (! self::canCancel($t)) {
                 throw new DomainException($t->status === Ticket::USED ? 'Biletul a fost deja folosit la intrare.' : 'Biletul nu mai e valabil, nu se poate anula.');
@@ -162,5 +163,14 @@ class AdminTickets
 
             return $amount;
         });
+
+        // Runda 70: deținătorul află imediat (push); o eroare de notificare nu strică anularea deja făcută.
+        try {
+            Events::ticketCancelled($ticket->fresh(), $amount);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $amount;
     }
 }

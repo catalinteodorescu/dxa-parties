@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Announcements;
 
 use App\Models\Announcement;
 use App\Services\ActivityLogger;
+use App\Services\Push\Events;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -61,6 +62,8 @@ class Index extends Component
 
         ActivityLogger::log('announcement.published', 'A publicat anunțul „'.$announcement->title.'".');
 
+        Events::announcementsNow();   // runda 70: anunțul publicat pleacă imediat (notificare push)
+
         session()->flash('status', 'Anunțul a fost publicat.');
     }
 
@@ -68,7 +71,7 @@ class Index extends Component
     {
         $original = Announcement::findOrFail($id);
 
-        $copy = $original->replicate(['created_by']);
+        $copy = $original->replicate(['created_by', 'push_sent_at']);
         $copy->title = Str::limit($original->title, 110, '').' (copie)';
         $copy->status = 'draft';
         $copy->created_by = Auth::guard('admin')->id();

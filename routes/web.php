@@ -3,6 +3,7 @@
 use App\Http\Controllers\BarReportPdfController;
 use App\Http\Controllers\ContentMetricsController;
 use App\Http\Controllers\PartyCalendarController;
+use App\Http\Controllers\PushController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Livewire\Admin\Account\Edit as AccountEdit; // DXA: adaugat (Bar - statistici agregate)
@@ -20,20 +21,21 @@ use App\Livewire\Admin\Legal\Index as LegalIndex;
 use App\Livewire\Admin\Login;
 use App\Livewire\Admin\Logs\Index as LogsIndex;
 use App\Livewire\Admin\Loyalty\Cards as LoyaltyCardsPage;
-use App\Livewire\Admin\MenuItems\Categories as MenuCategoriesPage;          // DXA: adaugat (Card de fidelitate - pagina Carduri)
-use App\Livewire\Admin\MenuItems\Form as MenuItemForm;
-use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
-use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;
-use App\Livewire\Admin\Participants\Index as ParticipantsIndex;          // DXA: adaugat (Meniu bar - produse)
-use App\Livewire\Admin\Participants\Show as ParticipantsShow;         // DXA: adaugat (Petreceri)
-use App\Livewire\Admin\Participants\Stats as ParticipantsStats;     // DXA: adaugat (Petreceri)
-use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;   // DXA: adaugat (Participanți - statistici)
-use App\Livewire\Admin\Parties\Form as PartyForm;       // DXA: adaugat (Petreceri - view single)
-use App\Livewire\Admin\Parties\Index as PartiesIndex;
-use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage;     // DXA: adaugat (Petreceri - statistici)
-use App\Livewire\Admin\Parties\Show as PartiesShow; // DXA: adaugat (Petreceri - statistici agregate)
-use App\Livewire\Admin\Parties\Stats as PartiesStats;
-use App\Livewire\Admin\Promoters\Index as PromotersIndex; // DXA: adaugat (Coduri de reducere - promotori)
+use App\Livewire\Admin\MenuItems\Categories as MenuCategoriesPage;
+use App\Livewire\Admin\MenuItems\Form as MenuItemForm;          // DXA: adaugat (Card de fidelitate - pagina Carduri)
+use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex;
+use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\Participants\Index as ParticipantsIndex;
+use App\Livewire\Admin\Participants\Show as ParticipantsShow;          // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\Participants\Stats as ParticipantsStats;         // DXA: adaugat (Petreceri)
+use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;     // DXA: adaugat (Petreceri)
+use App\Livewire\Admin\Parties\Form as PartyForm;   // DXA: adaugat (Participanți - statistici)
+use App\Livewire\Admin\Parties\Index as PartiesIndex;       // DXA: adaugat (Petreceri - view single)
+use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage;
+use App\Livewire\Admin\Parties\Show as PartiesShow;     // DXA: adaugat (Petreceri - statistici)
+use App\Livewire\Admin\Parties\Stats as PartiesStats; // DXA: adaugat (Petreceri - statistici agregate)
+use App\Livewire\Admin\Promoters\Index as PromotersIndex;
+use App\Livewire\Admin\Push\Index as PushIndex; // DXA: adaugat (Coduri de reducere - promotori)
 use App\Livewire\Admin\Reception\Form as ReceptionForm; // DXA: adaugat (Setari)
 use App\Livewire\Admin\Reception\Index as ReceptionIndex;
 use App\Livewire\Admin\Reception\Stats as ReceptionStatsPage;       // DXA: adaugat (Bar - raportari)
@@ -148,6 +150,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/menu/items/create', MenuItemForm::class)->middleware('admin.can:menu,edit')->name('menu-items.create');
             Route::get('/menu/items/{menuItem}/edit', MenuItemForm::class)->middleware('admin.can:menu,edit')->name('menu-items.edit');
 
+            Route::get('/notificari-push', PushIndex::class)->middleware('admin.can:settings,view,manage_notifications')->name('push.index'); // DXA: adaugat (runda 70)
             Route::get('/legal', LegalIndex::class)->middleware('admin.can:legal,view')->name('legal.index'); // DXA: adaugat (runda 68)
             Route::get('/logs', LogsIndex::class)->middleware('admin.can:logs,view')->name('logs.index');
 
@@ -295,6 +298,7 @@ Route::name('app.')->group(function () {
 
     Route::post('/m', [ContentMetricsController::class, 'store'])->middleware('throttle:120,1')->name('metrics'); // DXA: adaugat (runda 40)
     Route::post('/webhooks/stripe', StripeWebhookController::class)->name('webhooks.stripe'); // DXA: adaugat (runda 64)
+    Route::post('/notificari/necitite', [PushController::class, 'pending'])->middleware('throttle:60,1')->name('push.pending'); // DXA: adaugat (runda 70): apelat de service worker
     Route::get('/', ParticipantHome::class)->name('home');
     Route::get('/termeni', Terms::class)->name('terms'); // DXA: adaugat (runda 60)
     Route::get('/confidentialitate', Privacy::class)->name('privacy'); // DXA: adaugat (runda 68)
@@ -320,6 +324,10 @@ Route::name('app.')->group(function () {
 
     Route::middleware(['auth:participant', 'participant.active'])->group(function () {
         Route::get('/cont', ParticipantAccount::class)->name('account');
+        // DXA: adaugat (runda 70). Notificări push: abonare, dezabonare, test.
+        Route::post('/notificari/abonare', [PushController::class, 'subscribe'])->middleware('throttle:30,1')->name('push.subscribe');
+        Route::post('/notificari/dezabonare', [PushController::class, 'unsubscribe'])->middleware('throttle:30,1')->name('push.unsubscribe');
+        Route::post('/notificari/test', [PushController::class, 'test'])->middleware('throttle:6,1')->name('push.test');
         // DXA: adaugat (runda 52). Ștergerea contului (pagină de confirmare) și exportul datelor proprii.
         Route::get('/cont/sterge', ParticipantDeleteAccount::class)->name('account.delete');
         Route::get('/cont/date', function () {

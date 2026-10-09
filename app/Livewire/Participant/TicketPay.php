@@ -75,7 +75,7 @@ class TicketPay extends Component
     {
         if ($this->order->isPaidByCard()) {
             $n = $this->order->tickets()->count();
-            session()->flash('status', $n === 1 ? 'Plata a reușit. Biletul tău e gata! Îl găsești la Bilete.' : 'Plata a reușit. Cele '.$n.' bilete sunt gata! Le găsești la Bilete, iar pe cele libere le poți trimite altcuiva.');
+            session()->flash('status', $n === 1 ? 'Plata a reușit. Ai cumpărat biletul. Îl găsești la Bilete.' : 'Plata a reușit. Ai cumpărat '.$n.' bilete. Le găsești la Bilete, iar pe cele libere le poți trimite altcuiva.');
             $this->redirectRoute('app.tickets', navigate: true);
         }
     }

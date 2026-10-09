@@ -114,6 +114,8 @@
                 <div><div class="pa-label" style="margin: 0">Telefon</div><div style="font-weight: 800">{{ $me->phone }}</div></div>
             </div>
 
+            @include('livewire.participant._push-card')   {{-- DXA: runda 70 --}}
+
             {{-- Intrările mele: ultimele 5 --}}
             <div class="pa-glass pa-pad pa-stack">
                 <div class="pa-label" style="margin: 0">Intrările mele</div>

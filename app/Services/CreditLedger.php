@@ -6,6 +6,7 @@ use App\Models\CreditTransaction;
 use App\Models\Participant;
 use App\Models\Party;
 use App\Models\ReceptionSession;
+use App\Services\Push\Events;
 use App\Support\PaymentMethods;
 use DomainException;
 use Illuminate\Support\Carbon;
@@ -102,6 +103,9 @@ class CreditLedger
 
         $tx = self::write($participant, CreditTransaction::LOAD, $amount, $source, $adminId, $note, $referenceType, $referenceId, $at, $bonus);
 
+        // Runda 70d: participantul află imediat (după comiterea tranzacției din care face parte încărcarea).
+        DB::afterCommit(fn () => Events::safely(fn () => Events::creditLoaded($participant, $amount, $bonus, $source, $tx->id)));
+
         ActivityLogger::log('credits.loaded', sprintf(
             'A încărcat %s lei credite%s lui %s (sursă: %s)%s.',
             PaymentRows::money($amount),
@@ -136,7 +140,12 @@ class CreditLedger
             throw new DomainException('Soldul de credite ('.number_format(self::balance($participant), 2, ',', '.').' lei) nu ajunge pentru '.PaymentRows::money($amount).' lei.');
         }
 
-        return self::write($participant, CreditTransaction::PAYMENT, -$amount, $source, $adminId, $note, $referenceType, $referenceId, $at);
+        $tx = self::write($participant, CreditTransaction::PAYMENT, -$amount, $source, $adminId, $note, $referenceType, $referenceId, $at);
+
+        // Runda 70d: notificare „Plată cu credite” (Bar / Recepție), după comiterea tranzacției din care face parte plata.
+        DB::afterCommit(fn () => Events::safely(fn () => Events::creditPaid($participant, $amount, $referenceType, $tx->id)));
+
+        return $tx;
     }
 
     /**
@@ -272,6 +281,8 @@ class CreditLedger
 
             return $tx;
         });
+
+        DB::afterCommit(fn () => Events::safely(fn () => Events::creditLoaded($participant, (float) $tx->amount, $bonus, CreditTransaction::SOURCE_RECEPTION, $tx->id)));
 
         ActivityLogger::log('credits.sold', sprintf(
             'A vândut %s lei credite%s lui %s la „%s” (%s lei).',

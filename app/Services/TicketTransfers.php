@@ -6,6 +6,7 @@ use App\Contracts\SmsSender;
 use App\Models\Participant;
 use App\Models\Ticket;
 use App\Models\TicketTransfer;
+use App\Services\Push\Events;
 use App\Support\ParticipantAppSettings;
 use App\Support\Phone;
 use DomainException;
@@ -106,6 +107,7 @@ class TicketTransfers
         });
 
         RateLimiter::hit($key, 3600);
+        Events::safely(fn () => Events::ticketReceived($ticket, $from, $to, $transfer->id));   // runda 70d: destinatarul cu cont află imediat
 
         $hasAccount = $to->hasAccount();
         $sent = false;

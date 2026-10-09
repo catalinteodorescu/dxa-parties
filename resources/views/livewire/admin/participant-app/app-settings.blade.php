@@ -15,6 +15,12 @@
         @include('livewire.admin._pwa-identity')
 
         @foreach ($groups as $group)
+            {{-- Runda 70c: Notificări — ce se trimit, deasupra textelor SMS (doar cu bifa „Notificări” din permisiuni). --}}
+            @if ($group['title'] === 'Texte SMS')
+                @permitsAction('manage_notifications')
+                    @livewire(\App\Livewire\Admin\ParticipantApp\NotificationTypes::class, [], key('notification-types'))
+                @endpermitsAction
+            @endif
             <div class="{{ $card }} space-y-4" wire:key="group-{{ $loop->index }}">
                 <div>
                     <h3 class="text-sm font-semibold text-ink">{{ $group['title'] }}</h3>
