@@ -100,6 +100,44 @@ class Index extends Component
         session()->flash('status', 'Accesul a fost actualizat.');
     }
 
+    /**
+     * DXA: adaugat (runda 71). PIN-ul de 4 cifre cu care lucrătorul preia telefonul comun din Recepție / Bar.
+     * Îl setează cine poate modifica utilizatorii; un superadmin nu poate fi modificat de un non-superadmin.
+     */
+    public function setPin(int $adminId, string $pin): void
+    {
+        $current = Auth::guard('admin')->user();
+
+        $this->authorizeFor($current, Admin::find($adminId), 'edit');
+
+        if (! preg_match('/^[0-9]{4}$/', $pin)) {
+            session()->flash('error', 'PIN-ul trebuie să aibă exact 4 cifre.');
+
+            return;
+        }
+
+        $target = Admin::findOrFail($adminId);
+        $target->update(['pin' => $pin]);
+
+        ActivityLogger::log('admin.pin.set', 'A setat PIN-ul lui '.ActivityLogger::label($target).'.', $target);
+
+        session()->flash('status', 'PIN-ul a fost salvat.');
+    }
+
+    public function clearPin(int $adminId): void
+    {
+        $current = Auth::guard('admin')->user();
+
+        $this->authorizeFor($current, Admin::find($adminId), 'edit');
+
+        $target = Admin::findOrFail($adminId);
+        $target->update(['pin' => null]);
+
+        ActivityLogger::log('admin.pin.cleared', 'A șters PIN-ul lui '.ActivityLogger::label($target).'.', $target);
+
+        session()->flash('status', 'PIN-ul a fost șters.');
+    }
+
     public function deleteAdmin(int $adminId): void
     {
         $current = Auth::guard('admin')->user();

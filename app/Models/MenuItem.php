@@ -90,6 +90,21 @@ class MenuItem extends Model
     }
 
     /**
+     * DXA: adaugat (runda 72). Epuizat la petrecerea dată (marcat din aplicația de bar). Marcajul ține doar pentru acea petrecere:
+     * la următoarea petrecere produsul revine singur la vânzare.
+     */
+    public function isSoldOutFor(?int $partyId): bool
+    {
+        return $partyId !== null && (int) $this->sold_out_party_id === $partyId;
+    }
+
+    /** Id-urile produselor epuizate la petrecerea dată. */
+    public static function soldOutIds(?int $partyId): array
+    {
+        return $partyId === null ? [] : static::query()->where('sold_out_party_id', $partyId)->pluck('id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /**
      * Reteta acestui articol de meniu: ce stock_items consuma si in ce
      * cantitate la o unitate vanduta. Un articol "simplu" (ex. bere la
      * sticla, vanduta ca atare) tot are o reteta — o singura linie, qty 1.

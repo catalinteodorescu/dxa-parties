@@ -42,6 +42,14 @@
                 <span class="text-ink-soft">›</span>
             </a>
 
+            <a href="{{ route('bar.summary') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
+                <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg>
+                </span>
+                <span class="flex-1"><span class="block text-base font-semibold text-ink">Rezumat</span><span class="block text-xs text-ink-soft">Vânzări, plăți cu credite, stoc consumat</span></span>
+                <span class="text-ink-soft">›</span>
+            </a>
+
             <a href="{{ route('bar.report') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/></svg>

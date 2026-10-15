@@ -1,10 +1,13 @@
 <?php
 
+use App\Http\Middleware\ApplyAppWorker;
+use App\Http\Middleware\ApplyAuthZone;
 use App\Http\Middleware\EnsureAdminHasAccess;
 use App\Http\Middleware\EnsureAdminHasPermission;
 use App\Http\Middleware\EnsureAdminIsActive;
 use App\Http\Middleware\EnsureAdminPhoneIsSetUp;
 use App\Http\Middleware\TouchParticipantActivity;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -41,10 +44,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // DXA: runda 46 — permisiunea se verifică ÎNAINTE de model binding (fără permisiune → 403, nu 404 care ar trăda existența).
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureAdminHasPermission::class);
 
+        // DXA: runda 74 — zona de autentificare se alege ÎNAINTE de verificarea autentificării.
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, ApplyAuthZone::class);
+
         $middleware->alias([
+            'admin.zone' => ApplyAuthZone::class, // DXA: adaugat (runda 74 - login separat pe zonă)
             'admin.phone_setup' => EnsureAdminPhoneIsSetUp::class,
             'admin.active' => EnsureAdminIsActive::class,
             'admin.access' => EnsureAdminHasAccess::class, // DXA: adaugat (Utilizatori - acces pe aplicație)
+            'admin.worker' => ApplyAppWorker::class, // DXA: adaugat (runda 73 - lucrătorul activ pe aplicație)
             'admin.can' => EnsureAdminHasPermission::class, // DXA: adaugat (runda 46 - permisiuni)
             'participant.active' => TouchParticipantActivity::class, // DXA: adaugat (runda 52)
         ]);

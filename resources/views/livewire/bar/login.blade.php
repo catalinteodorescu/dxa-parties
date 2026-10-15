@@ -16,7 +16,6 @@
             @error('password') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
         </div>
 
-        <x-checkbox wire:model="remember" class="flex">Ține-mă conectat</x-checkbox>
 
         <button type="submit" wire:loading.attr="disabled"
                 class="w-full rounded-lg bg-primary hover:bg-primary-hover text-white text-base font-medium px-4 py-3 transition-colors disabled:opacity-60">

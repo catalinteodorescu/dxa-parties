@@ -5,14 +5,17 @@
     Aceeași bibliotecă și același mod de pornire ca în reception/_scanner.blade.php (local, HTTPS pentru cameră). Mesajele vin din ReceptionScan.
 --}}
 <div x-data="{
-        open: false, ready: false, camErr: '', busy: false, scanner: null, fb: null, prog: 0, held: false, fbTimer: null, choice: null, sel: [], count: 0, last: '', lastAt: 0,
+        open: false, ready: false, camErr: '', busy: false, scanner: null, fb: null, prog: 0, held: false, fbTimer: null, choice: null, sel: [], counter: { in: 0, free: 0 }, sound: true, last: '', lastAt: 0,
         lib: '{{ asset('vendor/html5-qrcode.min.js') }}',
         async load() {
             if (window.Html5Qrcode) return;
             await new Promise((res, rej) => { const s = document.createElement('script'); s.src = this.lib; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
         },
         async start() {
-            this.open = true; this.ready = false; this.camErr = ''; this.busy = false; this.fb = null; this.choice = null; this.sel = []; this.count = 0; this.last = '';
+            this.open = true; this.ready = false; this.camErr = ''; this.busy = false; this.fb = null; this.choice = null; this.sel = []; this.last = '';
+            this.sound = window.dxaSound ? window.dxaSound.enabled() : true;
+            if (window.dxaSound) window.dxaSound.prime();
+            $wire.counter().then((c) => { this.counter = c; });
             try {
                 await this.load();
                 await this.$nextTick();
@@ -37,6 +40,10 @@
             const participant = this.choice.participant;
             this.last = '';
             this.handle(await $wire.enterSelected(this.sel.map(Number), participant));
+        },
+        toggleSound() {
+            this.sound = ! this.sound;
+            if (window.dxaSound) window.dxaSound.set(this.sound);
         },
         cancelChoice() {
             this.choice = null; this.sel = []; this.last = ''; this.busy = false;
@@ -63,7 +70,8 @@
             this.choice = null; this.sel = [];
             const ok = r.status === 'entered';
             this.fb = { ok: ok, msg: r.message }; this.fbStart();
-            if (ok) { this.count++; if (navigator.vibrate) navigator.vibrate(60); }
+            if (r.counter) this.counter = r.counter;
+            if (window.dxaFeedback) window.dxaFeedback(ok ? 'ok' : (r.reason === 'used' ? 'used' : (r.reason === 'cancelled' ? 'cancelled' : 'error')));
             this.busy = false;
         },
         async stop() {
@@ -88,7 +96,13 @@
         <div class="flex items-center justify-between gap-3 px-4 py-3">
             <h3 class="text-base font-semibold" :class="fb ? 'text-white' : 'text-ink'">Scanează</h3>
             <div class="flex items-center gap-3">
-                <span x-show="count > 0" x-cloak style="display: none" class="text-sm font-medium" :class="fb ? 'text-white/90' : 'text-ink-soft'" x-text="count + (count === 1 ? ' intrare' : ' intrări')"></span>
+                <span x-show="counter.in > 0" x-cloak style="display: none" data-scan-counter class="text-sm font-medium" :class="fb ? 'text-white/90' : 'text-ink-soft'"
+                      x-text="counter.in + (counter.in === 1 ? ' intrat' : ' intrați') + (counter.free > 0 ? ' · ' + counter.free + ' gratuit' + (counter.free === 1 ? '' : 'e') : '')"></span>
+                <button type="button" x-on:click="toggleSound()" data-scan-sound :aria-label="sound ? 'Oprește sunetul' : 'Pornește sunetul'" class="inline-flex items-center justify-center rounded-full border-2 transition-colors" style="width: 40px; height: 40px"
+                        :class="fb ? 'border-white text-white hover:bg-white/20' : 'border-ink-soft text-ink hover:bg-bg'">
+                    <svg x-show="sound" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>
+                    <svg x-show="! sound" x-cloak style="display: none" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg>
+                </button>
                 <button type="button" x-on:click="stop()" aria-label="Închide" class="inline-flex items-center justify-center rounded-full border-2 transition-colors" style="width: 40px; height: 40px"
                         :class="fb ? 'border-white text-white hover:bg-white/20' : 'border-ink-soft text-ink hover:bg-bg'">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>

@@ -16,7 +16,9 @@
                 </a>
 
                 <div class="flex items-center gap-2 min-w-0">
-                    <span class="hidden sm:block truncate text-sm text-white/80">{{ auth('admin')->user()->name }}</span>
+                    <span class="truncate max-w-[6.5rem] sm:max-w-none text-sm text-white/80" data-active-worker>{{ auth('admin')->user()->name }}</span>
+                    {{-- DXA: adaugat (runda 71). Schimbare rapidă între lucrători (nume + PIN) --}}
+                    @livewire(\App\Livewire\Reception\SwitchWorker::class, ['prefix' => $pwa::ROUTE_PREFIX], key('switch-worker'))
                     <form action="{{ route('session.logout') }}" method="POST">
                         @csrf
                         <input type="hidden" name="to" value="{{ $pwa::ROUTE_PREFIX }}">
@@ -35,6 +37,7 @@
     </div>
 
     @include('layouts.partials-reception-loader')
+    @include('layouts.partials-reception-device')
 
     @livewireScripts
     <script>

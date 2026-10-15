@@ -26,18 +26,44 @@
                 <label class="block text-sm font-medium text-ink">Produse</label>
 
                 @if ($quickItems->isNotEmpty())
-                    <div class="flex flex-wrap items-center gap-1.5">
-                        <span class="text-xs text-ink-soft">Cele mai vândute:</span>
-                        @foreach ($quickItems as $q)
-                            <button type="button" wire:key="quick-{{ $q->id }}" wire:click="addItem({{ $q->id }})"
-                                    class="inline-flex items-center rounded-full border border-primary/30 bg-primary-soft text-primary text-sm font-medium px-3 py-1.5 hover:bg-primary/20">
-                                {{ $q->name }}
-                            </button>
-                        @endforeach
+                    {{-- DXA: runda 72. Butoane mari pentru cele mai vândute; numărul din bon apare pe buton, cele epuizate sunt gri --}}
+                    <div class="space-y-1.5" data-quick-items>
+                        <span class="block text-xs text-ink-soft">Cele mai vândute</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            @foreach ($quickItems as $q)
+                                @php $out = in_array($q->id, $soldOutIds, true); $inCart = (int) ($cart[$q->id] ?? 0); @endphp
+                                <button type="button" wire:key="quick-{{ $q->id }}" {!! $out ? 'disabled' : 'wire:click="addItem('.$q->id.')"' !!}
+                                        data-quick-item="{{ $q->id }}"
+                                        class="relative min-h-[3.5rem] rounded-xl border px-3 py-2 text-left text-sm font-semibold leading-tight transition-colors
+                                               {{ $out ? 'border-border bg-bg text-ink-soft/60' : 'border-primary/30 bg-primary-soft text-primary active:bg-primary/20' }}">
+                                    <span class="block {{ $out ? 'line-through' : '' }}">{{ $q->name }}</span>
+                                    <span class="block text-xs font-normal {{ $out ? '' : 'text-primary/70' }}">{{ $out ? 'epuizat' : number_format((float) $q->price, 2, ',', '.').' lei' }}</span>
+                                    @if ($inCart > 0)
+                                        <span class="absolute top-1.5 right-1.5 min-w-6 h-6 px-1.5 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center" data-quick-qty>{{ $inCart }}</span>
+                                    @endif
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
                 @endif
 
                 <x-select wire:model="pick" :live="true" :options="$productOptions" placeholder="Alege un produs…" :searchable="true" />
+
+                {{-- DXA: runda 72. Produse epuizate: marcate din bar, valabile doar la această petrecere --}}
+                <div x-data="{ soldOutOpen: false }" data-sold-out>
+                    <button type="button" @click="soldOutOpen = ! soldOutOpen" class="text-sm font-medium text-primary hover:underline">
+                        Produse epuizate @if (count($soldOutIds) > 0)<span>· {{ count($soldOutIds) }}</span>@endif
+                    </button>
+                    <div x-show="soldOutOpen" x-cloak style="display: none" class="mt-2 flex flex-wrap gap-1.5">
+                        @foreach ($allItems as $m)
+                            @php $out = in_array($m->id, $soldOutIds, true); @endphp
+                            <button type="button" wire:key="so-{{ $m->id }}" wire:click="toggleSoldOut({{ $m->id }})" data-sold-out-toggle="{{ $m->id }}"
+                                    class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors {{ $out ? 'border-danger bg-danger/10 text-danger' : 'border-border bg-surface text-ink-soft hover:text-ink' }}">
+                                {{ $m->name }}@if ($out) · epuizat @endif
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
 
                 @if ($cartItems->isNotEmpty())
                     <div class="rounded-xl border border-border divide-y divide-border">

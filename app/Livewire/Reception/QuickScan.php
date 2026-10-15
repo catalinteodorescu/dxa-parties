@@ -3,7 +3,9 @@
 namespace App\Livewire\Reception;
 
 use App\Livewire\Reception\Concerns\UsesReceptionParty;
+use App\Models\ReceptionSession;
 use App\Services\ReceptionScan;
+use App\Services\ReceptionSummary;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -15,6 +17,20 @@ use Livewire\Component;
 class QuickScan extends Component
 {
     use UsesReceptionParty;
+
+    /** DXA: adaugat (runda 72). Contorul live al serii: câte persoane au intrat în sesiunea deschisă și câte dintre ele gratuit. */
+    public function counter(): array
+    {
+        $party = $this->currentParty();
+        $session = $party ? ReceptionSession::currentFor($party->id) : null;
+        if (! $session) {
+            return ['in' => 0, 'free' => 0];
+        }
+
+        $summary = ReceptionSummary::for($session);
+
+        return ['in' => (int) $summary->entries_count, 'free' => (int) $summary->entries_free];
+    }
 
     /** @return array{status: string, message: string, url?: string, tickets?: array<int, array{id: int, label: string, due: float}>, participant?: string} */
     public function scan(string $code): array
@@ -49,7 +65,7 @@ class QuickScan extends Component
     /** Rezultatul serviciului, așa cum îl primește ecranul (JS): status, mesaj, eventual adresa formularului sau biletele de ales. */
     private function present(array $result): array
     {
-        $out = ['status' => $result['status'], 'message' => $result['message']];
+        $out = ['status' => $result['status'], 'message' => $result['message'], 'reason' => $result['reason'] ?? null, 'counter' => $this->counter()];
         if ($result['status'] === ReceptionScan::OPEN) {
             $out['url'] = route('receptie.entry', $result['query'] ?? []);
         }

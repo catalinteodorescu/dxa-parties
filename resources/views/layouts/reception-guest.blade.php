@@ -17,6 +17,7 @@
         </div>
     </div>
     @include('layouts.partials-reception-loader')
+    @include('layouts.partials-reception-device')
 
     @livewireScripts
 </body>

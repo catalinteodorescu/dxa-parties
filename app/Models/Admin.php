@@ -35,6 +35,7 @@ class Admin extends Authenticatable
         'name',
         'phone',
         'password',
+        'pin',
         'role',
         'is_active',
         'access_admin',
@@ -54,6 +55,7 @@ class Admin extends Authenticatable
 
     protected $hidden = [
         'password',
+        'pin',
         'remember_token',
     ];
 
@@ -61,6 +63,7 @@ class Admin extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'pin' => 'hashed', // DXA: adaugat (runda 71)
             'is_active' => 'boolean',
             'access_admin' => 'boolean',
             'access_bar' => 'boolean',

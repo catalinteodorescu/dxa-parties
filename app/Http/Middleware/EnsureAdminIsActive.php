@@ -22,12 +22,10 @@ class EnsureAdminIsActive
                 actor: null,
             );
 
-            Auth::guard('admin')->logout();
+            $login = ApplyAuthZone::loginRoute();
+            ApplyAuthZone::logout($request);
 
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            return redirect()->route('admin.login')->with('error', 'Contul tău a fost dezactivat.');
+            return redirect()->route($login)->with('error', 'Contul tău a fost dezactivat.');
         }
 
         return $next($request);

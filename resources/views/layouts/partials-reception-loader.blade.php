@@ -1,7 +1,7 @@
 {{--
     DXA: adaugat (PWA Recepție / Bar). Loader între ecrane: un pahar de martini care se leagănă ușor („noroc”), cu marginile
     colorate progresiv în culoarea temei aplicației. Apare (după ~150 ms, ca să nu clipească la navigări rapide) când Livewire
-    schimbă ecranul (wire:navigate) și dispare când noul ecran e gata. @persist îl păstrează între ecrane, deci nu se resetează.
+    schimbă ecranul (wire:navigate) și dispare când noul ecran e gata (plasă de siguranță, runda 71: dispare singur după 6 s și la întoarcerea din cache). @persist îl păstrează între ecrane, deci nu se resetează.
 --}}
 <style>
     .rc-glass { transform-origin: 50% 92%; animation: rc-cheers 1.3s ease-in-out infinite; }
@@ -14,9 +14,10 @@
     @media (prefers-reduced-motion: reduce) { .rc-glass, .rc-glass-trace { animation: none; stroke-dashoffset: 0; } }
 </style>
 @persist('reception-loader')
-    <div x-data="{ show: false, timer: null }"
-         x-init="document.addEventListener('livewire:navigate', () => { clearTimeout(timer); timer = setTimeout(() => show = true, 150); });
-                 document.addEventListener('livewire:navigated', () => { clearTimeout(timer); show = false; });"
+    <div x-data="{ show: false, timer: null, safety: null }"
+         x-init="document.addEventListener('livewire:navigate', () => { clearTimeout(timer); clearTimeout(safety); timer = setTimeout(() => show = true, 150); safety = setTimeout(() => show = false, 6000); });
+                 document.addEventListener('livewire:navigated', () => { clearTimeout(timer); clearTimeout(safety); show = false; });
+                 window.addEventListener('pageshow', () => { clearTimeout(timer); clearTimeout(safety); show = false; });"
          x-show="show" x-cloak x-transition.opacity.duration.150ms
          class="fixed inset-0 z-50 flex items-center justify-center bg-bg/85 backdrop-blur-sm" aria-hidden="true">
         <svg class="rc-glass w-16 h-16" viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">

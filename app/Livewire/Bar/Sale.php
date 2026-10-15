@@ -88,13 +88,44 @@ class Sale extends Component
     {
         $this->error = null;
 
-        if (! MenuItem::query()->active()->whereKey($id)->exists()) {
+        $item = MenuItem::query()->active()->find($id);
+        if (! $item) {
             $this->error = 'Produsul nu mai e disponibil.';
+
+            return;
+        }
+        if ($item->isSoldOutFor($this->partyId)) {
+            $this->error = $item->name.' e epuizat.';
 
             return;
         }
 
         $this->cart[$id] = min(self::MAX_QTY, (int) ($this->cart[$id] ?? 0) + 1);
+    }
+
+    /**
+     * DXA: adaugat (runda 72). Marchează / demarchează un produs ca epuizat la petrecerea curentă. Un produs epuizat iese din bon
+     * și nu se mai poate adăuga; marcajul nu se aplică la alte petreceri.
+     */
+    public function toggleSoldOut(int $id): void
+    {
+        $this->error = null;
+        $party = $this->currentParty();
+        $item = MenuItem::query()->active()->find($id);
+        if (! $party || ! $item) {
+            return;
+        }
+
+        if ($item->isSoldOutFor($party->id)) {
+            $item->forceFill(['sold_out_party_id' => null, 'sold_out_at' => null])->save();
+            ActivityLogger::log('menu.available', 'A marcat „'.$item->name.'” din nou disponibil la „'.$party->name.'” (aplicația de bar).');
+
+            return;
+        }
+
+        $item->forceFill(['sold_out_party_id' => $party->id, 'sold_out_at' => now()])->save();
+        unset($this->cart[$id]);
+        ActivityLogger::log('menu.sold_out', 'A marcat „'.$item->name.'” ca epuizat la „'.$party->name.'” (aplicația de bar).');
     }
 
     public function stepQty(int $id, int $delta): void
@@ -283,6 +314,11 @@ class Sale extends Component
                 throw new DomainException('Adaugă cel puțin un produs.');
             }
 
+            $soldOut = MenuItem::query()->whereIn('id', array_keys($this->cart))->where('sold_out_party_id', $party->id)->orderBy('name')->pluck('name');
+            if ($soldOut->isNotEmpty()) {
+                throw new DomainException(($soldOut->count() === 1 ? $soldOut->first().' e epuizat' : $soldOut->implode(', ').' sunt epuizate').'. Scoate-l din bon.');
+            }
+
             $adminId = Auth::guard('admin')->id();
             $lines = [];
             foreach ($this->cart as $id => $qty) {
@@ -345,7 +381,9 @@ class Sale extends Component
         $total = $this->totalCents();
         $paid = $this->paidCents();
 
-        $active = MenuItem::query()->active()->orderBy('name')->get(['id', 'name', 'price']);
+        $active = MenuItem::query()->active()->orderBy('name')->get(['id', 'name', 'price', 'sold_out_party_id']);
+        $soldOutIds = MenuItem::soldOutIds($party?->id);
+        $available = $active->reject(fn ($m) => in_array($m->id, $soldOutIds, true));
         $money = fn ($n) => number_format((float) $n, 2, ',', '.');
 
         $topIds = MenuItem::topSellingIds(8);
@@ -355,8 +393,10 @@ class Sale extends Component
         return view('livewire.bar.sale', [
             ...$this->participantPickerData($party),
             'party' => $party,
-            'productOptions' => $active->mapWithKeys(fn ($m) => [$m->id => $m->name.' · '.$money($m->price).' lei'])->all(),
+            'productOptions' => $available->mapWithKeys(fn ($m) => [$m->id => $m->name.' · '.$money($m->price).' lei'])->all(),
             'quickItems' => $quickItems,
+            'allItems' => $active,
+            'soldOutIds' => $soldOutIds,
             'cartItems' => $items,
             'methods' => $methods,
             'topMethods' => $this->topMethods($methods),

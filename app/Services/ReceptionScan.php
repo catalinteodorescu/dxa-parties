@@ -26,6 +26,15 @@ class ReceptionScan
 
     public const ERROR = 'error';
 
+    /** DXA: runda 72. Motivul unei erori de scanare (pentru sunet și vibrație diferite). */
+    public const REASON_USED = 'used';
+
+    public const REASON_CANCELLED = 'cancelled';
+
+    public const REASON_PENDING = 'pending';
+
+    public const REASON_OTHER = 'other';
+
     /**
      * @return array{status: string, message: string, tickets?: array<int, array{id: int, label: string, due: float}>, query?: array<string, string>}
      */
@@ -42,11 +51,17 @@ class ReceptionScan
                 return self::error('Biletul e pentru altă petrecere.');
             }
             if ($ticket->status !== Ticket::VALID) {
-                return self::error(match ($ticket->status) {
-                    Ticket::USED => 'Biletul a fost deja folosit'.($ticket->used_at ? ' (la '.$ticket->used_at->format('H:i').')' : '').'.',
-                    Ticket::PENDING => 'Biletul nu e plătit încă (așteaptă plata cu cardul).',
-                    default => 'Biletul a fost anulat.',
-                });
+                // DXA: runda 72. Motivul (used / pending / cancelled) alege sunetul și vibrația din scanner; „deja folosit” spune cine și când.
+                return match ($ticket->status) {
+                    Ticket::USED => self::error(
+                        'Biletul a fost deja folosit'
+                        .' de '.($ticket->loadMissing('holder')->holder?->name ?: 'o persoană fără nume')
+                        .($ticket->used_at ? ', la '.$ticket->used_at->format('H:i') : '').'.',
+                        self::REASON_USED,
+                    ),
+                    Ticket::PENDING => self::error('Biletul nu e plătit încă (așteaptă plata cu cardul).', self::REASON_PENDING),
+                    default => self::error('Biletul a fost anulat.', self::REASON_CANCELLED),
+                };
             }
 
             return self::enter($party, collect([$ticket]), $adminId);
@@ -159,8 +174,8 @@ class ReceptionScan
         ];
     }
 
-    private static function error(string $message): array
+    private static function error(string $message, string $reason = self::REASON_OTHER): array
     {
-        return ['status' => self::ERROR, 'message' => $message];
+        return ['status' => self::ERROR, 'message' => $message, 'reason' => $reason];
     }
 }

@@ -19,7 +19,7 @@ class Login extends Component
 
     public string $password = '';
 
-    public bool $remember = true;
+    // DXA: runda 74 — conectat 30 de zile sau până la deconectare (fără bifă).
 
     public function login(): void
     {
@@ -28,7 +28,7 @@ class Login extends Component
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::guard('admin')->attempt($credentials, $this->remember)) {
+        if (! Auth::guard('admin')->attempt($credentials, true)) {
             ActivityLogger::log(
                 'admin.login.failed',
                 'Încercare de autentificare eșuată în aplicația de recepție pentru '.$this->phone.'.',
@@ -64,7 +64,7 @@ class Login extends Component
             return;
         }
 
-        request()->session()->regenerate();
+        session()->regenerate();
 
         ActivityLogger::log('admin.login.success', 'S-a autentificat în aplicația de recepție.', actor: $admin);
 

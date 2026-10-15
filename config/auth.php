@@ -34,8 +34,9 @@ return [
             'provider' => 'users',
         ],
 
+        // DXA: runda 74 — driver `zone`: login separat pe zonă (admin / receptie / bar), vezi App\Auth\ZoneGuard.
         'admin' => [
-            'driver' => 'session',
+            'driver' => 'zone',
             'provider' => 'admins',
         ],
 

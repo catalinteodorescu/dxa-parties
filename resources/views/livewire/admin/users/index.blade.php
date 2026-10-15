@@ -6,6 +6,29 @@
         confirmMessage: '',
         confirmMethod: '',
         confirmArgs: [],
+        pinOpen: false,
+        pinId: 0,
+        pinName: '',
+        pinHas: false,
+        pinValue: '',
+        askPin(id, name, has) {
+            this.pinId = id;
+            this.pinName = name;
+            this.pinHas = has;
+            this.pinValue = '';
+            this.pinOpen = true;
+            this.openDropdown = null;
+            this.$nextTick(() => this.$refs.pinInput && this.$refs.pinInput.focus());
+        },
+        savePin() {
+            if (!/^[0-9]{4}$/.test(this.pinValue)) { return; }
+            this.$wire.setPin(this.pinId, this.pinValue);
+            this.pinOpen = false;
+        },
+        clearPin() {
+            this.$wire.clearPin(this.pinId);
+            this.pinOpen = false;
+        },
         toggleDropdown(key) {
             this.openDropdown = this.openDropdown === key ? null : key;
         },
@@ -168,6 +191,19 @@
                                         </button>
                                     @endforeach
                                 @endif
+                                {{-- DXA: adaugat (runda 71). PIN pentru schimbarea rapidă între lucrători în Recepție / Bar --}}
+                                @if ($canEdit && $mayTouch && ($admin->isSuperAdmin() || $admin->access_bar || $admin->access_reception))
+                                    <button type="button" wire:key="pin-{{ $admin->id }}" data-user-pin
+                                            @click.stop="askPin({{ $admin->id }}, '{{ addslashes($admin->name ?: $admin->phone) }}', {{ $admin->pin ? 'true' : 'false' }})"
+                                            title="PIN pentru schimbarea lucrătorului în Recepție / Bar"
+                                            class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 transition-colors
+                                                   {{ $admin->pin ? 'bg-primary-soft text-primary' : 'bg-surface border border-border text-ink-soft/70 hover:text-ink' }}">
+                                        @if ($admin->pin)
+                                            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                        @endif
+                                        PIN
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     @endif
@@ -282,6 +318,33 @@
                         class="rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-medium px-4 py-2 transition-colors">
                     Confirmă
                 </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- DXA: adaugat (runda 71). Setarea PIN-ului (4 cifre) --}}
+    <div x-show="pinOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="pinOpen = false">
+        <div class="absolute inset-0 bg-ink/40" @click="pinOpen = false"></div>
+        <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
+            <h3 class="text-base font-semibold text-ink">PIN lucrător</h3>
+            <p class="mt-2 text-sm text-ink-soft">
+                Cu acest PIN, <span class="font-medium text-ink" x-text="pinName"></span> preia telefonul comun din Recepție sau Bar.
+                Fără PIN, contul nu apare în lista de schimbare.
+            </p>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" x-ref="pinInput" x-model="pinValue"
+                   @keydown.enter.prevent="savePin()" placeholder="4 cifre"
+                   class="mt-4 w-full rounded-lg border border-border bg-bg px-3 py-2 text-center text-lg tracking-[0.5em] text-ink"
+                   style="font-size: 16px">
+            <div class="mt-6 flex items-center justify-between gap-3">
+                <button type="button" x-show="pinHas" @click="clearPin()" class="text-sm font-medium text-danger hover:underline px-1 py-2">Șterge PIN-ul</button>
+                <span x-show="!pinHas"></span>
+                <div class="flex items-center gap-3">
+                    <button type="button" @click="pinOpen = false" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Anulează</button>
+                    <button type="button" @click="savePin()" :disabled="!/^[0-9]{4}$/.test(pinValue)"
+                            class="rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-medium px-4 py-2 transition-colors disabled:opacity-50">
+                        Salvează
+                    </button>
+                </div>
             </div>
         </div>
     </div>

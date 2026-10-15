@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Auth\ZoneGuard;
 use App\Contracts\SmsSender;
+use App\Http\Middleware\ApplyAppWorker;
+use App\Http\Middleware\ApplyAuthZone;
 use App\Services\CreditLedger;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\PlaceholderGateway;
@@ -15,9 +18,11 @@ use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
 use App\Support\PermissionGuard;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -39,6 +44,26 @@ class AppServiceProvider extends ServiceProvider
         if (str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
+
+        // DXA: adaugat (runda 73): lucrătorul activ din Recepție / Bar se aplică și acțiunilor Livewire (nu doar paginilor).
+        Livewire::addPersistentMiddleware([ApplyAuthZone::class, ApplyAppWorker::class]);
+
+        // DXA: adaugat (runda 74): ghidul `zone` — același SessionGuard, dar cu cheie de sesiune și cookie „ține-mă conectat” pe zonă.
+        Auth::extend('zone', function ($app, $name, $config) {
+            $guard = new ZoneGuard(
+                $name,
+                Auth::createUserProvider($config['provider'] ?? null),
+                $app['session.store'],
+                rehashOnLogin: $app['config']->get('hashing.rehash_on_login', true),
+                timeboxDuration: $app['config']->get('auth.timebox_duration', 200000),
+                hashKey: $app['config']->get('app.key'),
+            );
+            $guard->setCookieJar($app['cookie']);
+            $guard->setDispatcher($app['events']);
+            $guard->setRequest($app->refresh('request', $guard, 'setRequest'));
+
+            return $guard;
+        });
 
         // DXA: adaugat (runda 46 — permisiuni): paza acțiunilor Livewire din panou.
         PermissionGuard::register();
