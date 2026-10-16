@@ -29,7 +29,7 @@ class PwaController extends Controller
 
     public function receptionServiceWorker(): Response
     {
-        return $this->serviceWorker('dxa-receptie-static-v1', 'Recepție');
+        return $this->serviceWorker('dxa-receptie-static-v1', 'Recepție', ReceptionApp::class);
     }
 
     public function barManifest(): JsonResponse
@@ -44,7 +44,7 @@ class PwaController extends Controller
 
     public function barServiceWorker(): Response
     {
-        return $this->serviceWorker('dxa-bar-static-v1', 'Bar');
+        return $this->serviceWorker('dxa-bar-static-v1', 'Bar', BarApp::class);
     }
 
     /** DXA: adaugat (Aplicația participanților). PWA în rădăcina domeniului (scope „/”), cu propriul manifest și service worker. */
@@ -103,9 +103,14 @@ class PwaController extends Controller
         ]);
     }
 
-    private function serviceWorker(string $cache, string $label): Response
+    /** @param  class-string<PwaApp>  $app  aplicația (iconița și pagina de start ale notificărilor) */
+    private function serviceWorker(string $cache, string $label, string $app): Response
     {
-        return response(view('reception.sw', ['cache' => $cache, 'label' => $label])->render(), 200, [
+        return response(view('reception.sw', [
+            'cache' => $cache, 'label' => $label,
+            'icon' => route($app::ROUTE_PREFIX.'.icon', 192, false),
+            'home' => rtrim($app::URL_PREFIX, '/'),
+        ])->render(), 200, [
             'Content-Type' => 'application/javascript; charset=utf-8',
             'Cache-Control' => 'no-cache',
         ]);

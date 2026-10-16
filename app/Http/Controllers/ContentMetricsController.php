@@ -8,13 +8,13 @@ use Illuminate\Http\Response;
 
 /**
  * DXA: adaugat (runda 40). Primește în grup evenimentele din aplicație (afișări, click-uri): {"e": [["p", 12, "i"], ["a", 5, "a"], ...]}
- * (p = petrecere, a = anunț; i = afișare, o = deschidere, a = click pe acțiune). Răspunde mereu 204, fără detalii.
+ * (p = petrecere, a = anunț, x = aplicația însăși: v = vizită, s = deschisă din aplicația instalată, n = instalare; i = afișare, o = deschidere, a = click pe acțiune). Răspunde mereu 204, fără detalii.
  */
 class ContentMetricsController extends Controller
 {
-    private const TYPES = ['p' => 'party', 'a' => 'announcement'];
+    private const TYPES = ['p' => 'party', 'a' => 'announcement', 'x' => 'app'];
 
-    private const EVENTS = ['i' => 'impression', 'o' => 'open', 'a' => 'action'];
+    private const EVENTS = ['i' => 'impression', 'o' => 'open', 'a' => 'action', 'v' => 'visit', 's' => 'standalone', 'n' => 'install'];
 
     public function store(Request $request): Response
     {

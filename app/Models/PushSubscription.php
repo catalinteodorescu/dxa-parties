@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** DXA: adaugat (runda 70). Un telefon/browser abonat la notificări push. Endpoint-ul e dat de browser și e secret (nu se afișează). */
 class PushSubscription extends Model
 {
-    protected $fillable = ['participant_id', 'endpoint', 'endpoint_hash', 'p256dh', 'auth', 'user_agent', 'last_used_at'];
+    protected $fillable = ['participant_id', 'admin_id', 'app', 'endpoint', 'endpoint_hash', 'p256dh', 'auth', 'user_agent', 'last_used_at'];
 
     protected function casts(): array
     {
@@ -24,6 +24,11 @@ class PushSubscription extends Model
     public function participant(): BelongsTo
     {
         return $this->belongsTo(Participant::class);
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class);
     }
 
     public function deliveries(): HasMany

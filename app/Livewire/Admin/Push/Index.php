@@ -38,14 +38,14 @@ class Index extends Component
         return view('livewire.admin.push.index', [
             'enabled' => Notifier::enabled(),
             'lastRun' => Settings::get('push_last_run'),
-            'subscribers' => PushSubscription::query()->distinct()->count('participant_id'),
-            'devices' => PushSubscription::query()->count(),
+            'subscribers' => PushSubscription::query()->whereNotNull('participant_id')->distinct()->count('participant_id'),
+            'devices' => PushSubscription::query()->whereNotNull('participant_id')->count(),   // runda 77: fără abonările personalului
             'totalParticipants' => Participant::query()->whereNull('anonymized_at')->whereNotNull('password')->count(),
-            'sent7' => PushNotification::query()->where('created_at', '>=', $since)->count(),
-            'delivered7' => PushDelivery::query()->whereNotNull('delivered_at')->where('sent_at', '>=', $since)->count(),
-            'byKind' => PushNotification::query()->where('created_at', '>=', $since)->selectRaw('kind, count(*) as n')->groupBy('kind')->pluck('n', 'kind')->all(),
+            'sent7' => PushNotification::query()->whereNull('admin_id')->where('created_at', '>=', $since)->count(),
+            'delivered7' => PushDelivery::query()->whereNotNull('delivered_at')->where('sent_at', '>=', $since)->whereHas('notification', fn ($q) => $q->whereNull('admin_id'))->count(),
+            'byKind' => PushNotification::query()->whereNull('admin_id')->where('created_at', '>=', $since)->selectRaw('kind, count(*) as n')->groupBy('kind')->pluck('n', 'kind')->all(),
             'kindOptions' => ['' => 'Toate tipurile'] + PushNotification::KIND_LABELS,
-            'items' => PushNotification::query()->with('participant')->withCount(['deliveries', 'deliveries as delivered_count' => fn ($q) => $q->whereNotNull('delivered_at')])
+            'items' => PushNotification::query()->whereNull('admin_id')->with('participant')->withCount(['deliveries', 'deliveries as delivered_count' => fn ($q) => $q->whereNotNull('delivered_at')])
                 ->when($this->kind !== '', fn ($q) => $q->where('kind', $this->kind))->orderByDesc('id')->paginate(25),
         ]);
     }

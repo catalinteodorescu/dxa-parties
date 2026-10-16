@@ -153,6 +153,8 @@ class Events
     /** Apelat imediat după o vânzare: dacă pragul de locuri sau cel de cumpărători a fost atins, trimite fără să aștepte cron-ul. */
     public static function afterSale(Party $party): void
     {
+        StaffEvents::partySeats($party);   // DXA: runda 77 — personalul află oricând (fără ore liniștite)
+
         if (! Notifier::enabled() || Notifier::isQuietHour()) {
             return;   // în orele liniștite preia cron-ul de dimineață
         }

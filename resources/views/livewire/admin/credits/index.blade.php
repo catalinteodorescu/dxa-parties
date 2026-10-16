@@ -22,7 +22,8 @@
             @else
                 <span class="text-warning font-medium">Oprite în Setări</span> (istoricul rămâne vizibil) ·
             @endif
-            <a href="{{ route('admin.settings.index') }}" wire:navigate class="text-primary hover:underline">Setări › Metode de plată</a>
+            <a href="{{ route('admin.settings.index') }}" wire:navigate class="text-primary hover:underline">Setări › Metode de plată</a> ·
+            <a href="{{ route('admin.credits.topups') }}" wire:navigate class="text-primary hover:underline">Încărcări cu cardul</a>
         </p>
     </div>
 

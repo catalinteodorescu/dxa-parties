@@ -49,7 +49,8 @@ it('o secțiune nouă din cod apare la final, activă; una scoasă din cod dispa
     ]));
     $all = collect(DashboardSections::all());
 
-    expect($all->pluck('key')->take(2)->all())->toBe(['participants', 'bar'])
+    // runda 75: „Atenție” e fixată sus când apare prima dată; restul noilor secțiuni, la final
+    expect($all->pluck('key')->take(3)->all())->toBe(['alerts', 'participants', 'bar'])
         ->and($all->pluck('key')->all())->not->toContain('inexistenta')
         ->and($all->count())->toBe(count(DashboardSections::DEFINITIONS))
         ->and($all->firstWhere('key', 'participants')['enabled'])->toBeFalse()
@@ -72,7 +73,7 @@ it('panoul din Setări: activare/dezactivare și reordonare (drag & drop + săge
     $c->call('reorder', 'participants', 0);
     expect(dsbKeys()[0])->toBe('participants');
     $c->call('moveDown', 'participants');
-    expect(array_slice(dsbKeys(), 0, 2))->toBe(['announcements', 'participants']);
+    expect(array_slice(dsbKeys(), 0, 2))->toBe(['alerts', 'participants']);
     $c->call('moveUp', 'participants')->call('moveUp', 'participants');   // la început nu iese din listă
     expect(dsbKeys()[0])->toBe('participants');
     $c->call('reorder', 'admins', 999);

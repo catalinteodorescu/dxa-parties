@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Push\Events;
 use App\Services\Push\Notifier;
+use App\Services\Push\StaffEvents;
 use App\Support\Settings\Settings;
 use Illuminate\Console\Command;
 
@@ -23,6 +24,9 @@ class PushRun extends Command
         }
 
         $sent = Events::runScheduled();
+        foreach (StaffEvents::runScheduled() as $kind => $n) {   // DXA: runda 77 — notificări pentru personal
+            $sent['staff_'.$kind] = $n;
+        }
         Settings::set('push_last_run', now()->toDateTimeString());
         Notifier::prune();
         $this->line('Trimise: '.collect($sent)->map(fn ($n, $k) => $k.'='.$n)->implode(', '));

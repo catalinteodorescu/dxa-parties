@@ -65,6 +65,7 @@ class Login extends Component
         }
 
         session()->regenerate();
+        session(['staff_push_prompt.reception' => true]);   // DXA: runda 77 — popup „Activează notificările” la fiecare login, până se decide
 
         ActivityLogger::log('admin.login.success', 'S-a autentificat în aplicația de recepție.', actor: $admin);
 

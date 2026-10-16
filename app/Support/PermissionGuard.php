@@ -34,6 +34,7 @@ final class PermissionGuard
         'BarReports\\Index' => 'bar_reports',
         'BarReports\\Show' => 'bar_reports',
         'Credits\\Index' => 'credits',
+        'Credits\\Topups' => 'credits', // DXA: runda 76
         'Legal\\Index' => 'legal',   // runda 68
         'Legal\\PrivacyPanel' => 'legal',
         'Legal\\TermsPanel' => 'legal',
@@ -55,6 +56,7 @@ final class PermissionGuard
         'Parties\\Stats' => 'party_stats',
         'Promoters\\Index' => 'promoters',
         'ParticipantApp\\NotificationTypes' => 'settings',   // runda 70c
+        'Push\\StaffTypes' => 'settings',   // runda 77
         'Push\\Index' => 'settings',   // runda 70c: ultimele notificări + KPI
         'Tickets\\Index' => 'tickets',   // runda 66
         'Tickets\\Show' => 'tickets',

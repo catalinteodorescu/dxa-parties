@@ -35,6 +35,18 @@
             if (queue.length >= 20) flush(); else if (! timer) timer = setTimeout(flush, 4000);
         };
 
+        // DXA: runda 75 — aplicația însăși: o vizită pe sesiune, „deschisă din aplicația instalată” și instalarea (eveniment `appinstalled`, doar Android/Chrome).
+        const raw = (ev) => { queue.push(['x', 1, ev]); };
+        try {
+            if (! sessionStorage.getItem('pa_visit')) {
+                sessionStorage.setItem('pa_visit', '1');
+                raw('v');
+                if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) raw('s');
+                timer = timer || setTimeout(flush, 4000);
+            }
+        } catch (e) {}
+        window.addEventListener('appinstalled', () => { raw('n'); flush(); });
+
         document.addEventListener('alpine:init', () => {
             window.Alpine.directive('track', (el, { expression }, { evaluate }) => {
                 const ref = evaluate(expression);

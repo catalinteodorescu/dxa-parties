@@ -22,9 +22,10 @@ use Illuminate\Support\Facades\DB;
  */
 class ContentStats
 {
-    public const TYPES = ['party', 'announcement'];
+    // DXA: runda 75 — `app` (id 1): vizite în aplicație, deschideri din aplicația instalată, instalări.
+    public const TYPES = ['party', 'announcement', 'app'];
 
-    public const EVENTS = ['impression', 'open', 'action'];
+    public const EVENTS = ['impression', 'open', 'action', 'visit', 'standalone', 'install'];
 
     public const MAX_BATCH = 40;
 
@@ -74,7 +75,9 @@ class ContentStats
         $valid = [];
         foreach (self::TYPES as $type) {
             $ids = collect($clean)->where(0, $type)->pluck(1)->unique()->values()->all();
-            if ($ids !== []) {
+            if ($ids !== [] && $type === 'app') {
+                $valid[$type] = [1];
+            } elseif ($ids !== []) {
                 $model = $type === 'party' ? Party::class : Announcement::class;
                 $valid[$type] = $model::query()->whereIn('id', $ids)->where('status', 'published')->pluck('id')->map(fn ($v) => (int) $v)->all();
             }

@@ -27,11 +27,16 @@ class PushNotification extends Model
         'test' => 'Test',
     ];
 
-    protected $fillable = ['participant_id', 'kind', 'dedupe_key', 'title', 'body', 'url'];
+    protected $fillable = ['participant_id', 'admin_id', 'app', 'kind', 'dedupe_key', 'title', 'body', 'url'];
 
     public function participant(): BelongsTo
     {
         return $this->belongsTo(Participant::class);
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class);
     }
 
     public function deliveries(): HasMany

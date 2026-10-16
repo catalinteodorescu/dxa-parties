@@ -10,6 +10,7 @@ use App\Models\Party;
 use App\Models\SalePayment;
 use App\Models\SalesGroup;
 use App\Services\ActivityLogger;
+use App\Services\Push\StaffEvents;
 use App\Services\SaleRecorder;
 use App\Support\PaymentMethods;
 use DomainException;
@@ -126,6 +127,7 @@ class Sale extends Component
         $item->forceFill(['sold_out_party_id' => $party->id, 'sold_out_at' => now()])->save();
         unset($this->cart[$id]);
         ActivityLogger::log('menu.sold_out', 'A marcat „'.$item->name.'” ca epuizat la „'.$party->name.'” (aplicația de bar).');
+        StaffEvents::soldOut($item, $party, (string) (Auth::guard('admin')->user()?->name ?? 'barman'), Auth::guard('admin')->id());   // DXA: runda 77
     }
 
     public function stepQty(int $id, int $delta): void

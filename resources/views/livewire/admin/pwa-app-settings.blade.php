@@ -14,4 +14,11 @@
             <x-btn variant="primary" type="submit">Salvează</x-btn>
         </div>
     </form>
+
+    {{-- DXA: runda 77 — notificări push pentru personal (cine are acțiunea „Notificări aplicații Bar și Recepție”). --}}
+    @permitsAction('manage_staff_notifications')
+        <div class="mt-8">
+            @livewire(\App\Livewire\Admin\Push\StaffTypes::class, ['page' => $pwa === \App\Support\BarApp::class ? 'bar' : 'reception'], key('staff-types'))
+        </div>
+    @endpermitsAction
 </div>

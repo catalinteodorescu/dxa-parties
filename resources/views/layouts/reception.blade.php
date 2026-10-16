@@ -36,9 +36,12 @@
         </main>
     </div>
 
+    <x-staff-push-prompt :app="$pwa::ROUTE_PREFIX === 'bar' ? 'bar' : 'reception'" />
+
     @include('layouts.partials-reception-loader')
     @include('layouts.partials-reception-device')
 
+    @include('layouts.partials-push-init')
     @livewireScripts
     <script>
         if ('serviceWorker' in navigator) {

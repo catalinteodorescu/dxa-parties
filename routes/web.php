@@ -5,6 +5,7 @@ use App\Http\Controllers\ContentMetricsController;
 use App\Http\Controllers\PartyCalendarController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\PwaController;
+use App\Http\Controllers\StaffPushController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Middleware\ApplyAuthZone; // DXA: adaugat (Bar - statistici agregate)
 use App\Livewire\Admin\Account\Edit as AccountEdit;
@@ -15,6 +16,7 @@ use App\Livewire\Admin\BarApp\AppSettings as BarAppSettings;
 use App\Livewire\Admin\BarReports\Index as BarReportsIndex; // DXA: adaugat (PWA Bar - setări aplicație) // DXA: adaugat (Credite - pagina Credite)
 use App\Livewire\Admin\BarReports\Show as BarReportShow;
 use App\Livewire\Admin\Credits\Index as CreditsIndex;
+use App\Livewire\Admin\Credits\Topups as CreditsTopups;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\ForgotPassword;
 use App\Livewire\Admin\Invite\Complete as InviteComplete;
@@ -182,6 +184,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             // DXA: adaugat (Credite - pagina Credite, doar afișare, pe modelul paginii Carduri)
             Route::get('/credits', CreditsIndex::class)->middleware('admin.can:credits,view')->name('credits.index');
+            Route::get('/credits/topups', CreditsTopups::class)->middleware('admin.can:credits,view')->name('credits.topups'); // DXA: runda 76
             Route::get('/tickets', TicketsIndex::class)->middleware('admin.can:tickets,view')->name('tickets.index'); // DXA: adaugat (runda 66)
             Route::get('/tickets/{ticket}', TicketsShow::class)->middleware('admin.can:tickets,view')->name('tickets.show');
 
@@ -252,6 +255,10 @@ Route::prefix('receptie')->middleware('admin.zone:reception')->name('receptie.')
         Route::get('/tranzactii', ReceptieRecent::class)->name('recent');
         Route::get('/rezumat', ReceptieSummary::class)->name('summary'); // DXA: runda 72
         Route::get('/raportare', ReceptieReport::class)->name('report');
+        Route::post('/notificari/abonare', [StaffPushController::class, 'subscribe'])->defaults('app', 'reception')->middleware('throttle:30,1')->name('push.subscribe'); // DXA: runda 77
+        Route::post('/notificari/dezabonare', [StaffPushController::class, 'unsubscribe'])->defaults('app', 'reception')->name('push.unsubscribe');
+        Route::post('/notificari/test', [StaffPushController::class, 'test'])->defaults('app', 'reception')->middleware('throttle:10,1')->name('push.test');
+        Route::post('/notificari/popup', [StaffPushController::class, 'prompted'])->defaults('app', 'reception')->name('push.prompt');
     });
 });
 
@@ -271,6 +278,10 @@ Route::prefix('bar')->middleware('admin.zone:bar')->name('bar.')->group(function
         Route::get('/vanzari', BarRecent::class)->name('recent');
         Route::get('/rezumat', BarSummaryPage::class)->name('summary'); // DXA: runda 72
         Route::get('/raportare', BarReportPage::class)->name('report');
+        Route::post('/notificari/abonare', [StaffPushController::class, 'subscribe'])->defaults('app', 'bar')->middleware('throttle:30,1')->name('push.subscribe'); // DXA: runda 77
+        Route::post('/notificari/dezabonare', [StaffPushController::class, 'unsubscribe'])->defaults('app', 'bar')->name('push.unsubscribe');
+        Route::post('/notificari/test', [StaffPushController::class, 'test'])->defaults('app', 'bar')->middleware('throttle:10,1')->name('push.test');
+        Route::post('/notificari/popup', [StaffPushController::class, 'prompted'])->defaults('app', 'bar')->name('push.prompt');
     });
 });
 

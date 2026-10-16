@@ -15,10 +15,12 @@ use App\Models\SalesGroup;                 // DXA: adaugat (Bar - vanzari)
 use App\Models\StockItem;                   // DXA: adaugat (Bar - stocuri)
 use App\Models\StockReport;                 // DXA: adaugat (Bar - raportari)
 use App\Models\StockRequisition;            // DXA: adaugat (Bar - necesare)
-use App\Services\CreditLedger;                // DXA: adaugat (Credite - dashboard)
-use App\Services\CreditsOverview;
-use App\Services\DiscountCodeStats;                // DXA: adaugat (Coduri de reducere - dashboard)             // DXA: adaugat (Credite - dashboard)
-use App\Services\LoyaltyLedger;             // DXA: adaugat (Card de fidelitate)
+use App\Services\AppDashboard;                // DXA: adaugat (Credite - dashboard)
+use App\Services\CreditLedger;
+use App\Services\CreditsOverview;                // DXA: adaugat (Coduri de reducere - dashboard)             // DXA: adaugat (Credite - dashboard)
+use App\Services\DashboardAlerts;             // DXA: adaugat (Card de fidelitate)
+use App\Services\DiscountCodeStats;
+use App\Services\LoyaltyLedger;
 use App\Services\PartiesOverview;           // DXA: adaugat (Petreceri - dashboard, statistici agregate)
 use App\Services\TokenLedger;               // DXA: adaugat (Participanți - dashboard, tokeni)
 use App\Support\DashboardSections;           // DXA: adaugat (runda 45 — secțiuni dashboard din Setări)
@@ -39,6 +41,8 @@ class Dashboard extends Component
     public function render()
     {
         $now = now();
+        $admin = Auth::guard('admin')->user();
+        $activeSections = DashboardSections::active($admin);
 
         $publishedActive = fn () => Announcement::query()
             ->where('status', 'published')
@@ -225,8 +229,10 @@ class Dashboard extends Component
             'latest' => $latestList->first(),
             'adminsActive' => Admin::withAccess(Admin::APP_ADMIN)->where('is_active', true)->count(),
             'adminsTotal' => Admin::withAccess(Admin::APP_ADMIN)->count(),
+            'alerts' => in_array('alerts', $activeSections, true) ? DashboardAlerts::for($admin) : collect(), // DXA: runda 75
+            'appStats' => in_array('app', $activeSections, true) ? AppDashboard::stats() : null, // DXA: runda 75
             'currentAdmin' => Auth::guard('admin')->user(),
-            'dashboardSections' => DashboardSections::active(Auth::guard('admin')->user()), // DXA: runda 45 — ordinea/activarea din Setări
+            'dashboardSections' => $activeSections, // DXA: runda 45 — ordinea/activarea din Setări
 
             // DXA: adaugat (Petreceri)
             'partiesUpcomingList' => $partiesUpcomingList,

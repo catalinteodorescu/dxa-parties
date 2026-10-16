@@ -18,25 +18,32 @@ class DashboardSections
 {
     /** cheie => [etichetă, descriere scurtă, doar superadmin?] — în ordinea implicită. */
     public const DEFINITIONS = [
+        'alerts' => ['Atenție', 'Ce cere o acțiune acum: stoc sub minim, sesiuni uitate, diferențe de casă, plăți blocate', false], // runda 75
         'announcements' => ['Anunțuri', 'Anunțuri active, ultimele publicate', false],
         'parties' => ['Petreceri', 'Următoarea petrecere, statistici, următoarele petreceri', false],
         'bar' => ['Bar', 'Produse, stocuri, necesare, raportări, numărătoare', false],
         'reception' => ['Recepție', 'Sesiuni deschise, diferențe de casă', false],
         'discount_codes' => ['Coduri de reducere', 'Reduceri, coduri, promotori', false],
         'participants' => ['Participanți', 'Participanți, tokeni, credite, carduri', false],
+        'app' => ['Aplicație', 'Conturi și activitate, notificări push, vizite și instalări', false], // runda 75
         'admins' => ['Administratori', 'Conturi de admin și jurnal', true],
     ];
 
     /** DXA: runda 46 — secțiunea de dashboard => secțiunile de permisiuni de care depinde (o secțiune e vizibilă dacă vezi cel puțin una). */
     public const PERMISSIONS = [
+        'alerts' => ['stocks', 'reception_reports', 'stock_reports', 'tickets', 'credits'],
         'announcements' => ['announcements'],
         'parties' => ['parties', 'party_stats'],
         'bar' => ['sales', 'menu', 'stocks', 'requisitions', 'stock_reports', 'bar_reports', 'bar_stats'],
         'reception' => ['reception', 'reception_tokens', 'reception_reports', 'reception_stats'],
         'discount_codes' => ['promoters'],
         'participants' => ['participants', 'loyalty', 'credits', 'tickets'],
+        'app' => ['participants'],
         'admins' => ['users', 'logs'],
     ];
+
+    /** DXA: runda 75 — secțiunile care, când apar prima dată (fără ordine salvată), se pun SUS, nu la final. */
+    public const PINNED_TOP = ['alerts'];
 
     public const SETTING = 'dashboard_sections';
 
@@ -62,7 +69,8 @@ class DashboardSections
         }
         foreach (array_keys(self::DEFINITIONS) as $key) {
             if (! isset($seen[$key])) {
-                $out[] = self::row($key, true);   // secțiune nouă: activă implicit
+                // secțiune nouă: activă implicit (cele din PINNED_TOP, sus; restul, la final)
+                in_array($key, self::PINNED_TOP, true) ? array_unshift($out, self::row($key, true)) : $out[] = self::row($key, true);
             }
         }
 
