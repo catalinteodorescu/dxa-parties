@@ -131,7 +131,7 @@ class Installer
             $rows[] = ['label' => $label, 'ok' => $ok, 'hint' => $hint];
         };
 
-        $add('PHP '.PHP_VERSION, version_compare(PHP_VERSION, '8.3.0', '>='), 'Aplicația cere PHP 8.3 sau mai nou.');
+        $add('PHP '.PHP_VERSION, version_compare(PHP_VERSION, '8.4.1', '>='), 'Aplicația cere PHP 8.4 sau mai nou.');
         foreach (['pdo', 'mbstring', 'openssl', 'gd', 'curl', 'fileinfo', 'intl'] as $ext) {
             $add("Extensia {$ext}", extension_loaded($ext), "Activează extensia PHP {$ext}.");
         }

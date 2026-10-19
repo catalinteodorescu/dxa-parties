@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('qty_received', 12, 3)->default(0);
             $table->timestamps();
 
-            $table->unique(['stock_requisition_id', 'stock_item_id']);
+            $table->unique(['stock_requisition_id', 'stock_item_id'], 'stock_req_items_req_item_unique');   // MySQL: numele generat ar avea 65 de caractere (maximum 64)
         });
     }
 

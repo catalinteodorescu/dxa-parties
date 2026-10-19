@@ -388,3 +388,12 @@ Route::name('app.')->middleware('plan.app:app_participant')->group(function () {
         })->name('logout');
     });
 });
+
+// Fallback pentru fișierele încărcate (logo, imagini petreceri/meniu) pe hosting fără symlink: când `public/storage` lipsește,
+// serverul trimite cererea aici și fișierul se servește direct din discul `public`.
+Route::get('/storage/{path}', function (string $path) {
+    $disk = Storage::disk('public');
+    abort_unless(! str_contains($path, '..') && $disk->exists($path), 404);
+
+    return response()->file($disk->path($path), ['Cache-Control' => 'public, max-age=86400']);
+})->where('path', '.*')->name('storage.fallback');

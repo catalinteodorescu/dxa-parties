@@ -20,6 +20,22 @@ final class WebInstaller
     /** @param  \Closure():void  $boot  pornește aplicația Laravel (după ce .env e scris) */
     public function __construct(private readonly string $basePath, private readonly \Closure $boot) {}
 
+    /** Folderele de lucru ale aplicației; un pachet fără foldere goale (zip) ar face ca Laravel să nu pornească. */
+    public const WORK_DIRS = [
+        'storage/app/public', 'storage/framework/cache/data', 'storage/framework/sessions', 'storage/framework/views',
+        'storage/logs', 'bootstrap/cache',
+    ];
+
+    public function ensureDirectories(): void
+    {
+        foreach (self::WORK_DIRS as $dir) {
+            $path = $this->basePath.'/'.$dir;
+            if (! is_dir($path)) {
+                @mkdir($path, 0775, true);
+            }
+        }
+    }
+
     public function keyFile(): string
     {
         return $this->basePath.'/.install-key';
@@ -110,6 +126,7 @@ final class WebInstaller
     public function install(array $in): array
     {
         $get = fn (string $k, string $d = '') => trim((string) ($in[$k] ?? '')) !== '' ? trim((string) $in[$k]) : $d;
+        $this->ensureDirectories();
         $env = $this->basePath.'/.env';
 
         if (! is_file($env)) {
@@ -158,7 +175,12 @@ final class WebInstaller
     /** Actualizarea unei instalări existente (după ce ai încărcat codul nou): migrări + golirea cache-urilor. @return array{ok: bool, output: string} */
     public function update(): array
     {
+        $this->ensureDirectories();
         ($this->boot)();
+        $link = $this->basePath.'/public/storage';
+        if (! is_link($link) && ! is_dir($link)) {
+            @symlink($this->basePath.'/storage/app/public', $link);   // dacă hostingul îl blochează, merge ruta de rezervă /storage/{path}
+        }
         $out = new BufferedOutput;
         $code = Artisan::call('migrate', ['--force' => true], $out);
         $text = $out->fetch();
@@ -166,5 +188,23 @@ final class WebInstaller
         PlanGate::flush();
 
         return ['ok' => $code === 0, 'output' => $text."\nCache-urile au fost golite."];
+    }
+
+    /**
+     * Încarcă datele de demonstrație: activează DEMO_MODE în .env (instanță demo) și rulează `app:demo-seed`.
+     *
+     * @return array{ok: bool, output: string}
+     */
+    public function demo(): array
+    {
+        $this->ensureDirectories();
+        Installer::writeEnv($this->basePath.'/.env', ['DEMO_MODE' => 'true']);
+        ($this->boot)();
+        config(['app.demo' => true]);
+        $out = new BufferedOutput;
+        $code = Artisan::call('app:demo-seed', [], $out);
+        Artisan::call('optimize:clear');
+
+        return ['ok' => $code === 0, 'output' => $out->fetch()];
     }
 }

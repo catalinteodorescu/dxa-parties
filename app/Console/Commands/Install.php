@@ -97,7 +97,7 @@ class Install extends Command
         }
 
         $this->newLine();
-        $this->line('Rămâne pe server: cron-ul `* * * * * cd '.base_path().' && php artisan schedule:run >> /dev/null 2>&1`, SMS_DRIVER/SMSO_*, cheile Stripe ale clientului și `php artisan app:push-keys` (dacă clientul are notificări).');
+        $this->line('Rămâne pe server: cron-ul `*/15 * * * * '.PHP_BINARY.' '.base_path('artisan').' schedule:run >> /dev/null 2>&1` (verifică că executabilul e PHP 8.4), SMS_DRIVER/SMSO_*, cheile Stripe ale clientului și `php artisan app:push-keys` (dacă clientul are notificări).');
         $this->line('Verifică totul cu:  php artisan app:install --check');
 
         return self::SUCCESS;

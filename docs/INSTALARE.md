@@ -6,7 +6,7 @@ O instalare = o copie a codului + o bază de date + un subdomeniu pe serverul fu
 contul SMS (SMSO) este comun, iar consumul se urmărește din pagina **Proprietar**.
 
 ## Cerințe pe server
-PHP 8.3+ (extensiile `pdo_mysql`, `mbstring`, `openssl`, `gd`, `curl`, `fileinfo`, `intl`), MySQL/MariaDB, nginx sau Apache, cron, `rsync`.
+PHP 8.4+ (extensiile `pdo_mysql`, `mbstring`, `openssl`, `gd`, `curl`, `fileinfo`, `intl`), MySQL/MariaDB, nginx sau Apache, cron, `rsync`.
 
 ## Procedura (cap-coadă)
 1. **DNS** – o înregistrare pentru subdomeniul clientului (ex. `salsa.exemplu.ro`) către server.

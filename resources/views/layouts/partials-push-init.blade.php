@@ -34,7 +34,11 @@
                 });
             }
         } else {
-            reg = await navigator.serviceWorker.ready;
+            // Fără service worker activ `ready` nu se rezolvă niciodată: după 8 secunde arătăm un mesaj, nu rămânem în tăcere.
+            reg = await Promise.race([navigator.serviceWorker.ready, new Promise((resolve) => setTimeout(() => resolve(null), 8000))]);
+            if (! reg) {
+                return state('unsupported', 'Serviciul de notificări nu a pornit. Închide aplicația și deschide-o din nou.');
+            }
         }
         const current = async () => (Notification.permission === 'granted' ? await reg.pushManager.getSubscription() : null);
         const refresh = async () => {

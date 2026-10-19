@@ -234,3 +234,16 @@ it('r84: install.php și pagina de instalare au sintaxă validă', function () {
     expect(file_exists(public_path('install.php')))->toBeTrue()
         ->and(file_get_contents(public_path('install.php')))->toContain('.install-key')->toContain('X-Robots-Tag');
 });
+
+it('r84: instalatorul își creează singur folderele de lucru lipsă (pachet fără foldere goale)', function () {
+    $dir = r84Base();
+    $w = r84Web($dir);
+
+    foreach (WebInstaller::WORK_DIRS as $d) {
+        expect(is_dir($dir.'/'.$d))->toBeFalse();
+    }
+    $w->ensureDirectories();
+    foreach (WebInstaller::WORK_DIRS as $d) {
+        expect(is_dir($dir.'/'.$d))->toBeTrue();
+    }
+});

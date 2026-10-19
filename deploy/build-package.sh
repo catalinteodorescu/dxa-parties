@@ -15,6 +15,11 @@ zip -qr "$OUT" . \
      'storage/framework/views/*' 'storage/app/public/*' 'storage/installed.lock' '.install-key' 'database/*.sqlite' 'public/storage' 'public/hot' \
      '*.DS_Store' 'CLAUDE.md' 'AGENTS.md' '.phpunit.result.cache'
 zip -q "$OUT" .env.example
+# folderele de lucru (zip nu păstrează folderele goale excluse mai sus): instalatorul le recreează oricum, dar le păstrăm cu .gitignore
+for f in storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; do
+  mkdir -p "$f" && [ -f "$f/.gitignore" ] || printf '*\n!.gitignore\n' > "$f/.gitignore"
+  zip -q "$OUT" "$f/.gitignore"
+done
 
 echo "Gata: $OUT ($(du -h "$OUT" | cut -f1))"
 echo "Reinstalează dependențele de dezvoltare local cu: composer install"

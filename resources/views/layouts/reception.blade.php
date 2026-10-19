@@ -45,9 +45,9 @@
     @livewireScripts
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('{{ route($pwa::ROUTE_PREFIX.'.sw', [], false) }}', { scope: '{{ $pwa::URL_PREFIX }}' }).catch(() => {});
-            });
+            // După login pagina vine prin navigare Livewire (fără evenimentul `load`): dacă documentul e deja încărcat, înregistrăm imediat.
+            const registerSw = () => navigator.serviceWorker.register('{{ route($pwa::ROUTE_PREFIX.'.sw', [], false) }}', { scope: '{{ $pwa::URL_PREFIX }}' }).catch(() => {});
+            document.readyState === 'complete' ? registerSw() : window.addEventListener('load', registerSw);
         }
     </script>
 </body>

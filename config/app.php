@@ -21,6 +21,9 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // Instanță de demonstrație (inclusiv date legale fictive): permite încărcarea datelor demo (app:demo-seed).
+    'demo' => (bool) env('DEMO_MODE', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
