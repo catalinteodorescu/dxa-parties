@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
  */
 class Settings
 {
-    private const CACHE_KEY = 'dxa.settings.values';
+    private const CACHE_KEY = 'app.settings.values';
 
     public static function get(string $key)
     {

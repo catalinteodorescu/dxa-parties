@@ -1,4 +1,4 @@
-{{-- DXA: adaugat (runda 16). Card de bilet valabil, cu QR propriu (DXA:T:<uuid>). Variabilă: $t (Ticket cu party și holder);
+{{-- DXA: adaugat (runda 16). Card de bilet valabil, cu QR propriu (EVT:T:<uuid>). Variabilă: $t (Ticket cu party și holder);
      $public = true pe pagina din linkul SMS (fără „Trimis în contul…”, fără buton de trimitere). --}}
 @php
     $public ??= false;

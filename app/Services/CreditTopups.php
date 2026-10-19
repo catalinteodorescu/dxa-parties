@@ -42,7 +42,7 @@ class CreditTopups
 
         $bonus = CreditBonus::bonusFor($amount);
         $next = CreditBonus::nextTier($amount);
-        $fee = 0.0;   // comisionul Stripe îl suportă școala: participantul plătește exact suma încărcată
+        $fee = 0.0;   // comisionul Stripe îl suportă organizatorul: participantul plătește exact suma încărcată
 
         return (object) [
             'amount' => $amount,

@@ -23,25 +23,25 @@ it('layout-ul aplicației include scriptul de mișcare (loader + swipe înapoi),
     $html = $this->get('/')->assertOk()->getContent();
 
     expect(substr_count($html, 'data-navigate-once'))->toBeGreaterThanOrEqual(1)
-        ->and(substr_count($html, '__dxaMotion = true'))->toBe(1)
-        ->and($html)->toContain('livewire:navigate')->toContain('dxa-loader')->toContain('navigator.standalone')->toContain('dxa-ring-arc');
+        ->and(substr_count($html, '__appMotion = true'))->toBe(1)
+        ->and($html)->toContain('livewire:navigate')->toContain('app-loader')->toContain('navigator.standalone')->toContain('app-ring-arc');
 });
 
 it('runda 70g: scriptul curăță copiile vechi ale loaderului din body, blochează „înapoi” dublu și are plasa de 6 secunde', function () {
     $html = $this->get('/')->assertOk()->getContent();
 
-    expect($html)->toContain('function purgeStale()')->toContain('.dxa-loader, .dxa-swipe-hint, [data-dxa-dbg]')
+    expect($html)->toContain('function purgeStale()')->toContain('.app-loader, .app-swipe-hint, [data-app-dbg]')
         ->toContain('setTimeout(hideLoader, 6000)')->not->toContain('setTimeout(hideLoader, 15000)')
         ->toContain('navigare în curs')->toContain('backLock');
 });
 
 it('și paginile pentru oaspeți (login, înregistrare) și cele din cont au loaderul', function () {
-    $this->get('/intra')->assertOk()->assertSee('__dxaMotion', false);
-    $this->get('/inregistrare')->assertOk()->assertSee('__dxaMotion', false);
+    $this->get('/intra')->assertOk()->assertSee('__appMotion', false);
+    $this->get('/inregistrare')->assertOk()->assertSee('__appMotion', false);
 
     $this->actingAs(r61User(), 'participant');
-    $this->get('/cont')->assertOk()->assertSee('__dxaMotion', false);
-    $this->get('/bilete')->assertOk()->assertSee('__dxaMotion', false);
+    $this->get('/cont')->assertOk()->assertSee('__appMotion', false);
+    $this->get('/bilete')->assertOk()->assertSee('__appMotion', false);
 });
 
 it('swipe-ul înapoi e activ pe ecrane tactile, are mod de diagnostic (?dxdebug=1), iar loaderul respectă „reduce motion”', function () {

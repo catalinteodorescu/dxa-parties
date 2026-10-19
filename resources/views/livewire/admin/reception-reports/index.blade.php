@@ -177,7 +177,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $reports->onEachSide(1)->links('pagination.dxa') }}
+        {{ $reports->onEachSide(1)->links('pagination.custom') }}
     </div>
 
     {{-- Modal de confirmare (ștergere draft) --}}

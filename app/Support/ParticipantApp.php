@@ -17,7 +17,12 @@ class ParticipantApp extends PwaApp
 
     public const PARTY_SESSION_KEY = 'app.party_id';
 
-    public const DEFAULT_NAME = 'DXA Parties';
+    public const DEFAULT_NAME = 'Aplicația';
+
+    public static function defaultName(): string
+    {
+        return Branding::name();
+    }
 
     /** Prefixul numelor de rute: `app.home`, `app.login`, `app.manifest` ... */
     public const ROUTE_PREFIX = 'app';

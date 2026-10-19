@@ -14,7 +14,7 @@ class Order extends Model
 {
     public const PAY_AT_ENTRY = 'at_entry';
 
-    /** DXA: adaugat (runda 47b). Doar pentru teste (DXA_TICKETS_AUTO_PAID=true): comanda se consideră achitată, nimic de încasat la Recepție. */
+    /** DXA: adaugat (runda 47b). Doar pentru teste (TICKETS_AUTO_PAID=true): comanda se consideră achitată, nimic de încasat la Recepție. */
     public const PAY_PAID = 'paid';
 
     /** DXA: adaugat (runda 50). Comanda plătită integral din portofelul de credite (debit în ledger la plasare, referință = comanda). */

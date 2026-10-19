@@ -5,5 +5,5 @@
     de ordine. Pentru paleta implicita nu emite nimic (valorile din app.css).
 --}}
 @if (\App\Support\Theme::key() !== \App\Support\Theme::DEFAULT)
-    <style id="dxa-theme">:root{ {{ \App\Support\Theme::inlineStyle() }} }</style>
+    <style id="app-theme">:root{ {{ \App\Support\Theme::inlineStyle() }} }</style>
 @endif

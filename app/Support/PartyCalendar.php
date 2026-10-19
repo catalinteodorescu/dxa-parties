@@ -50,11 +50,11 @@ class PartyCalendar
     public static function ics(Party $party, string $pageUrl): string
     {
         $stamp = now()->utc()->format('Ymd\THis\Z');
-        $host = parse_url($pageUrl, PHP_URL_HOST) ?: 'dxa.local';
+        $host = parse_url($pageUrl, PHP_URL_HOST) ?: 'localhost';
         $location = trim(implode(', ', array_filter([$party->location_name, $party->location_address])));
         $description = 'Detalii și bilete: '.$pageUrl;
 
-        $lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//DXA Parties//RO', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+        $lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Parties//RO', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
 
         foreach (self::events($party) as $i => $e) {
             $lines[] = 'BEGIN:VEVENT';

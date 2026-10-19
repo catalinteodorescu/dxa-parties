@@ -239,7 +239,11 @@ class ParticipantAccounts
             'v' => self::resetStamp($participant),
         ]);
 
-        $sms->send($participant->phone, ParticipantAppSettings::smsReset($url));
+        try {
+            $sms->send($participant->phone, ParticipantAppSettings::smsReset($url));
+        } catch (DomainException) {
+            return;   // limită anti-abuz sau furnizor indisponibil: răspuns neutru, ca să nu se afle ce numere au cont
+        }
 
         ActivityLogger::log('participants.password_reset_requested', 'Participantul „'.$participant->name.'” a cerut resetarea parolei prin SMS.', actor: null);
     }

@@ -184,7 +184,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $sales->onEachSide(1)->links('pagination.dxa') }}
+        {{ $sales->onEachSide(1)->links('pagination.custom') }}
     </div>
 
     {{-- Popup: anulare vânzare (motiv obligatoriu) --}}

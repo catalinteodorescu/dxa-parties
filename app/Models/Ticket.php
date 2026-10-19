@@ -9,12 +9,12 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * DXA: adaugat (Aplicația participanților - runda 14). Un bilet cumpărat din aplicație, cu QR propriu (`DXA:T:<uuid>`).
+ * DXA: adaugat (Aplicația participanților - runda 14). Un bilet cumpărat din aplicație, cu QR propriu (`EVT:T:<uuid>`).
  * Se creează DOAR prin App\Services\TicketOrders::place(). Biletul e valabil până devine intrare la Recepție (`used`) sau e `void`.
  */
 class Ticket extends Model
 {
-    public const QR_PREFIX = 'DXA:T:';
+    public const QR_PREFIX = 'EVT:T:';
 
     public const VALID = 'valid';
 

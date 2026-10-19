@@ -118,7 +118,7 @@ it('refuzuri: folosit (cu ora), anulat, altă petrecere, bilet și cod necunoscu
 
     expect(ReceptionScan::resolve($party, $void->qrPayload(), $admin->id)['message'])->toContain('anulat')
         ->and(ReceptionScan::resolve($party, $foreign->qrPayload(), $admin->id)['message'])->toContain('altă petrecere')
-        ->and(ReceptionScan::resolve($party, 'DXA:T:00000000-0000-4000-8000-000000000000', $admin->id)['status'])->toBe(ReceptionScan::ERROR)
+        ->and(ReceptionScan::resolve($party, 'EVT:T:00000000-0000-4000-8000-000000000000', $admin->id)['status'])->toBe(ReceptionScan::ERROR)
         ->and(ReceptionScan::resolve($party, 'ceva-oarecare', $admin->id)['status'])->toBe(ReceptionScan::ERROR)
         ->and(PartyEntry::query()->count())->toBe(1);
 });
@@ -208,8 +208,8 @@ it('QuickScan răspunde cu adresa formularului când e ceva de încasat', functi
     expect($r['status'])->toBe(ReceptionScan::OPEN)->and($r['url'])->toContain('/receptie/intrare')->toContain('bilete='.$ticket->id);
 });
 
-it('cu DXA_TICKETS_AUTO_PAID biletele cumpărate sunt achitate: intră direct chiar dacă au preț', function () {
-    config(['app.dxa_tickets_auto_paid' => true]);
+it('cu TICKETS_AUTO_PAID biletele cumpărate sunt achitate: intră direct chiar dacă au preț', function () {
+    config(['app.tickets_auto_paid' => true]);
     $party = qscParty();
     $ticket = qscBuy(qscUser(), $party, '2026-10-03 22:30')->first();   // 20 lei
     Carbon::setTestNow(Carbon::parse('2026-10-03 22:40:00'));            // în termen (până la 23:00)
@@ -219,7 +219,7 @@ it('cu DXA_TICKETS_AUTO_PAID biletele cumpărate sunt achitate: intră direct ch
         ->and(ReceptionScan::resolve($party, $ticket->qrPayload(), qscAdmin()->id)['status'])->toBe(ReceptionScan::ENTERED)
         ->and($ticket->fresh()->status)->toBe(Ticket::USED);
 
-    config(['app.dxa_tickets_auto_paid' => false]);
+    config(['app.tickets_auto_paid' => false]);
     expect(qscBuy(qscUser('Bob', '0733222111'), $party, '2026-10-03 22:30')->first()->order->payment_status)->toBe('at_entry');
 });
 

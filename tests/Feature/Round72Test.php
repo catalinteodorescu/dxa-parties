@@ -116,7 +116,7 @@ it('ecranul scannerului are comutator de sunet, contor și funcția de feedback'
 
     $this->actingAs($admin, 'admin')->get('/receptie')->assertOk()
         ->assertSee('data-scan-sound', false)->assertSee('data-scan-counter', false)
-        ->assertSee('window.dxaFeedback', false)->assertSee('dxa.sound', false);
+        ->assertSee('window.appFeedback', false)->assertSee('app.sound', false);
 });
 
 // ---- Recepție: Rezumat --------------------------------------------------------------------------

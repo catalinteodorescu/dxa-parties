@@ -3,8 +3,8 @@
      Rulează o singură dată (data-navigate-once): elementele se pun în <html>, ca să supraviețuiască schimbării <body> la wire:navigate. --}}
 <script data-navigate-once>
 (function () {
-    if (window.__dxaMotion) return;
-    window.__dxaMotion = true;
+    if (window.__appMotion) return;
+    window.__appMotion = true;
 
     /* ---------- Loader ---------- */
     var loader = null, showTimer = null, safetyTimer = null;
@@ -12,10 +12,10 @@
     function ensureLoader() {
         if (loader) return loader;
         loader = document.createElement('div');
-        loader.className = 'dxa-loader';
+        loader.className = 'app-loader';
         loader.setAttribute('role', 'status');
         loader.setAttribute('aria-label', 'Încărcare');
-        loader.innerHTML = '<div class="dxa-ring"><i class="dxa-ring-arc"></i></div>';
+        loader.innerHTML = '<div class="app-ring"><i class="app-ring-arc"></i></div>';
         document.documentElement.appendChild(loader);
         return loader;
     }
@@ -23,7 +23,7 @@
        (puse în <html>, în afara <body>) ajung în copie, iar la restaurare apar ca ELEMENTE NOI în <body>, pe care scriptul nu le mai
        controlează (un loader cu clasa „on” blochează pagina). Le ștergem din <body>; cele reale stau doar direct sub <html>. */
     function purgeStale() {
-        var stale = document.body ? document.body.querySelectorAll('.dxa-loader, .dxa-swipe-hint, [data-dxa-dbg]') : [];
+        var stale = document.body ? document.body.querySelectorAll('.app-loader, .app-swipe-hint, [data-app-dbg]') : [];
         for (var i = 0; i < stale.length; i++) { stale[i].remove(); }
     }
     function hideLoader() {
@@ -52,13 +52,13 @@
     window.addEventListener('pageshow', function () { purgeStale(); hideLoader(); });
     document.addEventListener('DOMContentLoaded', purgeStale);
     window.addEventListener('popstate', function () { /* popstate trece tot prin livewire:navigate; dacă nu, loaderul nu apare */ });
-    window.dxaLoader = { show: function () { ensureLoader(); loader.classList.add('on'); }, hide: hideLoader };
+    window.appLoader = { show: function () { ensureLoader(); loader.classList.add('on'); }, hide: hideLoader };
 
     /* ---------- Swipe înapoi (iOS, aplicație instalată) ---------- */
     // Activ pe orice ecran tactil. Dacă sistemul are propriul gest înapoi (iOS Safari, Android), el preia atingerea și browserul trimite
     // „touchcancel”: nu confirmăm nimic fără „touchend”, deci nu se întâmplă două „înapoi”.
     function enabled() {
-        try { if (window.DXA_SWIPE_FORCE === true) return true; if (window.DXA_SWIPE_FORCE === false) return false; } catch (e) {}
+        try { if (window.APP_SWIPE_FORCE === true) return true; if (window.APP_SWIPE_FORCE === false) return false; } catch (e) {}
         return window.navigator.standalone === true || 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
     }
 
@@ -66,15 +66,15 @@
     var debugOn = false;
     try {
         var dq = /[?&]dxdebug=([01])/.exec(location.search);
-        if (dq) { localStorage.setItem('dxa_debug', dq[1]); }
-        debugOn = localStorage.getItem('dxa_debug') === '1';
+        if (dq) { localStorage.setItem('app_debug', dq[1]); }
+        debugOn = localStorage.getItem('app_debug') === '1';
     } catch (e) {}
     var dbgBox = null, dbgLines = [];
     function dbg(msg) {
         if (!debugOn) return;
         if (!dbgBox) {
             dbgBox = document.createElement('pre');
-            dbgBox.setAttribute('data-dxa-dbg', '');
+            dbgBox.setAttribute('data-app-dbg', '');
             dbgBox.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99;margin:0;padding:6px 8px;max-width:92vw;font:11px/1.35 monospace;color:#9fffb0;background:rgba(0,0,0,.78);border-radius:8px;pointer-events:none;white-space:pre-wrap';
             document.documentElement.appendChild(dbgBox);
         }
@@ -100,7 +100,7 @@
     function ensureHint() {
         if (hint) return hint;
         hint = document.createElement('div');
-        hint.className = 'dxa-swipe-hint';
+        hint.className = 'app-swipe-hint';
         hint.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
         document.documentElement.appendChild(hint);
         return hint;

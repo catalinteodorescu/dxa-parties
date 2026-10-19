@@ -1,4 +1,4 @@
-<div class="bg-surface border border-border rounded-2xl p-6" x-data="{ confirmOpen: false }" data-privacy-panel>
+<div class="bg-surface border border-border rounded-2xl p-6" x-data="{ confirmOpen: false, reloadOpen: false }" data-privacy-panel>
     <h3 class="text-sm font-semibold text-ink">Politica de confidențialitate</h3>
     <p class="mt-1 text-sm text-ink-soft leading-relaxed">
         Textul din aplicația participanților (pagina „Politica de confidențialitate”). E o informare: participanții o pot citi din subsol și din formularul de cont nou,
@@ -16,17 +16,22 @@
     </div>
 
     @if (! $current)
-        <p class="mt-4 text-xs text-ink-soft">Nu e publicat niciun text. Mai jos e un text de probă, nepublicat: modifică-l și apasă „Publică”.</p>
+        <p class="mt-4 text-xs text-ink-soft">Nu e publicat niciun text. Mai jos e modelul implicit, completat cu „Date organizator”: citește-l, ajustează-l dacă e nevoie și apasă „Publică”.</p>
     @else
         <p class="mt-4 text-xs text-ink-soft" data-privacy-status>Versiunea publicată: {{ $current->id }} ({{ $current->created_at->format('d.m.Y H:i') }}).</p>
+    @endif
+
+    @if (\App\Services\LegalTemplates::unresolved($body))
+        <p class="mt-3 text-xs text-warning" data-privacy-unresolved>Câmpuri necompletate în text: {{ implode(', ', \App\Services\LegalTemplates::unresolved($body)) }}. Completează „Date organizator” de mai sus.</p>
     @endif
 
     <textarea wire:model="body" rows="14" maxlength="{{ \App\Services\PrivacyPolicy::MAX_LENGTH }}" data-privacy-text
               class="mt-3 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"></textarea>
 
     @permits('legal', 'edit')
-        <div class="mt-4">
+        <div class="mt-4 flex flex-wrap items-center">
             <x-btn variant="primary" x-on:click="confirmOpen = true" data-privacy-publish>Publică</x-btn>
+            <button type="button" x-on:click="reloadOpen = true" class="ml-3 inline-flex items-center text-sm font-medium text-ink-soft hover:text-ink" data-privacy-reload><svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992m10.5-5.304A8.25 8.25 0 0 0 4.2 8.1M3.52 15.9a8.25 8.25 0 0 0 16.28 1.2"/></svg>Reîncarcă modelul</button>
         </div>
     @endpermits
 
@@ -48,6 +53,19 @@
             <div class="mt-6 flex items-center justify-end gap-3">
                 <button type="button" @click="confirmOpen = false" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Anulează</button>
                 <x-btn variant="primary" x-on:click="$wire.publish(); confirmOpen = false" data-privacy-confirm>Publică</x-btn>
+            </div>
+        </div>
+    </div>
+
+    {{-- Confirmare reîncărcare model --}}
+    <div x-show="reloadOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" data-privacy-reload-dialog>
+        <div class="absolute inset-0 bg-ink/40" @click="reloadOpen = false"></div>
+        <div class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6">
+            <h3 class="text-base font-semibold text-ink">Reîncarci modelul implicit?</h3>
+            <p class="mt-2 text-sm text-ink-soft leading-relaxed">Textul din câmp este înlocuit cu modelul implicit, completat cu datele organizatorului. Modificările nepublicate se pierd.</p>
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <button type="button" @click="reloadOpen = false" class="text-sm font-medium text-ink-soft hover:text-ink px-3 py-2">Anulează</button>
+                <x-btn variant="primary" x-on:click="$wire.reloadModel(); reloadOpen = false" data-privacy-reload-confirm>Reîncarcă</x-btn>
             </div>
         </div>
     </div>

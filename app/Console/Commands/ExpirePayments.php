@@ -12,7 +12,7 @@ use Illuminate\Console\Command;
  */
 class ExpirePayments extends Command
 {
-    protected $signature = 'dxa:expire-payments';
+    protected $signature = 'app:expire-payments';
 
     protected $description = 'Închide rezervările și încărcările cu cardul expirate';
 

@@ -39,7 +39,7 @@ class Participant extends Authenticatable
     }
 
     /** Prefixul din codul QR personal (aplicația pentru participanți va afișa același conținut). */
-    public const QR_PREFIX = 'DXA:P:';
+    public const QR_PREFIX = 'EVT:P:';
 
     /** Conținutul codului QR personal. */
     public function qrPayload(): string

@@ -66,6 +66,7 @@ class Terms
         if (self::current()?->body === $body) {
             throw new DomainException('Textul nu s-a schimbat față de versiunea publicată.');
         }
+        LegalTemplates::assertResolved($body);   // runda 83: fără câmpuri {{...}} rămase
 
         $first = ! self::enabled();
         $version = TermsVersion::create([
@@ -109,8 +110,14 @@ class Terms
         return new HtmlString($html);
     }
 
-    /** Textul de probă din câmpul gol (se înlocuiește cu cel final). */
+    /** Modelul implicit (runda 83): textul din resources/legal completat cu datele organizatorului; câmpul gol pornește de aici. */
     public static function sample(): string
+    {
+        return LegalTemplates::rendered('terms');
+    }
+
+    /** Vechiul text de probă (păstrat doar ca rezervă dacă fișierul model lipsește). */
+    public static function fallbackSample(): string
     {
         return "# Termeni și condiții (text de probă)\n\n"
             ."Acesta este un text de probă. Înlocuiește-l cu varianta finală înainte de lansare.\n\n"

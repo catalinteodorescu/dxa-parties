@@ -4,7 +4,7 @@
 // IMPORTANT: scope-ul „/” acoperă tot domeniul, deci acest service worker NU trebuie să intervină pe /admin, /receptie și /bar
 // (au PWA-uri proprii sau lucrează cu date live). Ignoră orice cerere făcută de o pagină din aceste zone (după referrer) și
 // orice cerere către ele; pentru restul interceptează doar GET către /build/*.
-const CACHE = '{{ $cache ?? 'dxa-app-static-v1' }}';
+const CACHE = '{{ $cache ?? 'participant-static-v1' }}';
 const EXCLUDED = ['/admin', '/receptie', '/bar', '/livewire', '/sesiune'];
 
 const inExcludedArea = (path) => EXCLUDED.some((p) => path === p || path.startsWith(p + '/'));
@@ -69,13 +69,13 @@ self.addEventListener('push', (event) => {
         } catch (e) { /* fără rețea: notificare generică */ }
 
         if (! items.length) {
-            items = [{ id: 'generic', title: 'Dance Xplosion Academy', body: 'Ai o notificare nouă.', url: '/' }];
+            items = [{ id: 'generic', title: @js($appName ?? ''), body: 'Ai o notificare nouă.', url: '/' }];
         }
         await Promise.all(items.map((i) => self.registration.showNotification(i.title, {
             body: i.body,
             icon: '{{ route('app.icon', 192, false) }}',
             badge: '{{ route('app.icon', 192, false) }}',
-            tag: 'dxa-' + i.id,
+            tag: 'app-' + i.id,
             data: { url: i.url || '/' },
         })));
     })());

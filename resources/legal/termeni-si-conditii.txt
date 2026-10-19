@@ -1,0 +1,107 @@
+# Termeni și condiții
+
+Ultima actualizare: {{date}}
+
+Acești termeni se aplică folosirii aplicației {{app_name}} („Aplicația”), disponibilă la adresa {{app_domain}}. Te rugăm să îi citești înainte de a-ți crea un cont. Prin crearea contului și bifarea acceptării confirmi că ai citit și ai înțeles acești termeni.
+
+# 1. Cine suntem
+
+Aplicația este pusă la dispoziție de {{organizer_name}}, cu sediul în {{organizer_address}}, CUI {{organizer_cui}}, înregistrată la Registrul Comerțului sub nr. {{organizer_regcom}} („Organizatorul”, „noi”). Organizatorul este cel care organizează petrecerile și evenimentele, vinde biletele și produsele de la bar și răspunde față de tine pentru acestea.
+
+Aplicația este dezvoltată și administrată tehnic de SUPPINNO SRL, CUI 49666339, nr. înregistrare J32/410/2024, EUID ROONRC.J32/410/2024, cu sediul în {{provider_address}} („Furnizorul tehnic”). Furnizorul tehnic nu este parte în vânzarea biletelor sau a produselor și acționează în numele Organizatorului.
+
+Contact Organizator: {{organizer_email}}, {{organizer_phone}}.
+
+# 2. Ce poți face în Aplicație
+
+Poți să îți creezi un cont, să vezi petrecerile și anunțurile Organizatorului, să cumperi bilete, să le păstrezi și să le trimiți altor persoane, să le folosești la intrare prin cod QR, să plătești la bar și, dacă Organizatorul le oferă, să folosești credite, carduri de loialitate și coduri de reducere, precum și să primești notificări.
+
+Anumite funcții pot lipsi, în funcție de ce a activat Organizatorul.
+
+# 3. Contul tău
+
+Pentru cont ai nevoie de un nume, un număr de telefon și o parolă. Telefonul este verificat printr-un cod primit prin SMS. Ne asiguri că datele introduse sunt reale și că le ții la zi.
+
+Contul este personal. Ești responsabil pentru parola ta și pentru tot ce se întâmplă în contul tău. Dacă bănuiești că altcineva îți folosește contul, schimbă parola și anunță-ne imediat.
+
+Un număr de telefon poate fi legat de un singur cont.
+
+Îți poți șterge singur contul oricând din Aplicație. Ștergerea este definitivă, iar efectele ei sunt descrise la secțiunea 9.
+
+# 4. Bilete
+
+Biletul îți dă dreptul de a intra la petrecerea pentru care a fost cumpărat, în condițiile afișate în Aplicație (data, ora, locul, numărul de persoane). Biletul se verifică la intrare prin scanarea codului QR și se consumă la prima scanare validă.
+
+Poți trimite un bilet unei alte persoane din Aplicație. Din momentul trimiterii, biletul nu mai este al tău și nu îl mai poți folosi. Biletul trimis nu poate fi retras.
+
+Nu revinde biletele în scop comercial și nu le multiplica. Un bilet copiat, falsificat, folosit sau anulat nu dă acces. Organizatorul poate anula un bilet obținut prin fraudă.
+
+Biletele expiră după petrecerea pentru care au fost emise.
+
+# 5. Plata și prețurile
+
+Prețurile sunt afișate în lei (RON), cu taxele incluse, dacă este cazul. Plata online cu cardul este procesată de Stripe Payments Europe Ltd. Datele cardului sunt introduse direct la Stripe și nu sunt vizibile nici pentru Organizator, nici pentru Furnizorul tehnic.
+
+Banii plătiți online ajung direct la Organizator. Comanda este confirmată după ce plata este acceptată. Dacă plata este refuzată sau rămâne neconfirmată, comanda nu se finalizează, iar o plată rămasă neconfirmată se închide automat după un timp.
+
+Plățile la bar și la recepție se fac conform modalităților oferite de Organizator în locație.
+
+Băuturile alcoolice se vând numai persoanelor majore, conform legii.
+
+# 6. Credite și carduri de loialitate
+
+Dacă Organizatorul oferă această funcție, poți încărca credite în contul tău și le poți folosi în locație, la bar sau la alte servicii indicate în Aplicație.
+
+Creditele nu sunt monedă electronică, nu produc dobândă, nu se transferă între conturi și nu se pot schimba înapoi în bani. Organizatorul poate acorda credite bonus, în condițiile anunțate la momentul oferirii lor.
+
+Cardul de loialitate, dacă este oferit, funcționează după regulile afișate în Aplicație (de exemplu, numărul de ștampile necesar pentru o recompensă). Recompensele nu se pot schimba în bani.
+
+Creditele rămase și ștampilele se pierd dacă îți ștergi contul.
+
+# 7. Rambursări
+
+Biletele și creditele nu se rambursează automat. Dacă ai o problemă (de exemplu o plată dublă sau o eroare tehnică), contactează Organizatorul la datele de la secțiunea 1, iar împreună căutăm o soluție, care poate fi rambursare, bilet nou, credit sau reprogramare.
+
+Dacă o petrecere este anulată de Organizator, îți propunem o soluție pentru bilet: rambursare, credit sau valabilitate pentru o altă dată.
+
+Conform legii, dreptul de retragere în 14 zile nu se aplică contractelor de servicii de agrement cu dată sau perioadă determinată de prestare (art. 16 lit. l din OUG nr. 34/2014). Acest lucru nu îți afectează alte drepturi legale de consumator.
+
+# 8. Reguli în timpul petrecerilor
+
+Participi la petreceri pe propriul risc, cu respectarea regulamentului locației, a instrucțiunilor personalului și a legii. Organizatorul poate refuza sau retrage accesul unei persoane care încalcă regulile, care pune în pericol siguranța altora sau care este într-o stare care nu permite participarea în siguranță, fără rambursarea biletului, în măsura permisă de lege.
+
+Pe parcursul evenimentelor se pot face fotografii și filmări în scop de promovare a Organizatorului. Dacă nu dorești să apari în ele, spune-ne în locație sau scrie-ne la {{organizer_email}}.
+
+# 9. Suspendarea și ștergerea contului
+
+Organizatorul poate suspenda sau închide un cont în caz de fraudă, abuz, încălcarea acestor termeni sau a legii.
+
+Când îți ștergi contul, numele, telefonul, parola, poza și petrecerile salvate sunt eliminate, iar intrările și consumațiile rămân fără legătură cu tine, pentru statistici. Telefonul devine liber și te poți înregistra din nou. Creditele rămase se pierd. Biletele încă valabile rămân valabile, dar anonime, și nu mai pot fi recuperate pe numele tău.
+
+# 10. Disponibilitatea Aplicației
+
+Depunem eforturi rezonabile ca Aplicația să funcționeze fără întreruperi, dar nu garantăm că va fi disponibilă permanent sau fără erori. Putem face lucrări de mentenanță și actualizări. Pentru intrarea la petrecere, ai la dispoziție și alte modalități de verificare, la indicația personalului.
+
+# 11. Limitarea răspunderii
+
+În limita permisă de lege, Organizatorul nu răspunde pentru pagube indirecte, pentru pierderea unor oportunități sau pentru întreruperi cauzate de factori din afara controlului nostru (de exemplu, indisponibilitatea rețelei, a telefonului tău, a furnizorilor de plăți sau de SMS, sau cauze de forță majoră).
+
+Nicio prevedere din acești termeni nu limitează răspunderea pentru vătămarea corporală sau decesul cauzat din vina noastră, pentru fraudă sau pentru orice altă răspundere care nu poate fi limitată sau exclusă prin lege, și nu îți afectează drepturile legale de consumator.
+
+# 12. Proprietate intelectuală
+
+Aplicația, denumirea, sigla, designul și conținutul ei aparțin Organizatorului și Furnizorului tehnic sau licențiatorilor lor. Primești dreptul personal, neexclusiv și netransmisibil de a folosi Aplicația, strict pentru scopurile descrise aici. Nu ai voie să o copiezi, să o decompilezi, să ocolești măsurile de securitate sau să o folosești automatizat.
+
+# 13. Datele tale personale
+
+Modul în care sunt prelucrate datele tale este descris în Politica de confidențialitate, disponibilă în Aplicație.
+
+# 14. Modificarea termenilor
+
+Putem modifica acești termeni, de exemplu când se schimbă funcțiile Aplicației sau legea. Versiunea în vigoare este cea publicată în Aplicație, cu data actualizării. Când modificarea este importantă, îți vom cere să accepți noua versiune pentru a continua să folosești Aplicația. Modificările nu afectează biletele deja cumpărate.
+
+# 15. Legea aplicabilă și reclamații
+
+Acești termeni sunt guvernați de legea română. Litigiile se rezolvă pe cale amiabilă, iar în caz contrar de instanțele române competente.
+
+Ca persoană consumatoare, poți depune o reclamație la Organizator, la {{organizer_email}}, sau poți apela la Autoritatea Națională pentru Protecția Consumatorilor (anpc.ro) și la entitățile de soluționare alternativă a litigiilor (SAL), precum și la instanțele competente.

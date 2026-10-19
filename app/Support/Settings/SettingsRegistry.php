@@ -48,7 +48,7 @@ class SettingsRegistry
                         'key' => 'school_name',
                         'type' => 'text',
                         'label' => 'Numele organizației',
-                        'default' => Branding::DEFAULT_NAME,
+                        'default' => Branding::defaultName(),
                         'wide' => true,
                         'rules' => ['required', 'string', 'max:100'],
                     ],

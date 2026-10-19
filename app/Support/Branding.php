@@ -18,18 +18,22 @@ use Illuminate\Support\Facades\Storage;
  */
 class Branding
 {
-    public const DEFAULT_NAME = 'Dance Xplosion Academy';
+    /** Numele implicit (până se completează în Setări › Organizație): numele aplicației din .env (APP_NAME), setat la instalare. */
+    public static function defaultName(): string
+    {
+        return trim((string) config('app.name')) ?: 'Organizator';
+    }
 
     private const VARIANTS = [
-        'on_color' => ['setting' => 'logo_on_color', 'default' => 'images/logo-xplosion-white.png'],
-        'on_light' => ['setting' => 'logo_on_light', 'default' => 'images/logo-xplosion.png'],
+        'on_color' => ['setting' => 'logo_on_color', 'default' => 'images/logo-default-white.png'],
+        'on_light' => ['setting' => 'logo_on_light', 'default' => 'images/logo-default.png'],
     ];
 
     public static function name(): string
     {
         $name = trim((string) Settings::get('school_name'));
 
-        return $name !== '' ? $name : static::DEFAULT_NAME;
+        return $name !== '' ? $name : static::defaultName();
     }
 
     public static function address(): ?string

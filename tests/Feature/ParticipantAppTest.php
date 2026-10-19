@@ -31,6 +31,7 @@ use App\Services\ParticipantRegistry;
 use App\Services\PrivacyPolicy;
 use App\Services\Terms;
 use App\Services\TicketOrders;
+use App\Support\Branding;
 use App\Support\ParticipantApp;
 use App\Support\ParticipantAppSettings;
 use App\Support\Permissions;
@@ -773,7 +774,7 @@ it('setări: SMS-urile folosesc șabloanele editate (cu {cod}, {minute}, {aplica
     Settings::set('app_code_ttl_minutes', 7);
     Settings::set('app_sms_activation', '{aplicatie}: cod {cod}, valabil {minute} min.');
     paRegister();
-    expect(end(FakeSms::$sent)[1])->toBe('DXA Parties: cod '.paLastCode().', valabil 7 min.');
+    expect(end(FakeSms::$sent)[1])->toBe(Branding::name().': cod '.paLastCode().', valabil 7 min.');
 
     // Fără {cod} șablonul ar face codul inutil: se folosește cel implicit.
     Settings::set('app_sms_activation', 'Bună!');

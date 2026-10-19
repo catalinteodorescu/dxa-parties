@@ -8,6 +8,7 @@ use App\Models\Plan;
 use App\Services\ActivityLogger;
 use App\Services\Plan\PlanGate;
 use App\Services\Plan\SmsUsage;
+use App\Services\Sms\SmsoClient;
 use App\Support\Features;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -240,6 +241,7 @@ class Index extends Component
             'planOptions' => collect($this->plans)->map(fn ($p) => $p['name'])->all(),
             'groups' => Features::grouped(),
             'sms' => SmsUsage::report(),
+            'smsCredit' => SmsoClient::creditCached(),
             'smsHistory' => SmsUsage::history(),
             'activeKey' => PlanGate::planKey() ?? $this->licensePlan,
             'usage' => [

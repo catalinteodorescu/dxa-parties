@@ -76,6 +76,6 @@
     </div>
 
     <div class="mt-4">
-        {{ $logs->onEachSide(1)->links('pagination.dxa') }}
+        {{ $logs->onEachSide(1)->links('pagination.custom') }}
     </div>
 </div>

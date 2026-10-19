@@ -13,8 +13,8 @@
         },
         async start() {
             this.open = true; this.ready = false; this.camErr = ''; this.busy = false; this.fb = null; this.choice = null; this.sel = []; this.last = '';
-            this.sound = window.dxaSound ? window.dxaSound.enabled() : true;
-            if (window.dxaSound) window.dxaSound.prime();
+            this.sound = window.appSound ? window.appSound.enabled() : true;
+            if (window.appSound) window.appSound.prime();
             $wire.counter().then((c) => { this.counter = c; });
             try {
                 await this.load();
@@ -43,7 +43,7 @@
         },
         toggleSound() {
             this.sound = ! this.sound;
-            if (window.dxaSound) window.dxaSound.set(this.sound);
+            if (window.appSound) window.appSound.set(this.sound);
         },
         cancelChoice() {
             this.choice = null; this.sel = []; this.last = ''; this.busy = false;
@@ -71,7 +71,7 @@
             const ok = r.status === 'entered';
             this.fb = { ok: ok, msg: r.message }; this.fbStart();
             if (r.counter) this.counter = r.counter;
-            if (window.dxaFeedback) window.dxaFeedback(ok ? 'ok' : (r.reason === 'used' ? 'used' : (r.reason === 'cancelled' ? 'cancelled' : 'error')));
+            if (window.appFeedback) window.appFeedback(ok ? 'ok' : (r.reason === 'used' ? 'used' : (r.reason === 'cancelled' ? 'cancelled' : 'error')));
             this.busy = false;
         },
         async stop() {

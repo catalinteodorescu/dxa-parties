@@ -36,6 +36,7 @@ final class PermissionGuard
         'Credits\\Index' => 'credits',
         'Credits\\Topups' => 'credits', // DXA: runda 76
         'Legal\\Index' => 'legal',   // runda 68
+        'Legal\\OrganizerPanel' => 'legal',   // runda 83
         'Legal\\PrivacyPanel' => 'legal',
         'Legal\\TermsPanel' => 'legal',
         'Logs\\Index' => 'logs',

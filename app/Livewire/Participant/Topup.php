@@ -12,7 +12,7 @@ use Livewire\Component;
 
 /**
  * DXA: adaugat (runda 51, refăcut în 51b). Pagina „Încarcă credite”: alegerea sumei (sume rapide + sumă liberă), bonusul la prag și „Confirmă”.
- * Cât timp plata online e simulată (config app.dxa_tickets_auto_paid, ca la biletele cumpărate online), „Confirmă” creditează direct contul
+ * Cât timp plata online e simulată (config app.tickets_auto_paid, ca la biletele cumpărate online), „Confirmă” creditează direct contul
  * (CreditTopups::complete). Altfel trimite la pagina de plată a furnizorului (PaymentGateway; acum un loc rezervat). „Renunță” doar întoarce la Portofel.
  */
 #[Layout('layouts.participant', ['title' => 'Încarcă credite'])]
@@ -43,7 +43,7 @@ class Topup extends Component
         try {
             $topup = CreditTopups::start($me, self::parse($this->amount));
 
-            if (config('app.dxa_tickets_auto_paid')) {
+            if (config('app.tickets_auto_paid')) {
                 // Plată simulată (până la Stripe): creditele intră direct în cont, ca la comenzile de bilete marcate achitate.
                 CreditTopups::complete($topup, null, 'simulated');
                 session()->flash('status', CreditTopups::paidMessage($topup));

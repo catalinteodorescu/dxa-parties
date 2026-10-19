@@ -107,10 +107,10 @@ it('migrarea acordă „Legal” adminilor care puteau modifica Setările', func
 it('salvare cu erori: Setări generale și App participant cer derularea la primul câmp invalid', function () {
     test()->actingAs(r68Admin(['settings' => 3]), 'admin');
 
-    Livewire::test(SettingsIndex::class)->set('values.school_name', '')->call('save')->assertHasErrors('values.school_name')->assertDispatched('dxa-scroll-error');
-    Livewire::test(SettingsIndex::class)->set('values.school_name', 'Studio Ritm')->call('save')->assertHasNoErrors()->assertNotDispatched('dxa-scroll-error');
-    Livewire::test(AdminParticipantAppSettings::class)->set('values.app_home_parties', '99')->call('save')->assertHasErrors('values.app_home_parties')->assertDispatched('dxa-scroll-error');
-    test()->get(route('admin.settings.index'))->assertSee('dxa-scroll-error', false);
+    Livewire::test(SettingsIndex::class)->set('values.school_name', '')->call('save')->assertHasErrors('values.school_name')->assertDispatched('app-scroll-error');
+    Livewire::test(SettingsIndex::class)->set('values.school_name', 'Studio Ritm')->call('save')->assertHasNoErrors()->assertNotDispatched('app-scroll-error');
+    Livewire::test(AdminParticipantAppSettings::class)->set('values.app_home_parties', '99')->call('save')->assertHasErrors('values.app_home_parties')->assertDispatched('app-scroll-error');
+    test()->get(route('admin.settings.index'))->assertSee('app-scroll-error', false);
 });
 
 it('la cumpărare nu mai apare mesajul despre biletele libere trimise altcuiva', function () {

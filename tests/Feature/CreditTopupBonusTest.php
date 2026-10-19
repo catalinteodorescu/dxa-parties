@@ -297,7 +297,7 @@ it('pagina Încarcă: sume rapide, prag de bonus, calcul live, îndemn spre urm�
 
 it('Confirmă cu plata simulată: creditele (suma + bonus) intră direct în cont, fără pagina de plată, cu mesaj de succes', function () {
     ctbOn();
-    config(['app.dxa_tickets_auto_paid' => true]);
+    config(['app.tickets_auto_paid' => true]);
     $ana = ctbUser();
     $this->actingAs($ana, 'participant');
 
@@ -314,7 +314,7 @@ it('Confirmă cu plata simulată: creditele (suma + bonus) intră direct în con
 
 it('Confirmă fără plată simulată: duce la pagina de plată (loc rezervat) și nu creditează nimic', function () {
     ctbOn();
-    config(['app.dxa_tickets_auto_paid' => false]);
+    config(['app.tickets_auto_paid' => false]);
     $ana = ctbUser();
     $this->actingAs($ana, 'participant');
 

@@ -18,7 +18,7 @@
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 {{-- Tema aplicației de recepție (independentă de tema panoului admin) --}}
-<style id="dxa-theme">:root{ {{ $pwa::inlineStyle() }} }</style>
+<style id="app-theme">:root{ {{ $pwa::inlineStyle() }} }</style>
 {{-- DXA: adaugat (runda 71). Zoom blocat în Recepție / Bar: fără dublu-tap zoom, iar câmpurile de 16px nu mai declanșează zoom-ul iOS la focus. --}}
 <style>
     html, body { touch-action: manipulation; }

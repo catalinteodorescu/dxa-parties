@@ -231,7 +231,7 @@ it('scanare bilet: alt party / folosit / necunoscut sunt refuzate; expirat apare
     session(['receptie.party_id' => $party->id]);
     $c = Livewire::test(Entry::class);
 
-    expect($c->instance()->scanParticipant('DXA:T:00000000-0000-4000-8000-000000000000')['ok'])->toBeFalse()
+    expect($c->instance()->scanParticipant('EVT:T:00000000-0000-4000-8000-000000000000')['ok'])->toBeFalse()
         ->and($c->instance()->scanParticipant($foreign->qrPayload())['ok'])->toBeFalse();
 
     Carbon::setTestNow(Carbon::parse('2026-10-03 22:30:00'));   // expirat: 20 lei

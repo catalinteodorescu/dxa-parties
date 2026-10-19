@@ -3,10 +3,10 @@
 return [
 
     /*
-    | DXA: adaugat (runda 47b). Doar pentru teste: cu DXA_TICKETS_AUTO_PAID=true comenzile de bilete se marchează achitate la cumpărare
+    | DXA: adaugat (runda 47b). Doar pentru teste: cu TICKETS_AUTO_PAID=true comenzile de bilete se marchează achitate la cumpărare
     | (ca și cum plata online s-ar fi făcut), deci la Recepție nu mai e nimic de încasat. Implicit: dezactivat (plata rămâne „la intrare").
     */
-    'dxa_tickets_auto_paid' => (bool) env('DXA_TICKETS_AUTO_PAID', false),
+    'tickets_auto_paid' => (bool) env('TICKETS_AUTO_PAID', false),
 
     /*
     |--------------------------------------------------------------------------

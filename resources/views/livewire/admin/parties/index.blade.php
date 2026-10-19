@@ -259,7 +259,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $parties->onEachSide(1)->links('pagination.dxa') }}
+        {{ $parties->onEachSide(1)->links('pagination.custom') }}
     </div>
 
     {{-- Modal de confirmare --}}

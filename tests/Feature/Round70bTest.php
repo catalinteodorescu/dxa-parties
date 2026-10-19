@@ -171,7 +171,7 @@ it('comanda cu date de test trimite câte o notificare din fiecare tip doar căt
     $me = r70bUser('0722701003');
     $altul = r70bUser('0722701004');
 
-    expect(Artisan::call('dxa:push-demo', ['phone' => '0722701003', '--pause' => 0]))->toBe(0);
+    expect(Artisan::call('app:push-demo', ['phone' => '0722701003', '--pause' => 0]))->toBe(0);
     $kinds = PushNotification::query()->where('participant_id', $me->id)->pluck('kind')->sort()->values()->all();
     expect($kinds)->toBe(['announcement', 'buyers', 'card_ready', 'credit_load', 'credit_payment', 'party_new', 'price', 'price', 'ready', 'seats', 'ticket_cancelled', 'ticket_new', 'tomorrow'])
         ->and(PushNotification::query()->where('participant_id', $altul->id)->count())->toBe(0)
@@ -180,7 +180,7 @@ it('comanda cu date de test trimite câte o notificare din fiecare tip doar căt
         ->and(PushNotification::query()->where('kind', 'ready')->first()->body)->toContain('Dresscode: Alb')
         ->and(PushNotification::query()->where('kind', 'seats')->first()->body)->toContain('un singur bilet');
 
-    expect(Artisan::call('dxa:push-demo', ['phone' => '0722701003', '--clean' => true, '--pause' => 0]))->toBe(0);
+    expect(Artisan::call('app:push-demo', ['phone' => '0722701003', '--clean' => true, '--pause' => 0]))->toBe(0);
     expect(Party::query()->where('name', 'like', '[TEST PUSH]%')->count())->toBe(0)
         ->and(Announcement::query()->where('title', 'like', '[TEST PUSH]%')->count())->toBe(0)
         ->and(PushNotification::query()->count())->toBe(0)
@@ -191,15 +191,15 @@ it('comanda cu date de test trimite câte o notificare din fiecare tip doar căt
 it('comanda cu date de test refuză: în producție, fără cont, fără abonare, fără chei', function () {
     r70bSetup();
     $fara = ParticipantRegistry::create('Fără abonare', '0722701005');
-    expect(Artisan::call('dxa:push-demo', ['phone' => '0700000000']))->toBe(1);   // nu există
-    expect(Artisan::call('dxa:push-demo', ['phone' => '0722701005']))->toBe(1)->and(Artisan::output())->toContain('nicio abonare');
+    expect(Artisan::call('app:push-demo', ['phone' => '0700000000']))->toBe(1);   // nu există
+    expect(Artisan::call('app:push-demo', ['phone' => '0722701005']))->toBe(1)->and(Artisan::output())->toContain('nicio abonare');
 
     r70bUser('0722701006');
     app()->detectEnvironment(fn () => 'production');
-    expect(Artisan::call('dxa:push-demo', ['phone' => '0722701006']))->toBe(1)->and(Artisan::output())->toContain('producție');
+    expect(Artisan::call('app:push-demo', ['phone' => '0722701006']))->toBe(1)->and(Artisan::output())->toContain('producție');
     app()->detectEnvironment(fn () => 'testing');
 
     config(['services.push.public_key' => '', 'services.push.private_key' => '']);
-    expect(Artisan::call('dxa:push-demo', ['phone' => '0722701006']))->toBe(1)->and(Artisan::output())->toContain('nu e configurat');
+    expect(Artisan::call('app:push-demo', ['phone' => '0722701006']))->toBe(1)->and(Artisan::output())->toContain('nu e configurat');
     expect($fara->exists)->toBeTrue();
 });

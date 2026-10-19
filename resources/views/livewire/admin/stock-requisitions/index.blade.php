@@ -325,7 +325,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $requisitions->onEachSide(1)->links('pagination.dxa') }}
+        {{ $requisitions->onEachSide(1)->links('pagination.custom') }}
     </div>
 
     {{-- Modal de confirmare generic (închidere / ștergere) --}}

@@ -1,7 +1,7 @@
 {{-- DXA: adaugat (runda 70). Cardul „Notificări” din Cont: un singur întrerupător pentru toate notificările (petreceri noi, prețuri, bilete, anunțuri). Fără wire:ignore starea s-ar pierde la fiecare reîmprospătare Livewire. --}}
 @if (\App\Services\Push\Notifier::enabled())
     <div wire:ignore class="pa-glass pa-pad pa-stack" style="gap: .6rem" data-push-card
-         x-init="dxaPushInit($el)"
+         x-init="appPushInit($el)"
          data-key="{{ \App\Services\Push\Vapid::publicKey() }}" data-csrf="{{ csrf_token() }}"
          data-subscribe="{{ route('app.push.subscribe', [], false) }}" data-unsubscribe="{{ route('app.push.unsubscribe', [], false) }}" data-test="{{ route('app.push.test', [], false) }}">
         <div class="pa-label" style="margin: 0">Notificări</div>

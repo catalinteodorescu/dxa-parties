@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * DXA: adaugat (runda 77). Evenimentele care produc notificări push pentru telefoanele din Recepție și Bar (vezi StaffNotifier). Fiecare metodă
  * e idempotentă (cheie unică per cont și eveniment), deci poate rula de câte ori vrea cron-ul. Cele „la fața locului” (produs epuizat, petrecere
- * epuizată) pleacă imediat, restul rulează din `runScheduled()` (la 15 minute, prin `dxa:push-run`).
+ * epuizată) pleacă imediat, restul rulează din `runScheduled()` (la 15 minute, prin `app:push-run`).
  */
 class StaffEvents
 {

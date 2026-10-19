@@ -1,6 +1,6 @@
-{{-- DXA: adaugat (runda 70, mutat aici în runda 77). Butonul „Notificări”: abonare la Web Push din browser, folosit de aplicația participanților (_push-card.blade.php) și de personal (components/staff-push-card.blade.php), cu wire:ignore, pornit prin x-init="dxaPushInit($el)". Cu `data-sw` (panoul admin) înregistrează întâi service worker-ul și așteaptă să fie activ. --}}
+{{-- DXA: adaugat (runda 70, mutat aici în runda 77). Butonul „Notificări”: abonare la Web Push din browser, folosit de aplicația participanților (_push-card.blade.php) și de personal (components/staff-push-card.blade.php), cu wire:ignore, pornit prin x-init="appPushInit($el)". Cu `data-sw` (panoul admin) înregistrează întâi service worker-ul și așteaptă să fie activ. --}}
 <script>
-    window.dxaPushInit = async function (root) {
+    window.appPushInit = async function (root) {
         const $ = (s) => root.querySelector(s);
         const state = (name, msg) => {
             root.dataset.state = name;

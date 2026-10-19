@@ -15,6 +15,11 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
+        // Contul „admin/admin” e doar pentru dezvoltare locală; o instalare reală își creează superadmin-ul cu `php artisan app:install`.
+        if (app()->environment('production')) {
+            return;
+        }
+
         Admin::firstOrCreate(
             ['phone' => 'admin'],
             [

@@ -30,7 +30,7 @@ use Throwable;
  */
 class PushDemo extends Command
 {
-    protected $signature = 'dxa:push-demo {phone : telefonul contului de test (cu abonare push activă)} {--clean : șterge datele de test create de această comandă} {--pause=1500 : pauza (ms) între scenarii, ca dispozitivul să-și termine cererile către server}';
+    protected $signature = 'app:push-demo {phone : telefonul contului de test (cu abonare push activă)} {--clean : șterge datele de test create de această comandă} {--pause=1500 : pauza (ms) între scenarii, ca dispozitivul să-și termine cererile către server}';
 
     protected $description = 'Creează date de test și trimite câte o notificare de fiecare tip către un cont de test (doar local)';
 
@@ -165,7 +165,7 @@ class PushDemo extends Command
             $this->line(sprintf('%-18s %s', Notifier::TYPES[$kind][0], $n > 0 ? 'trimis ('.$n.')' : 'NEtrimis (tip oprit în Setări › Aplicație participanți, sau nu s-a îndeplinit condiția)'));
         }
         $this->newLine();
-        $this->line('Notificările ajung pe dispozitivele contului în câteva secunde. Ștergi datele de test cu:  php artisan dxa:push-demo '.$this->argument('phone').' --clean');
+        $this->line('Notificările ajung pe dispozitivele contului în câteva secunde. Ștergi datele de test cu:  php artisan app:push-demo '.$this->argument('phone').' --clean');
 
         return self::SUCCESS;
     }

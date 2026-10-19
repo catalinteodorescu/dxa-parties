@@ -300,7 +300,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $admins->onEachSide(1)->links('pagination.dxa') }}
+        {{ $admins->onEachSide(1)->links('pagination.custom') }}
     </div>
 
     {{-- Modal de confirmare, folosit de orice actiune din pill-uri sau stergere --}}

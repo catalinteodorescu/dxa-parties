@@ -41,10 +41,20 @@ final class SmsUsage
         ]);
     }
 
+    /** Adaugă costul real al unui SMS (eurocenți, cum îl raportează furnizorul) la luna curentă. */
+    public static function addCost(float $eurocents): void
+    {
+        $period = self::period();
+        $now = now();
+
+        DB::table('sms_usage')->insertOrIgnore(['period' => $period, 'sent' => 0, 'created_at' => $now, 'updated_at' => $now]);
+        DB::table('sms_usage')->where('period', $period)->increment('cost_eurocents', $eurocents, ['updated_at' => $now]);
+    }
+
     /**
      * Raportul unei luni: trimise, cota, depășirea și suma estimată (euro, fără TVA).
      *
-     * @return array{period: string, sent: int, included: ?int, overage: int, price: float, amount: float}
+     * @return array{period: string, sent: int, included: ?int, overage: int, price: float, amount: float, cost: float}
      */
     public static function report(?string $period = null): array
     {
@@ -65,6 +75,7 @@ final class SmsUsage
             'overage' => $overage,
             'price' => $price,
             'amount' => round($overage * $price, 2),
+            'cost' => round(((float) ($row->cost_eurocents ?? 0)) / 100, 2),   // costul real plătit furnizorului, în euro
         ];
     }
 

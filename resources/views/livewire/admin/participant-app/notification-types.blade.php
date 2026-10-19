@@ -10,7 +10,7 @@
 
     @unless ($enabled)
         <div class="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-ink" data-push-off>
-            Notificările nu sunt configurate. Generează cheile cu <span class="font-mono">php artisan dxa:push-keys</span> și pune-le în <span class="font-mono">.env</span> (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT).
+            Notificările nu sunt configurate. Generează cheile cu <span class="font-mono">php artisan app:push-keys</span> și pune-le în <span class="font-mono">.env</span> (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT).
         </div>
     @endunless
 

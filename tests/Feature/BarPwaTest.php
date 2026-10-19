@@ -150,8 +150,8 @@ it('service worker-ul barului are cache propriu', function () {
     $r = $this->get(route('bar.sw'))->assertOk();
 
     expect($r->headers->get('Content-Type'))->toContain('javascript')
-        ->and($r->getContent())->toContain('dxa-bar-static-v1')
-        ->and($this->get(route('receptie.sw'))->getContent())->toContain('dxa-receptie-static-v1');
+        ->and($r->getContent())->toContain('bar-static-v1')
+        ->and($this->get(route('receptie.sw'))->getContent())->toContain('receptie-static-v1');
 });
 
 // ---- Login / acces ----------------------------------------------------------------
@@ -484,7 +484,7 @@ it('scanarea QR alege participantul si marcheaza identificarea prin QR', functio
     $p = ParticipantRegistry::create('Ion Vasile', '0733444555');
 
     $component = Livewire::test(Sale::class);
-    $component->call('scanParticipant', 'DXA:P:00000000-0000-4000-8000-000000000000')
+    $component->call('scanParticipant', 'EVT:P:00000000-0000-4000-8000-000000000000')
         ->assertSet('participantIds', []);
 
     $component->call('scanParticipant', $p->qrPayload())

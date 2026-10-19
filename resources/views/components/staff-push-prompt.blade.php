@@ -6,7 +6,7 @@
     @php($r = $app === 'bar' ? 'bar' : 'receptie')
     <div wire:ignore x-data="{ show: false, st: '' }" x-cloak
          x-on:push-state="st = $event.detail; show = (st !== 'on'); if (st === 'on') { fetch($refs.root.dataset.prompt, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': $refs.root.dataset.csrf, 'Accept': 'application/json' } }).catch(() => {}); }"
-         x-init="$nextTick(() => dxaPushInit($refs.root))">
+         x-init="$nextTick(() => appPushInit($refs.root))">
         <div x-show="show" class="fixed inset-0 z-[70] flex items-center justify-center p-4 text-ink" data-staff-push-prompt>
             <div class="absolute inset-0 bg-ink/40"></div>
             <div x-ref="root" class="relative bg-surface rounded-2xl border border-border shadow-lg max-w-sm w-full p-6 space-y-3" data-push-card

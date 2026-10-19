@@ -1,9 +1,9 @@
 {{-- DXA: adaugat (runda 71). Comportamente de dispozitiv pentru Recepție / Bar: ecran mereu aprins (Wake Lock) și fără zoom cu două degete (iOS).
-     Runda 72: window.dxaFeedback(kind) = sunet + vibrație la scanare (ok / used / cancelled / error); window.dxaSound = oprire/pornire sunet (reținut pe telefon). --}}
+     Runda 72: window.appFeedback(kind) = sunet + vibrație la scanare (ok / used / cancelled / error); window.appSound = oprire/pornire sunet (reținut pe telefon). --}}
 <script data-navigate-once>
     (function () {
-        if (window.__dxaDevice) { return; }
-        window.__dxaDevice = true;
+        if (window.__appDevice) { return; }
+        window.__appDevice = true;
 
         var lock = null;
         function keepAwake() {
@@ -40,8 +40,8 @@
             o.connect(g); g.connect(a.destination);
             o.start(t); o.stop(t + dur + 0.02);
         }
-        var KEY = 'dxa.sound';
-        window.dxaSound = {
+        var KEY = 'app.sound';
+        window.appSound = {
             enabled: function () { try { return localStorage.getItem(KEY) !== '0'; } catch (e) { return true; } },
             set: function (on) { try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {} if (on) { audio(); } },
             // Deblochează sunetul (iOS cere un gest): se cheamă la apăsarea „Scanează”.
@@ -53,10 +53,10 @@
             cancelled: { vibrate: [400],            tones: [[200, 0, 0.45, 'sawtooth']] },
             error:     { vibrate: [200, 80, 200],   tones: [[300, 0, 0.18, 'square'], [220, 0.2, 0.28, 'square']] }
         };
-        window.dxaFeedback = function (kind) {
+        window.appFeedback = function (kind) {
             var p = PATTERNS[kind] || PATTERNS.error;
             try { if (navigator.vibrate) { navigator.vibrate(p.vibrate); } } catch (e) {}
-            if (window.dxaSound.enabled()) { p.tones.forEach(function (t) { tone(t[0], t[1], t[2], t[3]); }); }
+            if (window.appSound.enabled()) { p.tones.forEach(function (t) { tone(t[0], t[1], t[2], t[3]); }); }
         };
 
         // iOS Safari ignoră user-scalable=no la pinch; gestul se oprește aici.

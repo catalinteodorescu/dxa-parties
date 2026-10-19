@@ -57,7 +57,7 @@ it('o comandă de 1 bilet: bilet valabil pe numele cumpărătorului, cu QR propr
     $t = $order->tickets->first();
     expect($t->owner_participant_id)->toBe($ana->id)->and($t->holder_participant_id)->toBe($ana->id)
         ->and($t->status)->toBe('valid')->and((float) $t->price)->toBe(50.0)
-        ->and($t->qrPayload())->toBe('DXA:T:'.$t->uuid)
+        ->and($t->qrPayload())->toBe('EVT:T:'.$t->uuid)
         ->and(Ticket::findByQrPayload($t->qrPayload())->id)->toBe($t->id)
         ->and(Ticket::findByQrPayload($t->uuid)->id)->toBe($t->id);
 });
@@ -244,7 +244,7 @@ it('utilizatorul conectat vede dialogul de comandă și cumpără prin Livewire;
     expect(Order::count())->toBe(1)->and(Ticket::query()->where('owner_participant_id', $ana->id)->count())->toBe(3);
 
     $t = Ticket::query()->first();
-    $this->get('/bilete')->assertOk()->assertSee('Biletele mele')->assertSee('Petrecere bilete')->assertSee('data-tickets-carousel', false)->assertSee('data-ticket-qr="DXA:T:'.$t->uuid.'"', false)->assertSee('VALABIL');
+    $this->get('/bilete')->assertOk()->assertSee('Biletele mele')->assertSee('Petrecere bilete')->assertSee('data-tickets-carousel', false)->assertSee('data-ticket-qr="EVT:T:'.$t->uuid.'"', false)->assertSee('VALABIL');
 });
 
 it('cantitatea se limitează la maximul din comandă și cel disponibil; „epuizat” ascunde comanda', function () {

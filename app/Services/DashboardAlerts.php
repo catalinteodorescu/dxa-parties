@@ -21,7 +21,7 @@ use Illuminate\Support\Str;
  *  - sesiuni de Recepție / Bar uitate deschise (peste STALE_HOURS, fără raportare depusă);
  *  - diferențe de casă la rapoartele finalizate în ultimele CASH_DAYS zile;
  *  - plăți cu cardul rămase în așteptare: rezervări / încărcări al căror termen a trecut de mai mult de GRACE_MINUTES. Se închid singure
- *    (`dxa:expire-payments`, din cron, la 15 minute): dacă totuși au rămas, cron-ul serverului nu rulează.
+ *    (`app:expire-payments`, din cron, la 15 minute): dacă totuși au rămas, cron-ul serverului nu rulează.
  *
  * Fiecare alertă are `help`: ce înseamnă și ce se face (se arată la „Ce înseamnă?”).
  */
@@ -94,7 +94,7 @@ class DashboardAlerts
             $n = Order::query()->where('payment_status', Order::PAY_CARD_PENDING)->where('payment_expires_at', '<', $cutoff)->count();
             if ($n > 0) {
                 $alerts->push(self::alert('stuck_orders', 'danger', 'Rezervare cu cardul rămasă deschisă', 'termen depășit de peste '.self::GRACE_MINUTES.' min, nu s-a închis singură', route('admin.tickets.index', ['plata' => 'card']), $n,
-                    'Rezervarea unor bilete cu cardul a depășit termenul și ar fi trebuit închisă automat (locurile se eliberează). Că a rămas deschisă înseamnă, de regulă, că cron-ul serverului nu rulează (comanda dxa:expire-payments, din schedule:run). Verifică cron-ul. Dacă un participant spune că a plătit, caută plata în Stripe › Payments după sumă și oră.'));
+                    'Rezervarea unor bilete cu cardul a depășit termenul și ar fi trebuit închisă automat (locurile se eliberează). Că a rămas deschisă înseamnă, de regulă, că cron-ul serverului nu rulează (comanda app:expire-payments, din schedule:run). Verifică cron-ul. Dacă un participant spune că a plătit, caută plata în Stripe › Payments după sumă și oră.'));
             }
         }
 
@@ -102,7 +102,7 @@ class DashboardAlerts
             $n = CreditTopup::query()->where('status', CreditTopup::PENDING)->where('expires_at', '<', $cutoff)->count();
             if ($n > 0) {
                 $alerts->push(self::alert('stuck_topups', 'danger', 'Încărcare cu cardul rămasă deschisă', 'termen depășit de peste '.self::GRACE_MINUTES.' min, nu s-a închisă singură', route('admin.credits.topups', ['stare' => 'pending']), $n,
-                    'O încărcare de credite cu cardul a depășit termenul și ar fi trebuit închisă automat. Că a rămas deschisă înseamnă, de regulă, că cron-ul serverului nu rulează (comanda dxa:expire-payments, din schedule:run). Verifică cron-ul. Dacă un participant spune că a plătit și nu are creditele, găsește încărcarea în lista din pagină și caut-o în Stripe › Payments după referință.'));
+                    'O încărcare de credite cu cardul a depășit termenul și ar fi trebuit închisă automat. Că a rămas deschisă înseamnă, de regulă, că cron-ul serverului nu rulează (comanda app:expire-payments, din schedule:run). Verifică cron-ul. Dacă un participant spune că a plătit și nu are creditele, găsește încărcarea în lista din pagină și caut-o în Stripe › Payments după referință.'));
             }
         }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Middleware\ApplyAppWorker;
 use App\Models\Admin;
 use App\Services\Push\StaffNotifier;
+use App\Support\Branding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +44,7 @@ class StaffPushController extends Controller
     public function test(string $app): JsonResponse
     {
         abort_unless(StaffNotifier::enabled(), 404);
-        $n = StaffNotifier::notify($this->account($app), 'test', 'test:'.Str::uuid(), 'Notificări active', 'Așa vei primi alertele de la Dance Xplosion Academy.',
+        $n = StaffNotifier::notify($this->account($app), 'test', 'test:'.Str::uuid(), 'Notificări active', 'Așa vei primi alertele de la '.Branding::name().'.',
             $app === 'bar' ? '/bar' : '/receptie', $app);
 
         return response()->json(['ok' => $n !== null], $n ? 200 : 409);

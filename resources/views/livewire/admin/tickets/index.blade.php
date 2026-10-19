@@ -69,7 +69,7 @@
             @endforeach
         </div>
         <div class="mt-3">
-            {{ $tickets->onEachSide(1)->links('pagination.dxa') }}
+            {{ $tickets->onEachSide(1)->links('pagination.custom') }}
         </div>
     @endif
 </div>

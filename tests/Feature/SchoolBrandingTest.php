@@ -24,11 +24,11 @@ function brandingAdmin(): Admin
 }
 
 it('foloseste numele si logo-urile implicite cand nu e setat nimic', function () {
-    expect(Branding::name())->toBe('Dance Xplosion Academy')
+    expect(Branding::name())->toBe(config('app.name'))
         ->and(Branding::address())->toBeNull()
         ->and(Branding::mapsUrl())->toBeNull()
-        ->and(Branding::logoUrl('on_color'))->toEndWith('images/logo-xplosion-white.png')
-        ->and(Branding::logoUrl('on_light'))->toEndWith('images/logo-xplosion.png');
+        ->and(Branding::logoUrl('on_color'))->toEndWith('images/logo-default-white.png')
+        ->and(Branding::logoUrl('on_light'))->toEndWith('images/logo-default.png');
 });
 
 it('salveaza numele, adresa si linkul de harta si numele apare in titlul paginilor', function () {
@@ -60,7 +60,7 @@ it('respinge un nume gol si un link de harta invalid', function () {
         ->call('save')
         ->assertHasErrors(['values.school_name', 'values.school_maps_url']);
 
-    expect(Branding::name())->toBe('Dance Xplosion Academy');
+    expect(Branding::name())->toBe(config('app.name'));
 });
 
 it('incarca un logo, il inlocuieste stergand fisierul vechi si revine la implicit', function () {
@@ -95,7 +95,7 @@ it('incarca un logo, il inlocuieste stergand fisierul vechi si revine la implici
 
     Storage::disk('public')->assertMissing($second);
     expect(Branding::uploadedPath('on_light'))->toBeNull()
-        ->and(Branding::logoUrl('on_light'))->toEndWith('images/logo-xplosion.png');
+        ->and(Branding::logoUrl('on_light'))->toEndWith('images/logo-default.png');
 });
 
 it('respinge un logo care nu e imagine PNG/JPG', function () {
@@ -129,5 +129,5 @@ it('precompleteaza locatia la o petrecere noua cu datele scolii', function () {
 it('afiseaza logo-ul in antetul PDF-urilor', function () {
     $html = view('pdf._brand')->render();
 
-    expect($html)->toContain('data:image/png;base64,')->toContain('alt="Dance Xplosion Academy"');
+    expect($html)->toContain('data:image/png;base64,')->toContain('alt="'.config('app.name').'"');
 });

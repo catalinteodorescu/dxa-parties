@@ -4,6 +4,7 @@
         <p class="mt-1 text-sm text-ink-soft">Textele legale din aplicația participanților. Termenii se acceptă la crearea contului; Politica de confidențialitate doar se citește.</p>
     </div>
 
+    @livewire(\App\Livewire\Admin\Legal\OrganizerPanel::class)
     @livewire(\App\Livewire\Admin\Legal\TermsPanel::class)
     @livewire(\App\Livewire\Admin\Legal\PrivacyPanel::class)
 </div>

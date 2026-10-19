@@ -57,7 +57,7 @@
                 @endforeach
             </div>
             <div class="mt-3">
-                {{ $topups->onEachSide(1)->links('pagination.dxa') }}
+                {{ $topups->onEachSide(1)->links('pagination.custom') }}
             </div>
         @endif
     </div>

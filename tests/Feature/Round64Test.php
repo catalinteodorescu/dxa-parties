@@ -25,7 +25,7 @@ function r64On(): void
 {
     config([
         'services.stripe.secret' => 'sk_test_x', 'services.stripe.webhook_secret' => 'whsec_test',
-        'services.stripe.currency' => 'ron', 'app.dxa_tickets_auto_paid' => false,
+        'services.stripe.currency' => 'ron', 'app.tickets_auto_paid' => false,
     ]);
     PaymentMethods::setActive(PaymentMethods::CREDIT, true);
     PaymentMethods::setCreditsPurchasable(true);

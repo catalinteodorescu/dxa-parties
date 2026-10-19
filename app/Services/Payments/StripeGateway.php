@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
  * DXA: adaugat (runda 64). Plata cu cardul prin Stripe Checkout găzduit (card, Apple Pay, Google Pay). Fără pachet Composer nou:
  * vorbim direct cu API-ul REST. Participantul e trimis la pagina Stripe; creditele intră DOAR când webhook-ul semnat
  * (App\Http\Controllers\StripeWebhookController) apelează CreditTopups::complete() — întoarcerea în aplicație nu creditează nimic.
- * Comisionul Stripe îl suportă școala (fee = 0): se plătește exact suma încărcată.
+ * Comisionul Stripe îl suportă organizatorul (fee = 0): se plătește exact suma încărcată.
  */
 class StripeGateway implements PaymentGateway
 {

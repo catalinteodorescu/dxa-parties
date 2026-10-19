@@ -11,9 +11,9 @@ use Illuminate\Support\Collection;
 
 /**
  * DXA: adaugat (runda 47 - Scanner Recepție). Ce se întâmplă când recepționerul scanează un cod QR de pe ecranul principal:
- *  - bilet (`DXA:T:`) valid, fără nimic de încasat → intrarea se înregistrează direct (EntryRecorder);
+ *  - bilet (`EVT:T:`) valid, fără nimic de încasat → intrarea se înregistrează direct (EntryRecorder);
  *  - bilet cu sumă de încasat (comandă „la intrare", termen depășit) → se deschide formularul „Intrare” cu biletul încărcat;
- *  - QR personal (`DXA:P:`) → biletele valabile ale persoanei: unul = ca la bilet, mai multe = alegere, niciunul = formularul cu persoana aleasă.
+ *  - QR personal (`EVT:P:`) → biletele valabile ale persoanei: unul = ca la bilet, mai multe = alegere, niciunul = formularul cu persoana aleasă.
  * Rezultatul e mereu o listă simplă (status: entered | choose | open | error), ca ecranul să nu conțină logică de business.
  */
 class ReceptionScan

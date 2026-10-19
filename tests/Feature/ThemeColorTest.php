@@ -27,7 +27,7 @@ it('foloseste terracotta implicit si nu emite niciun stil suplimentar', function
 
     $this->get(route('admin.settings.index'))
         ->assertOk()
-        ->assertDontSee('id="dxa-theme"', false);
+        ->assertDontSee('id="app-theme"', false);
 });
 
 it('salveaza culoarea aleasa si o aplica in layout', function () {
@@ -43,7 +43,7 @@ it('salveaza culoarea aleasa si o aplica in layout', function () {
 
     $this->get(route('admin.settings.index'))
         ->assertOk()
-        ->assertSee('id="dxa-theme"', false)
+        ->assertSee('id="app-theme"', false)
         ->assertSee('--color-primary:#4F46E5', false);
 });
 

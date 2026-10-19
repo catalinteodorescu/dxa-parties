@@ -7,11 +7,13 @@ use App\Models\Admin;
 use App\Models\AdminActivityLog;
 use App\Models\License;
 use App\Models\Plan;
+use App\Services\Installer;
 use App\Services\Plan\PlanGate;
 use App\Support\DashboardSections;
 use App\Support\Features;
 use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -292,27 +294,25 @@ it('pagina folosește componentele custom (select și bife) și nu mai are excep
         ->assertDontSee('<select', false)->assertSee('peer sr-only', false);
 });
 
-// ---------- contul de proprietar din migrare ----------
+// ---------- contul de proprietar (creat de instalare) ----------
 
-it('migrarea creează proprietarul „Proprietar” cu telefonul și hash-ul stabilite, o singură dată', function () {
-    $migration = require database_path('migrations/2024_08_19_000001_create_owner_account.php');
+it('instalarea creează proprietarul „Proprietar”, o singură dată, cu parola salvată ca hash', function () {
+    expect(Admin::where('role', 'owner')->count())->toBe(0);
+    expect(Installer::ensureOwner('0722111222', 'parola-lunga-1'))->toBe('created');
 
-    expect(Admin::where('role', 'owner')->count())->toBe(0);    // în teste migrarea nu rulează
-    expect($migration::ensureOwner())->toBe('created');
-
-    $owner = Admin::where('phone', '0748960817')->first();
+    $owner = Admin::where('phone', '0722111222')->first();
     expect($owner->role)->toBe('owner')->and($owner->name)->toBe('Proprietar')->and($owner->is_active)->toBeTrue()
-        ->and($owner->getRawOriginal('password'))->toBe('$2y$12$.oqJmWxTVxgoiLecFQCtqey2XG1cyyEicTnUBIx0e.b/WNveb7/bK')
+        ->and($owner->getRawOriginal('password'))->not->toBe('parola-lunga-1')
+        ->and(Hash::check('parola-lunga-1', $owner->getRawOriginal('password')))->toBeTrue()
         ->and($owner->canAccess(Admin::APP_ADMIN))->toBeTrue();
 
-    expect($migration::ensureOwner())->toBe('exists')->and(Admin::where('phone', '0748960817')->count())->toBe(1);
+    expect(Installer::ensureOwner('0722111222', 'alta-parola-2'))->toBe('exists')->and(Admin::where('role', 'owner')->count())->toBe(1);
 });
 
-it('migrarea nu atinge un cont obișnuit care are deja numărul', function () {
-    $migration = require database_path('migrations/2024_08_19_000001_create_owner_account.php');
-    $normal = Admin::create(['name' => 'Eu', 'phone' => '0748960817', 'role' => 'superadmin', 'is_active' => true, 'password' => 'secret-pass-123']);
+it('instalarea nu atinge un cont obișnuit care are deja numărul', function () {
+    $normal = Admin::create(['name' => 'Eu', 'phone' => '0722111222', 'role' => 'superadmin', 'is_active' => true, 'password' => 'secret-pass-123']);
 
-    expect($migration::ensureOwner())->toBe('exists')
+    expect(Installer::ensureOwner('0722111222', 'parola-lunga-1'))->toBe('exists')
         ->and($normal->fresh()->role)->toBe('superadmin')->and(Admin::where('role', 'owner')->count())->toBe(0);
 });
 

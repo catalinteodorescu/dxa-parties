@@ -36,7 +36,7 @@ return [
         'api_version' => '2024-06-20',
     ],
 
-    // DXA: adaugat (runda 70). Notificări push (VAPID). Cheile se generează cu `php artisan dxa:push-keys` și se pun în .env.
+    // DXA: adaugat (runda 70). Notificări push (VAPID). Cheile se generează cu `php artisan app:push-keys` și se pun în .env.
     'push' => [
         'public_key' => env('VAPID_PUBLIC_KEY'),
         'private_key' => env('VAPID_PRIVATE_KEY'),

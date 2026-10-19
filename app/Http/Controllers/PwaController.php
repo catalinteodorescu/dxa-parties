@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\BarApp;
+use App\Support\Branding;
 use App\Support\ParticipantApp;
 use App\Support\PwaApp;
 use App\Support\ReceptionApp;
@@ -29,7 +30,7 @@ class PwaController extends Controller
 
     public function receptionServiceWorker(): Response
     {
-        return $this->serviceWorker('dxa-receptie-static-v1', 'Recepție', ReceptionApp::class);
+        return $this->serviceWorker('receptie-static-v1', 'Recepție', ReceptionApp::class);
     }
 
     public function barManifest(): JsonResponse
@@ -44,13 +45,13 @@ class PwaController extends Controller
 
     public function barServiceWorker(): Response
     {
-        return $this->serviceWorker('dxa-bar-static-v1', 'Bar', BarApp::class);
+        return $this->serviceWorker('bar-static-v1', 'Bar', BarApp::class);
     }
 
     /** DXA: adaugat (Aplicația participanților). PWA în rădăcina domeniului (scope „/”), cu propriul manifest și service worker. */
     public function participantManifest(): JsonResponse
     {
-        return $this->manifest(ParticipantApp::class, 'Petreceri, anunțuri și bilete Dance Xplosion Academy.');
+        return $this->manifest(ParticipantApp::class, 'Petreceri, anunțuri și bilete '.Branding::name().'.');
     }
 
     public function participantIcon(int $size): Response
@@ -64,7 +65,7 @@ class PwaController extends Controller
      */
     public function participantServiceWorker(): Response
     {
-        return response(view('participant.sw', ['cache' => 'dxa-app-static-v1'])->render(), 200, [
+        return response(view('participant.sw', ['cache' => 'participant-static-v1', 'appName' => ParticipantApp::name()])->render(), 200, [
             'Content-Type' => 'application/javascript; charset=utf-8',
             'Cache-Control' => 'no-cache',
         ]);

@@ -15,7 +15,9 @@ use App\Services\Push\PushGateway;
 use App\Services\Push\WebPushGateway;
 use App\Services\Sms\AsciiSmsSender;
 use App\Services\Sms\CountingSmsSender;
+use App\Services\Sms\GuardedSmsSender;
 use App\Services\Sms\LogSmsSender;
+use App\Services\Sms\SmsoSmsSender;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
 use App\Support\PermissionGuard;
@@ -32,7 +34,15 @@ class AppServiceProvider extends ServiceProvider
     {
         // Implementare de dezvoltare (loghează SMS-urile în loc să le trimită).
         // Se înlocuiește cu un provider real când e ales.
-        $this->app->bind(SmsSender::class, fn () => new CountingSmsSender(new AsciiSmsSender(new LogSmsSender))); // DXA: runda 80 — numără SMS-urile lunii
+        // DXA: runda 81 — driverul vine din SMS_DRIVER (log | smso); GuardedSmsSender pune limitele anti-abuz, CountingSmsSender numără pentru facturare (runda 80).
+        $this->app->bind(SmsSender::class, function () {
+            $driver = match (config('sms.driver')) {
+                'smso' => new SmsoSmsSender((string) config('sms.smso.key'), (string) config('sms.smso.sender'), (int) config('sms.smso.timeout', 10), type: (string) config('sms.smso.type', 'transactional')),
+                default => new LogSmsSender,
+            };
+
+            return new CountingSmsSender(new GuardedSmsSender(new AsciiSmsSender($driver)));
+        });
         // DXA: adaugat (runda 51, runda 64). Plata online: Stripe dacă STRIPE_SECRET e setat, altfel pagina „plata cu cardul urmează”.
         $this->app->bind(PaymentGateway::class, fn () => filled(config('services.stripe.secret')) ? new StripeGateway : new PlaceholderGateway);
         // DXA: adaugat (runda 70). Notificări push (Web Push); testele leagă o implementare falsă.
@@ -76,8 +86,8 @@ class AppServiceProvider extends ServiceProvider
         Blade::if('permitsAction', fn (string $action) => (bool) auth('admin')->user()?->permitsAction($action));
 
         // Paginare custom (tema DXA) pentru toate listele.
-        Paginator::defaultView('pagination.dxa');
-        Paginator::defaultSimpleView('pagination.dxa');
+        Paginator::defaultView('pagination.custom');
+        Paginator::defaultSimpleView('pagination.custom');
 
         // DXA: adaugat (Recepție - tokeni): tokenii nu se pot opri cât mai sunt în circulație (se casează întâi).
         PaymentMethods::registerGuard(PaymentMethods::TOKEN, fn () => TokenLedger::offBlockReason(), 'token-ledger');

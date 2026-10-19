@@ -30,7 +30,7 @@ use Illuminate\Support\Str;
  *    contul lui (cu numele lui); altfel rămâne în contul cumpărătorului, fără nume (telefonul se păstrează).
  *  - Combo (runda 26): „3+1” = în fiecare set de 4 bilete de același tip, primele 3 se plătesc, al 4-lea e oferit (0 lei, bilet real cu
  *    stoc și QR, nu expiră, nu ocupă locuri din treptele „primele N”). Codul se aplică doar biletelor plătite. Nume/telefoane rămân opționale.
- *  - Fără plată online încă: comanda e „de plătit la intrare” (sau achitată, cu DXA_TICKETS_AUTO_PAID, ca simulare a plății cu cardul).
+ *  - Fără plată online încă: comanda e „de plătit la intrare” (sau achitată, cu TICKETS_AUTO_PAID, ca simulare a plății cu cardul).
  *    Runda 50: plata cu credite — integrală, din portofelul cumpărătorului, doar dacă soldul acoperă totalul; debitul se face în aceeași
  *    tranzacție cu comanda (sold verificat pe rândul blocat). Nu există anulare din aplicație.
  */
@@ -416,7 +416,7 @@ class TicketOrders
                 'discount_total' => $quote->discount,
                 'total' => $quote->total,
                 'discount_code_id' => $quote->code?->id,
-                'payment_status' => $card ? Order::PAY_CARD_PENDING : ($withCredits ? Order::PAY_CREDITS : (config('app.dxa_tickets_auto_paid') ? Order::PAY_PAID : Order::PAY_AT_ENTRY)),
+                'payment_status' => $card ? Order::PAY_CARD_PENDING : ($withCredits ? Order::PAY_CREDITS : (config('app.tickets_auto_paid') ? Order::PAY_PAID : Order::PAY_AT_ENTRY)),
                 'payment_expires_at' => $card ? now()->addMinutes(self::RESERVATION_MINUTES) : null,
                 'payment_provider' => $card ? 'stripe' : null,
             ]);

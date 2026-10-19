@@ -65,7 +65,7 @@ function r76Order(Participant $p): Order
         'payment_status' => Order::PAY_CARD_PENDING, 'payment_expires_at' => now()->subHour()]);
 }
 
-it('comanda dxa:expire-payments închide rezervările și încărcările expirate, nu pe cele încă valabile', function () {
+it('comanda app:expire-payments închide rezervările și încărcările expirate, nu pe cele încă valabile', function () {
     $p = r76Participant();
     $oldTopup = r76Topup($p, CreditTopup::PENDING, 60);
     $liveTopup = CreditTopup::create(['uuid' => (string) Str::uuid(), 'participant_id' => $p->id, 'amount' => 20, 'status' => CreditTopup::PENDING, 'expires_at' => now()->addMinutes(20)]);
@@ -79,7 +79,7 @@ it('comanda dxa:expire-payments închide rezervările și încărcările expirat
 });
 
 it('comanda e programată la 15 minute', function () {
-    $event = collect(app(Schedule::class)->events())->first(fn ($e) => str_contains((string) $e->command, 'dxa:expire-payments'));
+    $event = collect(app(Schedule::class)->events())->first(fn ($e) => str_contains((string) $e->command, 'app:expire-payments'));
 
     expect($event)->not->toBeNull()->and($event->expression)->toBe('*/15 * * * *');
 });

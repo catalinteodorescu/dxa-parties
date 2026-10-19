@@ -139,7 +139,7 @@ trait HandlesEntryForm
     }
 
     /**
-     * DXA: adaugat (runda 15). Scanarea la Recepție: QR de bilet (DXA:T:) sau QR personal (DXA:P:).
+     * DXA: adaugat (runda 15). Scanarea la Recepție: QR de bilet (EVT:T:) sau QR personal (EVT:P:).
      *  - bilet: se adaugă biletul (dacă e valabil și al acestei petreceri) și deținătorul lui devine participant;
      *  - personal: se alege participantul și se adaugă biletele lui valabile la petrecere (cumpărate de el sau pe numele lui).
      * Numărul de persoane crește ca să acopere biletele. Nu înregistrează nimic.

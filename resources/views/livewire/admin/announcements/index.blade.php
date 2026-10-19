@@ -198,7 +198,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $announcements->onEachSide(1)->links('pagination.dxa') }}
+        {{ $announcements->onEachSide(1)->links('pagination.custom') }}
     </div>
 
     {{-- Modal de confirmare --}}

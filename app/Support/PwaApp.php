@@ -24,7 +24,13 @@ abstract class PwaApp
     {
         $name = trim((string) Settings::get(static::KEY_NAME));
 
-        return $name !== '' ? $name : static::DEFAULT_NAME;
+        return $name !== '' ? $name : static::defaultName();
+    }
+
+    /** Numele implicit afișat cât timp nu s-a ales unul în Setări (aplicația participanților îl ia de la organizator). */
+    public static function defaultName(): string
+    {
+        return static::DEFAULT_NAME;
     }
 
     /** Cheia paletei alese pentru aplicație; dacă nu s-a ales nimic (sau e invalidă), tema panoului. */

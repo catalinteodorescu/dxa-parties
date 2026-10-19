@@ -3,8 +3,8 @@
     @if ($show && ! request()->routeIs('app.terms'))
         <div x-data="{
                 open: true,
-                init() { try { this.open = sessionStorage.getItem('dxa_terms_popup_closed') !== '1'; } catch (e) { this.open = true; } },
-                close() { this.open = false; try { sessionStorage.setItem('dxa_terms_popup_closed', '1'); } catch (e) {} },
+                init() { try { this.open = sessionStorage.getItem('app_terms_popup_closed') !== '1'; } catch (e) { this.open = true; } },
+                close() { this.open = false; try { sessionStorage.setItem('app_terms_popup_closed', '1'); } catch (e) {} },
             }" x-show="open" x-cloak class="pa-modal-bg" role="dialog" aria-modal="true" aria-label="Termeni și condiții" data-terms-banner>
             <div class="pa-modal pa-stack" style="gap: .9rem">
                 <div class="pa-between">

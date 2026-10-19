@@ -1,0 +1,18 @@
+# Șablon vhost nginx pentru o instalare. Înlocuiește __HOST__ (subdomeniul) și __DIR__ (ex. /var/www/clients/<slug>), apoi certbot pentru TLS.
+server {
+    listen 80;
+    server_name __HOST__;
+    root __DIR__/public;
+    index index.php;
+    client_max_body_size 12m;
+
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}

@@ -13,7 +13,7 @@
             await new Promise((res, rej) => { const s = document.createElement('script'); s.src = this.lib; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
         },
         async start() {
-            if (window.dxaSound) window.dxaSound.prime();
+            if (window.appSound) window.appSound.prime();
             this.open = true; this.ready = false; this.camErr = ''; this.busy = false; this.fb = null; this.last = '';
             try {
                 await this.load();
@@ -35,12 +35,12 @@
             this.busy = false;
             if (r.ok) {
                 this.fb = { ok: true, msg: 'Adăugat' };
-                if (window.dxaFeedback) window.dxaFeedback('ok');
+                if (window.appFeedback) window.appFeedback('ok');
                 this.timer = setTimeout(() => this.stop(), 1100);
                 return;
             }
             this.fb = { ok: false, msg: r.message }; this.fbStart();
-            if (window.dxaFeedback) window.dxaFeedback('error');
+            if (window.appFeedback) window.appFeedback('error');
         },
         fbStart() {
             clearInterval(this.fbTimer); this.prog = 0;

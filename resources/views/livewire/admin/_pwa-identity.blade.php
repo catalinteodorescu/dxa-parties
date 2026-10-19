@@ -1,6 +1,6 @@
 @php
     $card = 'rounded-2xl border border-border bg-surface p-5';
-    $shownName = trim($name) !== '' ? trim($name) : $pwa::DEFAULT_NAME;
+    $shownName = trim($name) !== '' ? trim($name) : $pwa::defaultName();
 @endphp
 {{-- DXA: adaugat (runda 23). Cardurile de identitate comune paginilor de setări ale aplicațiilor (Recepție, Bar, Participanți):
      nume + logo, temă, previzualizare. $iconOnly = tema colorează doar iconița (aplicația participanților își păstrează fundalul întunecat). --}}
@@ -8,9 +8,9 @@
         <div class="{{ $card }} space-y-5">
             <div>
                 <label for="app-name" class="block text-sm font-medium text-ink">Numele aplicației</label>
-                <input type="text" id="app-name" wire:model.live.debounce.300ms="name" maxlength="40" placeholder="{{ $pwa::DEFAULT_NAME }}"
+                <input type="text" id="app-name" wire:model.live.debounce.300ms="name" maxlength="40" placeholder="{{ $pwa::defaultName() }}"
                        class="mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-                <p class="mt-1.5 text-xs text-ink-soft">Apare în antet, sub iconița de pe ecranul telefonului și în titlul aplicației. Lasă gol pentru „{{ $pwa::DEFAULT_NAME }}”.</p>
+                <p class="mt-1.5 text-xs text-ink-soft">Apare în antet, sub iconița de pe ecranul telefonului și în titlul aplicației. Lasă gol pentru „{{ $pwa::defaultName() }}”.</p>
                 @error('name') <p class="mt-1.5 text-sm text-danger">{{ $message }}</p> @enderror
             </div>
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Participant;
 use App\Services\Push\Notifier;
+use App\Support\Branding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +45,7 @@ class PushController extends Controller
     {
         abort_unless(Notifier::enabled(), 404);
         $me = Auth::guard('participant')->user();
-        $n = Notifier::notify($me, 'test', 'test:'.Str::uuid(), 'Notificări active', 'Așa vei primi vești de la Dance Xplosion Academy.', '/cont');
+        $n = Notifier::notify($me, 'test', 'test:'.Str::uuid(), 'Notificări active', 'Așa vei primi vești de la '.Branding::name().'.', '/cont');
 
         return response()->json(['ok' => $n !== null], $n ? 200 : 409);
     }

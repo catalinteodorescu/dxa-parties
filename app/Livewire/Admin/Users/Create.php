@@ -7,7 +7,9 @@ use App\Livewire\Admin\Users\Concerns\EditsPermissions;
 use App\Models\Admin;
 use App\Services\ActivityLogger;
 use App\Services\Plan\PlanGate;
+use App\Support\Branding;
 use App\Support\Permissions;
+use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -81,7 +83,12 @@ class Create extends Component
             ['admin' => $admin->id]
         );
 
-        $sms->send($admin->phone, "Ai fost adăugat în echipa DXA. Completează-ți contul aici: {$url}");
+        $smsFailed = null;
+        try {
+            $sms->send($admin->phone, 'Ai fost adăugat în echipa '.Branding::name().". Completează-ți contul aici: {$url}");
+        } catch (DomainException $e) {
+            $smsFailed = $e->getMessage();   // runda 81: contul rămâne creat, dar invitația nu a plecat
+        }
 
         ActivityLogger::log('admin.created', 'A invitat un utilizator nou ('.$admin->phone.').', $admin);
 
@@ -89,7 +96,11 @@ class Create extends Component
             ActivityLogger::log('admin.permissions.updated', 'A setat permisiunile lui '.ActivityLogger::label($admin).': '.$summary.'.', $admin);
         }
 
-        session()->flash('status', 'Invitația a fost trimisă către '.$admin->phone.'.');
+        if ($smsFailed !== null) {
+            session()->flash('error', 'Contul a fost creat, dar invitația nu a plecat: '.$smsFailed);
+        } else {
+            session()->flash('status', 'Invitația a fost trimisă către '.$admin->phone.'.');
+        }
 
         $this->redirectRoute('admin.users.index', navigate: true);
     }

@@ -1,0 +1,84 @@
+# Politica de confidențialitate
+
+Ultima actualizare: {{date}}
+
+Această politică explică ce date personale prelucrăm când folosești aplicația {{app_name}} („Aplicația”), de ce, cât timp le păstrăm și ce drepturi ai. Respectăm Regulamentul (UE) 2016/679 (GDPR) și legislația română aplicabilă.
+
+# 1. Cine prelucrează datele tale
+
+Operatorul datelor tale este {{organizer_name}}, cu sediul în {{organizer_address}}, CUI {{organizer_cui}} („Organizatorul”, „noi”). Contact pentru orice întrebare despre date: {{organizer_email}}.
+
+Aplicația este administrată tehnic de SUPPINNO SRL, CUI 49666339, J32/410/2024, cu sediul în {{provider_address}}, care acționează ca persoană împuternicită de Organizator, doar pe baza instrucțiunilor acestuia și în baza unui acord de prelucrare a datelor. Contact SUPPINNO SRL: {{provider_contact}}.
+
+# 2. Ce date prelucrăm
+
+Datele pe care ni le dai tu:
+- nume și număr de telefon;
+- parola (păstrată doar sub formă criptată, nu o putem citi);
+- poza de profil, dacă alegi să o adaugi;
+- preferințele din Aplicație (petreceri salvate, notificări activate).
+
+Datele generate prin folosirea Aplicației:
+- biletele tale (cumpărate, primite sau trimise) și intrările înregistrate la scanare;
+- consumațiile și comenzile de la bar și plățile aferente;
+- creditele, ștampilele de loialitate și codurile de reducere folosite;
+- data ultimei activități în Aplicație, vizite și instalări (statistici proprii de utilizare);
+- abonarea telefonului la notificări (identificatorul tehnic oferit de browser), dacă o activezi;
+- date tehnice necesare funcționării și securității (de exemplu adresa IP și jurnale de acces).
+
+Nu primim datele cardului tău. Acestea sunt introduse direct la Stripe.
+
+Nu prelucrăm categorii speciale de date și nu luăm decizii bazate exclusiv pe prelucrare automată care să te afecteze semnificativ.
+
+# 3. De ce folosim datele și pe ce temei
+
+- Crearea și administrarea contului, verificarea telefonului, emiterea și validarea biletelor, intrarea la petreceri, plățile și funcțiile de credit și loialitate: pentru executarea contractului cu tine (art. 6 alin. 1 lit. b GDPR).
+- Evidența financiar-contabilă a plăților: obligație legală (art. 6 alin. 1 lit. c).
+- Securitatea Aplicației, prevenirea fraudei și a abuzurilor, jurnalul de activitate și statisticile agregate despre utilizare și petreceri: interes legitim al Organizatorului de a funcționa în siguranță și de a-și îmbunătăți serviciile (art. 6 alin. 1 lit. f). Te poți opune oricând, conform secțiunii 8.
+- Poza de profil și notificările push: consimțământul tău (art. 6 alin. 1 lit. a), pe care îl poți retrage oricând fără a afecta restul funcțiilor.
+- Fotografiile și filmările de la evenimente, folosite pentru promovare: interesul legitim al Organizatorului sau, acolo unde e cazul, consimțământul tău. Te poți opune scriind la {{organizer_email}}.
+
+# 4. Notificări
+
+Dacă activezi notificările, îți trimitem mesaje despre bilete, petreceri, plăți și anunțuri, prin serviciile push ale browserului sau ale sistemului tău. Le poți dezactiva oricând din Aplicație sau din setările telefonului. SMS-urile le folosim pentru verificarea telefonului și pentru mesaje strict legate de contul tău.
+
+# 5. Cui dăm datele
+
+Nu vindem datele tale. Le comunicăm doar celor de care avem nevoie pentru a-ți oferi serviciul:
+- SUPPINNO SRL, ca furnizor tehnic și de găzduire a Aplicației;
+- Stripe Payments Europe Ltd., pentru procesarea plăților cu cardul;
+- {{sms_provider}}, pentru trimiterea SMS-urilor de verificare și a mesajelor despre cont;
+- serviciile de notificări push ale browserelor și ale sistemelor de operare (de exemplu Apple, Google, Mozilla, Microsoft), dacă activezi notificările;
+- autorități publice, când legea o cere.
+
+Unii dintre acești furnizori pot prelucra date și în afara Spațiului Economic European. În acest caz, transferul se face doar cu garanții prevăzute de GDPR (de exemplu clauze contractuale standard sau decizii de adecvare).
+
+# 6. Cât timp păstrăm datele
+
+- Contul și datele asociate: cât timp contul este activ.
+- Datele de plată și documentele justificative: potrivit legii contabilității, de regulă 5 ani.
+- Jurnalul de activitate al Aplicației: 12 luni.
+- Codurile de verificare prin SMS: scurt timp, până la expirare.
+- După ștergerea contului: datele de identificare sunt eliminate, iar intrările și consumațiile rămân fără legătură cu tine, doar pentru statistici.
+
+Păstrăm datele mai mult doar dacă legea o cere sau dacă este necesar pentru apărarea unui drept în justiție.
+
+# 7. Securitate
+
+Luăm măsuri tehnice și organizatorice rezonabile: parole criptate, conexiune securizată, acces limitat al personalului pe bază de permisiuni și jurnal al acțiunilor. Nicio metodă de transmitere sau stocare nu este însă complet sigură. Dacă apare un incident care îți afectează datele într-un mod care implică un risc, te vom anunța și vom informa autoritatea, conform legii.
+
+# 8. Drepturile tale
+
+Ai dreptul la acces, rectificare, ștergere, restricționarea prelucrării, portabilitatea datelor, opoziție (în special față de prelucrările bazate pe interes legitim) și retragerea consimțământului.
+
+Din Aplicație poți să îți exporți datele și să îți ștergi contul. Pentru orice altă cerere scrie-ne la {{organizer_email}}. Răspundem în cel mult o lună.
+
+Dacă consideri că ți-am încălcat drepturile, poți depune o plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP), B-dul G-ral Gheorghe Magheru nr. 28-30, sector 1, București, dataprotection.ro, fără a-ți afecta dreptul de a te adresa instanței.
+
+# 9. Stocare pe dispozitiv
+
+Aplicația folosește cookie-uri și stocare locală strict necesare: păstrarea sesiunii tale, securitatea și funcționarea aplicației instalate pe ecranul principal. Nu folosim cookie-uri de publicitate sau de urmărire de la terți.
+
+# 10. Modificări ale politicii
+
+Putem actualiza această politică. Versiunea în vigoare este cea publicată în Aplicație, cu data actualizării. Când modificările sunt importante, te informăm în Aplicație.

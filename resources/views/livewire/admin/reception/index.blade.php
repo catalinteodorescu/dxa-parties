@@ -149,7 +149,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $paginator->onEachSide(1)->links('pagination.dxa') }}
+        {{ $paginator->onEachSide(1)->links('pagination.custom') }}
     </div>
 
     {{-- Popup: anulare grup (motiv obligatoriu) --}}

@@ -3,8 +3,10 @@
 namespace App\Livewire\Admin\Legal;
 
 use App\Models\TermsVersion;
+use App\Services\LegalTemplates;
 use App\Services\Terms;
 use DomainException;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -25,6 +27,20 @@ class TermsPanel extends Component
     public function mount(): void
     {
         $this->body = Terms::current()?->body ?? Terms::sample();
+    }
+
+    /** Datele organizatorului s-au schimbat: completează câmpurile rămase `{{...}}` fără să strice textul scris de mână. */
+    #[On('organizer-saved')]
+    public function refillFields(): void
+    {
+        $this->body = LegalTemplates::fill($this->body);
+    }
+
+    /** Pornește din nou de la modelul implicit (pierde modificările necomise din câmp). */
+    public function reloadModel(): void
+    {
+        $this->error = $this->message = '';
+        $this->body = LegalTemplates::rendered('terms');
     }
 
     public function publish(): void

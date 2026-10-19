@@ -124,7 +124,7 @@
             <h3 class="text-sm font-semibold text-ink">Program pe zile</h3>
 
             @if ($guestNames->isNotEmpty())
-                <datalist id="dxa-guest-names">
+                <datalist id="app-guest-names">
                     @foreach ($guestNames as $gn)
                         <option value="{{ $gn }}"></option>
                     @endforeach
@@ -160,7 +160,7 @@
                                     </div>
                                     <input type="text" wire:model="days.{{ $di }}.program.{{ $pi }}.title" placeholder="Titlu (ex. Workshop Bachata Sensual)" class="{{ $in }}">
                                     <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
-                                        <input type="text" list="dxa-guest-names" wire:model="days.{{ $di }}.program.{{ $pi }}.guest" placeholder="Invitat (opțional)" class="{{ $in }}">
+                                        <input type="text" list="app-guest-names" wire:model="days.{{ $di }}.program.{{ $pi }}.guest" placeholder="Invitat (opțional)" class="{{ $in }}">
                                         <input type="text" wire:model="days.{{ $di }}.program.{{ $pi }}.room" placeholder="Sală (opțional)" class="{{ $in }}">
                                         <button type="button" wire:click="removeProgramItem({{ $di }}, {{ $pi }})" class="h-[42px] w-10 inline-flex items-center justify-center rounded-lg border border-border text-ink-soft hover:border-danger hover:text-danger shrink-0" title="Elimină">
                                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>

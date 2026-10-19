@@ -33,10 +33,17 @@
             <p class="mt-1 text-sm text-ink-soft">Fiecare SMS plecat din aplicație se numără (activări, resetări de parolă, invitații, bilete trimise). Cota e „moale”: peste ea SMS-urile pleacă în continuare, iar depășirea se facturează lunar, la prețul din plan.</p>
         </div>
 
-        <dl class="grid gap-3 sm:grid-cols-4">
+        @if ($smsCredit !== null)
+            <p class="text-sm {{ $smsCredit < (float) config('sms.smso.low_credit') ? 'text-danger font-medium' : 'text-ink-soft' }}" data-sms-credit>
+                Credit SMSO rămas (contul comun, toate instalările): <strong>{{ number_format($smsCredit, 2, ',', '.') }}</strong>{{ $smsCredit < (float) config('sms.smso.low_credit') ? ' — alimentează contul, altfel SMS-urile nu mai pleacă la niciun client.' : '' }}
+            </p>
+        @endif
+
+        <dl class="grid gap-3 sm:grid-cols-5">
             <div class="rounded-xl border border-border p-3"><dt class="text-xs text-ink-soft">Trimise luna aceasta</dt><dd class="mt-0.5 text-xl font-semibold text-ink" data-sms-sent>{{ $sms['sent'] }}</dd></div>
             <div class="rounded-xl border border-border p-3"><dt class="text-xs text-ink-soft">Incluse în plan</dt><dd class="mt-0.5 text-xl font-semibold text-ink">{{ $sms['included'] ?? 'nelimitat' }}</dd></div>
             <div class="rounded-xl border border-border p-3"><dt class="text-xs text-ink-soft">Peste cotă</dt><dd class="mt-0.5 text-xl font-semibold {{ $sms['overage'] > 0 ? 'text-warning' : 'text-ink' }}" data-sms-overage>{{ $sms['overage'] }}</dd></div>
+            <div class="rounded-xl border border-border p-3"><dt class="text-xs text-ink-soft">Cost furnizor (real)</dt><dd class="mt-0.5 text-xl font-semibold text-ink" data-sms-cost>{{ number_format($sms['cost'], 2, ',', '.') }} €</dd></div>
             <div class="rounded-xl border border-border p-3"><dt class="text-xs text-ink-soft">De facturat (fără TVA)</dt><dd class="mt-0.5 text-xl font-semibold text-ink" data-sms-amount>{{ number_format($sms['amount'], 2, ',', '.') }} €</dd></div>
         </dl>
 
@@ -48,6 +55,7 @@
                         <th class="py-2 px-3 font-semibold text-right">Trimise</th>
                         <th class="py-2 px-3 font-semibold text-right">Incluse</th>
                         <th class="py-2 px-3 font-semibold text-right">Peste cotă</th>
+                        <th class="py-2 px-3 font-semibold text-right">Cost furnizor</th>
                         <th class="py-2 pl-3 font-semibold text-right">De facturat</th>
                     </tr>
                 </thead>
@@ -58,6 +66,7 @@
                             <td class="py-2 px-3 text-right">{{ $row['sent'] }}</td>
                             <td class="py-2 px-3 text-right">{{ $row['included'] ?? '—' }}</td>
                             <td class="py-2 px-3 text-right">{{ $row['overage'] }}</td>
+                            <td class="py-2 px-3 text-right">{{ number_format($row['cost'], 2, ',', '.') }} €</td>
                             <td class="py-2 pl-3 text-right">{{ number_format($row['amount'], 2, ',', '.') }} €</td>
                         </tr>
                     @endforeach

@@ -8,8 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// DXA: adaugat (runda 70). Notificările push programate; cron-ul serverului rulează `php artisan schedule:run` (sau direct `dxa:push-run`) la 15 minute.
-Schedule::command('dxa:push-run')->everyFifteenMinutes()->withoutOverlapping();
+// DXA: adaugat (runda 70). Notificările push programate; cron-ul serverului rulează `php artisan schedule:run` (sau direct `app:push-run`) la 15 minute.
+Schedule::command('app:push-run')->everyFifteenMinutes()->withoutOverlapping();
 
 // DXA: adaugat (runda 76). Plățile cu cardul rămase în așteptare după expirare se închid singure (altfel s-ar închide abia la următoarea comandă).
-Schedule::command('dxa:expire-payments')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('app:expire-payments')->everyFifteenMinutes()->withoutOverlapping();

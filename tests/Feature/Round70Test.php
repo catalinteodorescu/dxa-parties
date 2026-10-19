@@ -125,12 +125,12 @@ it('cheile VAPID generate au mărimea corectă și comanda refuză să le supras
     config(['services.push.public_key' => '', 'services.push.private_key' => '']);
     if (! openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC])) {
         // openssl fără generare EC (PHP wasm din mediul de test): comanda cade controlat, nu cu o eroare PHP
-        expect(fn () => Artisan::call('dxa:push-keys'))->toThrow(RuntimeException::class);
+        expect(fn () => Artisan::call('app:push-keys'))->toThrow(RuntimeException::class);
     } else {
-        expect(Artisan::call('dxa:push-keys'))->toBe(0)->and(Artisan::output())->toContain('VAPID_PUBLIC_KEY=')->toContain('VAPID_PRIVATE_KEY=');
+        expect(Artisan::call('app:push-keys'))->toBe(0)->and(Artisan::output())->toContain('VAPID_PUBLIC_KEY=')->toContain('VAPID_PRIVATE_KEY=');
     }
     r70Gateway();
-    expect(Artisan::call('dxa:push-keys'))->toBe(1);
+    expect(Artisan::call('app:push-keys'))->toBe(1);
 });
 
 // ---- Abonări și livrare -----------------------------------------------------------------------------------------------
@@ -160,7 +160,7 @@ it('fără chei VAPID, abonarea și notificările nu fac nimic', function () {
     $ana = r70User('Ana Fără', '0722700333');
     $this->actingAs($ana, 'participant')->postJson('/notificari/abonare', ['endpoint' => 'https://push.example.com/x'])->assertNotFound();
     expect(Notifier::notify($ana, 'test', 'k', 'T', 'B'))->toBeNull();
-    expect(Artisan::call('dxa:push-run'))->toBe(0)->and(Artisan::output())->toContain('nu e configurat');
+    expect(Artisan::call('app:push-run'))->toBe(0)->and(Artisan::output())->toContain('nu e configurat');
 });
 
 it('notificarea se trimite o dată per cheie, pe fiecare telefon, iar abonările moarte (410) se șterg', function () {
@@ -375,7 +375,7 @@ it('comanda programată rulează tot și notează ultima rulare; ștergerea cont
     Carbon::setTestNow(Carbon::parse('2026-10-01 12:00:00'));
     $ana = r70User('Ana Rulare', '0722700921');
     r70Party();
-    expect(Artisan::call('dxa:push-run'))->toBe(0)->and(Artisan::output())->toContain('party_new=1');
+    expect(Artisan::call('app:push-run'))->toBe(0)->and(Artisan::output())->toContain('party_new=1');
     expect(Settings::get('push_last_run'))->toBe('2026-10-01 12:00:00');
 
     ParticipantRegistry::anonymize($ana);

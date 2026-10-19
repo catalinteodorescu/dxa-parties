@@ -169,7 +169,7 @@
                 @endforeach
             </div>
             <div class="mt-3">
-                {{ $transactions->onEachSide(1)->links('pagination.dxa') }}
+                {{ $transactions->onEachSide(1)->links('pagination.custom') }}
             </div>
         @endif
     </div>

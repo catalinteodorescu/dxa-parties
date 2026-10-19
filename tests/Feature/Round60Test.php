@@ -189,7 +189,7 @@ it('popup-ul de acceptare se închide doar din X (fără închidere la click pe 
 
     $html = $this->get('/bilete')->assertOk()->getContent();
     expect($html)->toContain('data-terms-banner')->toContain('data-terms-close');
-    $start = strpos($html, 'dxa_terms_popup_closed') - 200;
+    $start = strpos($html, 'app_terms_popup_closed') - 200;
     $banner = substr($html, $start, strpos($html, 'data-terms-accept', $start) - $start);
     expect($banner)->not->toContain('click.self')->and($banner)->toContain('sessionStorage');
 

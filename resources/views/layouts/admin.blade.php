@@ -653,7 +653,7 @@
 
     {{-- Runda 68: după o salvare cu erori, derulează la primul câmp invalid (evenimentul vine din ScrollsToFirstError). --}}
     <script>
-        window.addEventListener('dxa-scroll-error', () => {
+        window.addEventListener('app-scroll-error', () => {
             setTimeout(() => {
                 const err = document.querySelector('main p.text-danger, form p.text-danger');
                 if (!err) { return; }
