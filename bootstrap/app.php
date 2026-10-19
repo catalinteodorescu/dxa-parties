@@ -6,6 +6,9 @@ use App\Http\Middleware\EnsureAdminHasAccess;
 use App\Http\Middleware\EnsureAdminHasPermission;
 use App\Http\Middleware\EnsureAdminIsActive;
 use App\Http\Middleware\EnsureAdminPhoneIsSetUp;
+use App\Http\Middleware\EnsureAppPlan;
+use App\Http\Middleware\EnsureOwner;
+use App\Http\Middleware\EnsurePlanAllows;
 use App\Http\Middleware\TouchParticipantActivity;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
@@ -53,6 +56,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.active' => EnsureAdminIsActive::class,
             'admin.access' => EnsureAdminHasAccess::class, // DXA: adaugat (Utilizatori - acces pe aplicație)
             'admin.worker' => ApplyAppWorker::class, // DXA: adaugat (runda 73 - lucrătorul activ pe aplicație)
+            'plan' => EnsurePlanAllows::class, // DXA: adaugat (runda 79 - planuri)
+            'plan.app' => EnsureAppPlan::class, // DXA: adaugat (runda 80 - planuri în aplicații)
+            'owner' => EnsureOwner::class, // DXA: adaugat (runda 79 - pagina proprietarului)
             'admin.can' => EnsureAdminHasPermission::class, // DXA: adaugat (runda 46 - permisiuni)
             'participant.active' => TouchParticipantActivity::class, // DXA: adaugat (runda 52)
         ]);

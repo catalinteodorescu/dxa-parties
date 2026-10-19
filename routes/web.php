@@ -27,40 +27,41 @@ use App\Livewire\Admin\Loyalty\Cards as LoyaltyCardsPage;
 use App\Livewire\Admin\MenuItems\Categories as MenuCategoriesPage;          // DXA: adaugat (Card de fidelitate - pagina Carduri)
 use App\Livewire\Admin\MenuItems\Form as MenuItemForm;
 use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
-use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;
-use App\Livewire\Admin\Participants\Index as ParticipantsIndex;          // DXA: adaugat (Meniu bar - produse)
-use App\Livewire\Admin\Participants\Show as ParticipantsShow;         // DXA: adaugat (Petreceri)
-use App\Livewire\Admin\Participants\Stats as ParticipantsStats;     // DXA: adaugat (Petreceri)
-use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;   // DXA: adaugat (Participanți - statistici)
-use App\Livewire\Admin\Parties\Form as PartyForm;       // DXA: adaugat (Petreceri - view single)
-use App\Livewire\Admin\Parties\Index as PartiesIndex;
-use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage;     // DXA: adaugat (Petreceri - statistici)
-use App\Livewire\Admin\Parties\Show as PartiesShow; // DXA: adaugat (Petreceri - statistici agregate)
-use App\Livewire\Admin\Parties\Stats as PartiesStats;
-use App\Livewire\Admin\Promoters\Index as PromotersIndex; // DXA: adaugat (Coduri de reducere - promotori)
-use App\Livewire\Admin\Push\Index as PushIndex; // DXA: adaugat (Setari)
-use App\Livewire\Admin\Reception\Form as ReceptionForm;
-use App\Livewire\Admin\Reception\Index as ReceptionIndex;       // DXA: adaugat (Bar - raportari)
-use App\Livewire\Admin\Reception\Stats as ReceptionStatsPage;  // DXA: adaugat (Receptie - statistici agregate)
-use App\Livewire\Admin\Reception\Tokens as ReceptionTokens;    // DXA: adaugat (runda 23)
-use App\Livewire\Admin\ReceptionApp\AppSettings as ReceptionAppSettings;    // DXA: adaugat (Bar - raportari)
-use App\Livewire\Admin\ReceptionReports\Form as ReceptionReportForm;      // DXA: adaugat (Participanți)
-use App\Livewire\Admin\ReceptionReports\Index as ReceptionReportsIndex;        // DXA: adaugat (Participanți)
-use App\Livewire\Admin\Reconciliation\Index as ReconciliationIndex;              // DXA: adaugat (Recepție - intrări = adăugare)
-use App\Livewire\Admin\ResetPassword;            // DXA: adaugat (Recepție - intrări = listă)
-use App\Livewire\Admin\Sales\Form as SaleForm;          // DXA: adaugat (Recepție - tokeni)
-use App\Livewire\Admin\Sales\Index as SalesIndex;    // DXA: adaugat (Recepție - raportări)
-use App\Livewire\Admin\Settings\Index as SettingsIndex; // DXA: adaugat (Recepție - raportări)
-use App\Livewire\Admin\SetupPhone;                         // DXA: adaugat (Bar - vanzari)
-use App\Livewire\Admin\StockReports\Form as StockReportForm;                      // DXA: adaugat (Bar - vanzari)
-use App\Livewire\Admin\StockReports\Index as StockReportsIndex;   // DXA: adaugat (Bar - necesare)
-use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm; // DXA: adaugat (Bar - necesare)
-use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex; // DXA: adaugat (Bar - stocuri)
+use App\Livewire\Admin\Owner\Index;
+use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;          // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\Participants\Index as ParticipantsIndex;         // DXA: adaugat (Petreceri)
+use App\Livewire\Admin\Participants\Show as ParticipantsShow;     // DXA: adaugat (Petreceri)
+use App\Livewire\Admin\Participants\Stats as ParticipantsStats;   // DXA: adaugat (Participanți - statistici)
+use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;       // DXA: adaugat (Petreceri - view single)
+use App\Livewire\Admin\Parties\Form as PartyForm;
+use App\Livewire\Admin\Parties\Index as PartiesIndex;     // DXA: adaugat (Petreceri - statistici)
+use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage; // DXA: adaugat (Petreceri - statistici agregate)
+use App\Livewire\Admin\Parties\Show as PartiesShow;
+use App\Livewire\Admin\Parties\Stats as PartiesStats; // DXA: adaugat (Coduri de reducere - promotori)
+use App\Livewire\Admin\Promoters\Index as PromotersIndex; // DXA: adaugat (Setari)
+use App\Livewire\Admin\Push\Index as PushIndex;
+use App\Livewire\Admin\Reception\Form as ReceptionForm;       // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\Reception\Index as ReceptionIndex;  // DXA: adaugat (Receptie - statistici agregate)
+use App\Livewire\Admin\Reception\Stats as ReceptionStatsPage;    // DXA: adaugat (runda 23)
+use App\Livewire\Admin\Reception\Tokens as ReceptionTokens;    // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\ReceptionApp\AppSettings as ReceptionAppSettings;      // DXA: adaugat (Participanți)
+use App\Livewire\Admin\ReceptionReports\Form as ReceptionReportForm;        // DXA: adaugat (Participanți)
+use App\Livewire\Admin\ReceptionReports\Index as ReceptionReportsIndex;              // DXA: adaugat (Recepție - intrări = adăugare)
+use App\Livewire\Admin\Reconciliation\Index as ReconciliationIndex;            // DXA: adaugat (Recepție - intrări = listă)
+use App\Livewire\Admin\ResetPassword;          // DXA: adaugat (Recepție - tokeni)
+use App\Livewire\Admin\Sales\Form as SaleForm;    // DXA: adaugat (Recepție - raportări)
+use App\Livewire\Admin\Sales\Index as SalesIndex; // DXA: adaugat (Recepție - raportări)
+use App\Livewire\Admin\Settings\Index as SettingsIndex;                         // DXA: adaugat (Bar - vanzari)
+use App\Livewire\Admin\SetupPhone;                      // DXA: adaugat (Bar - vanzari)
+use App\Livewire\Admin\StockReports\Form as StockReportForm;   // DXA: adaugat (Bar - necesare)
+use App\Livewire\Admin\StockReports\Index as StockReportsIndex; // DXA: adaugat (Bar - necesare)
+use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm; // DXA: adaugat (Bar - stocuri)
+use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex;
 use App\Livewire\Admin\Stocks\Index as StockItemsIndex;
 use App\Livewire\Admin\Tickets\Index as TicketsIndex;
 use App\Livewire\Admin\Tickets\Show as TicketsShow;
-use App\Livewire\Admin\Users\Create as UsersCreate;
-use App\Livewire\Admin\Users\Index as UsersIndex; // DXA: adaugat (PWA Bar)
+use App\Livewire\Admin\Users\Create as UsersCreate; // DXA: adaugat (PWA Bar)
+use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Admin\Users\Permissions as UsersPermissions;
 use App\Livewire\Bar\Home as BarHome;
 use App\Livewire\Bar\Login as BarLogin;
@@ -78,8 +79,8 @@ use App\Livewire\Participant\ForgotPassword as ParticipantForgotPassword;
 use App\Livewire\Participant\History as ParticipantHistory;
 use App\Livewire\Participant\Home as ParticipantHome;
 use App\Livewire\Participant\Login as ParticipantLogin;
-use App\Livewire\Participant\Parties as ParticipantParties;
-use App\Livewire\Participant\PartyShow as ParticipantPartyShow; // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\Parties as ParticipantParties; // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\PartyShow as ParticipantPartyShow;
 use App\Livewire\Participant\Privacy;
 use App\Livewire\Participant\Register as ParticipantRegister;
 use App\Livewire\Participant\ResetPassword as ParticipantResetPassword;
@@ -87,8 +88,8 @@ use App\Livewire\Participant\Terms;
 use App\Livewire\Participant\TicketLink as ParticipantTicketLink;
 use App\Livewire\Participant\TicketPay as ParticipantTicketPay;
 use App\Livewire\Participant\Tickets as ParticipantTickets;
-use App\Livewire\Participant\TicketShortLink as ParticipantTicketShortLink;
-use App\Livewire\Participant\Topup as ParticipantTopup; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\TicketShortLink as ParticipantTicketShortLink; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
+use App\Livewire\Participant\Topup as ParticipantTopup;
 use App\Livewire\Participant\TopupPay as ParticipantTopupPay;
 use App\Livewire\Participant\Verify as ParticipantVerify;
 use App\Livewire\Participant\Wallet as ParticipantWallet;
@@ -104,6 +105,7 @@ use App\Livewire\Reception\TokenSale as ReceptieTokenSale;
 use App\Models\Participant;
 use App\Services\AccountExport;
 use App\Services\ActivityLogger;
+use App\Support\Features;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -130,6 +132,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware('admin.phone_setup')->group(function () {
             Route::get('/', Dashboard::class)->name('dashboard');
 
+            // DXA: runda 79 — pagina „disponibil în Pro” (către ea duce lacătul din meniu)
+            Route::get('/disponibil-in-pro/{feature}', function (string $feature) {
+                abort_unless(Features::exists($feature), 404);
+
+                return view('errors.plan-locked', ['feature' => $feature]);
+            })->name('plan-locked');
+
+            // DXA: runda 79 — pagina proprietarului (planuri, licență, limite). Orice alt cont primește 404.
+            Route::get('/proprietar', Index::class)->middleware('owner')->name('owner.index');
+
             Route::get('/users', UsersIndex::class)->middleware('admin.can:users,view')->name('users.index');
             Route::get('/users/create', UsersCreate::class)->middleware('admin.can:users,edit')->name('users.create');
             Route::get('/users/{admin}/permissions', UsersPermissions::class)->middleware('admin.can:users,edit')->name('users.permissions'); // DXA: adaugat (runda 46)
@@ -142,7 +154,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/parties', PartiesIndex::class)->middleware('admin.can:parties,view')->name('parties.index');
             Route::get('/parties/create', PartyForm::class)->middleware('admin.can:parties,edit')->name('parties.create');
             // 'overview' inainte de '{party}' (ca la /participants/stats), altfel ruta cu wildcard il inghite.
-            Route::get('/parties/overview', PartiesOverviewPage::class)->middleware('admin.can:party_stats,view')->name('parties.overview'); // DXA: adaugat (statistici agregate)
+            Route::get('/parties/overview', PartiesOverviewPage::class)->middleware('admin.can:party_stats,view')->middleware('plan:parties_overview')->name('parties.overview'); // DXA: adaugat (statistici agregate)
             Route::get('/parties/{party}/edit', PartyForm::class)->middleware('admin.can:parties,edit')->name('parties.edit');
             Route::get('/parties/{party}', PartiesShow::class)->middleware('admin.can:parties,view')->name('parties.show'); // DXA: adaugat
             Route::get('/parties/{party}/stats', PartiesStats::class)->middleware('admin.can:party_stats,view')->name('parties.stats'); // DXA: adaugat (statistici)
@@ -155,7 +167,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/menu/items/create', MenuItemForm::class)->middleware('admin.can:menu,edit')->name('menu-items.create');
             Route::get('/menu/items/{menuItem}/edit', MenuItemForm::class)->middleware('admin.can:menu,edit')->name('menu-items.edit');
 
-            Route::get('/notificari-push', PushIndex::class)->middleware('admin.can:settings,view,manage_notifications')->name('push.index'); // DXA: adaugat (runda 70)
+            Route::get('/notificari-push', PushIndex::class)->middleware('admin.can:settings,view,manage_notifications')->middleware('plan:push_participants')->name('push.index'); // DXA: adaugat (runda 70)
             Route::get('/legal', LegalIndex::class)->middleware('admin.can:legal,view')->name('legal.index'); // DXA: adaugat (runda 68)
             Route::get('/logs', LogsIndex::class)->middleware('admin.can:logs,view')->name('logs.index');
 
@@ -170,7 +182,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // DXA: adaugat (Bar - vanzari)
             // DXA: adaugat (Participanți)
             Route::get('/participants', ParticipantsIndex::class)->middleware('admin.can:participants,view')->name('participants.index');
-            Route::get('/participants/stats', ParticipantsStats::class)->middleware('admin.can:participants,view')->name('participants.stats'); // DXA: adaugat (Participanți - statistici)
+            Route::get('/participants/stats', ParticipantsStats::class)->middleware('admin.can:participants,view')->middleware('plan:participants_stats')->name('participants.stats'); // DXA: adaugat (Participanți - statistici)
             Route::get('/participants/{participant}', ParticipantsShow::class)->middleware('admin.can:participants,view')->name('participants.show');
             // DXA: adaugat (Aplicația participanților - runda 12). Poza de profil a unui participant, pentru lista din admin (discul e privat).
             Route::get('/participants/{participant}/poza', function (Participant $participant) {
@@ -184,7 +196,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             // DXA: adaugat (Credite - pagina Credite, doar afișare, pe modelul paginii Carduri)
             Route::get('/credits', CreditsIndex::class)->middleware('admin.can:credits,view')->name('credits.index');
-            Route::get('/credits/topups', CreditsTopups::class)->middleware('admin.can:credits,view')->name('credits.topups'); // DXA: runda 76
+            Route::get('/credits/topups', CreditsTopups::class)->middleware('admin.can:credits,view')->middleware('plan:credit_topups')->name('credits.topups'); // DXA: runda 76
             Route::get('/tickets', TicketsIndex::class)->middleware('admin.can:tickets,view')->name('tickets.index'); // DXA: adaugat (runda 66)
             Route::get('/tickets/{ticket}', TicketsShow::class)->middleware('admin.can:tickets,view')->name('tickets.show');
 
@@ -195,9 +207,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/reception', ReceptionIndex::class)->middleware('admin.can:reception,view')->name('reception.index');
             Route::get('/reception/create', ReceptionForm::class)->middleware('admin.can:reception,edit')->name('reception.create');
             Route::get('/reception/tokens', ReceptionTokens::class)->middleware('admin.can:reception_tokens,view')->name('reception.tokens'); // DXA: adaugat (tokeni)
-            Route::get('/settings/reception-app', ReceptionAppSettings::class)->middleware('admin.can:settings,view')->name('settings.reception-app'); // DXA: adaugat (PWA Recepție - setări aplicație)
-            Route::get('/settings/participant-app', ParticipantAppSettingsPage::class)->middleware('admin.can:settings,view')->name('settings.participant-app'); // DXA: adaugat (runda 23 — setări aplicație participanți)
-            Route::get('/settings/bar-app', BarAppSettings::class)->middleware('admin.can:settings,view')->name('settings.bar-app'); // DXA: adaugat (PWA Bar - setări aplicație)
+            Route::get('/settings/reception-app', ReceptionAppSettings::class)->middleware(['admin.can:settings,view', 'plan:app_reception'])->name('settings.reception-app'); // DXA: adaugat (PWA Recepție - setări aplicație)
+            Route::get('/settings/participant-app', ParticipantAppSettingsPage::class)->middleware(['admin.can:settings,view', 'plan:app_participant'])->name('settings.participant-app'); // DXA: adaugat (runda 23 — setări aplicație participanți)
+            Route::get('/settings/bar-app', BarAppSettings::class)->middleware(['admin.can:settings,view', 'plan:app_bar'])->name('settings.bar-app'); // DXA: adaugat (PWA Bar - setări aplicație)
             // DXA: adaugat (Recepție - raportări = închiderea casei)
             Route::get('/reception/reports', ReceptionReportsIndex::class)->middleware('admin.can:reception_reports,view')->name('reception.reports.index');
             Route::get('/reception/reports/{report}', ReceptionReportForm::class)->middleware('admin.can:reception_reports,view')->name('reception.reports.show');
@@ -239,7 +251,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 // DXA: adaugat (PWA Recepție). Aplicația de recepție, pe subcale (/receptie), cu manifest + service worker propriu,
 // login propriu (același cont ca în admin) și acces doar cu bifa „Aplicație recepție" (admin.access:reception).
-Route::prefix('receptie')->middleware('admin.zone:reception')->name('receptie.')->group(function () {
+Route::prefix('receptie')->middleware(['admin.zone:reception', 'plan.app:app_reception'])->name('receptie.')->group(function () {
     Route::get('/manifest.webmanifest', [PwaController::class, 'receptionManifest'])->name('manifest');
     Route::get('/sw.js', [PwaController::class, 'receptionServiceWorker'])->name('sw');
     Route::get('/icon/{size}.png', [PwaController::class, 'receptionIcon'])->whereNumber('size')->name('icon');
@@ -249,12 +261,12 @@ Route::prefix('receptie')->middleware('admin.zone:reception')->name('receptie.')
     Route::middleware(['auth:admin', 'admin.active', 'admin.access:reception', 'admin.worker:reception'])->group(function () {
         Route::get('/', ReceptieHome::class)->name('home');
         Route::get('/petrecere', ReceptiePartyPicker::class)->name('party');
-        Route::get('/intrare', ReceptieEntry::class)->name('entry');
-        Route::get('/tokeni', ReceptieTokenSale::class)->name('tokens');
-        Route::get('/credite', ReceptieCreditSale::class)->name('credits');
-        Route::get('/tranzactii', ReceptieRecent::class)->name('recent');
-        Route::get('/rezumat', ReceptieSummary::class)->name('summary'); // DXA: runda 72
-        Route::get('/raportare', ReceptieReport::class)->name('report');
+        Route::get('/intrare', ReceptieEntry::class)->middleware('plan.app:reception_entries')->name('entry');
+        Route::get('/tokeni', ReceptieTokenSale::class)->middleware('plan.app:reception_tokens')->name('tokens');
+        Route::get('/credite', ReceptieCreditSale::class)->middleware('plan.app:credits')->name('credits');
+        Route::get('/tranzactii', ReceptieRecent::class)->middleware('plan.app:reception_entries')->name('recent');
+        Route::get('/rezumat', ReceptieSummary::class)->middleware('plan.app:reception_reports')->name('summary'); // DXA: runda 72
+        Route::get('/raportare', ReceptieReport::class)->middleware('plan.app:reception_reports')->name('report');
         Route::post('/notificari/abonare', [StaffPushController::class, 'subscribe'])->defaults('app', 'reception')->middleware('throttle:30,1')->name('push.subscribe'); // DXA: runda 77
         Route::post('/notificari/dezabonare', [StaffPushController::class, 'unsubscribe'])->defaults('app', 'reception')->name('push.unsubscribe');
         Route::post('/notificari/test', [StaffPushController::class, 'test'])->defaults('app', 'reception')->middleware('throttle:10,1')->name('push.test');
@@ -264,7 +276,7 @@ Route::prefix('receptie')->middleware('admin.zone:reception')->name('receptie.')
 
 // DXA: adaugat (PWA Bar). Aplicația de bar, pe subcale (/bar), cu manifest + service worker propriu, login propriu
 // (același cont ca în admin) și acces doar cu bifa „Aplicație bar" (admin.access:bar).
-Route::prefix('bar')->middleware('admin.zone:bar')->name('bar.')->group(function () {
+Route::prefix('bar')->middleware(['admin.zone:bar', 'plan.app:app_bar'])->name('bar.')->group(function () {
     Route::get('/manifest.webmanifest', [PwaController::class, 'barManifest'])->name('manifest');
     Route::get('/sw.js', [PwaController::class, 'barServiceWorker'])->name('sw');
     Route::get('/icon/{size}.png', [PwaController::class, 'barIcon'])->whereNumber('size')->name('icon');
@@ -274,10 +286,10 @@ Route::prefix('bar')->middleware('admin.zone:bar')->name('bar.')->group(function
     Route::middleware(['auth:admin', 'admin.active', 'admin.access:bar', 'admin.worker:bar'])->group(function () {
         Route::get('/', BarHome::class)->name('home');
         Route::get('/petrecere', BarPartyPicker::class)->name('party');
-        Route::get('/vanzare', BarSale::class)->name('sale');
-        Route::get('/vanzari', BarRecent::class)->name('recent');
-        Route::get('/rezumat', BarSummaryPage::class)->name('summary'); // DXA: runda 72
-        Route::get('/raportare', BarReportPage::class)->name('report');
+        Route::get('/vanzare', BarSale::class)->middleware('plan.app:bar_sales')->name('sale');
+        Route::get('/vanzari', BarRecent::class)->middleware('plan.app:bar_sales')->name('recent');
+        Route::get('/rezumat', BarSummaryPage::class)->middleware('plan.app:bar_reports')->name('summary'); // DXA: runda 72
+        Route::get('/raportare', BarReportPage::class)->middleware('plan.app:bar_reports')->name('report');
         Route::post('/notificari/abonare', [StaffPushController::class, 'subscribe'])->defaults('app', 'bar')->middleware('throttle:30,1')->name('push.subscribe'); // DXA: runda 77
         Route::post('/notificari/dezabonare', [StaffPushController::class, 'unsubscribe'])->defaults('app', 'bar')->name('push.unsubscribe');
         Route::post('/notificari/test', [StaffPushController::class, 'test'])->defaults('app', 'bar')->middleware('throttle:10,1')->name('push.test');
@@ -303,7 +315,7 @@ Route::post('/sesiune/logout', function (Request $request) {
 // DXA: adaugat (Aplicația participanților - runda 1). PWA în rădăcina domeniului: partea publică (Acasă, Petreceri) fără cont,
 // login / înregistrare cu SMS / resetare parolă și contul (guard `participant`, separat de admin). Rutele cu cuvinte fixe
 // (/petreceri, /intra ...) nu se ating cu /admin, /receptie, /bar; service worker-ul (scope „/”) ignoră explicit acele zone.
-Route::name('app.')->group(function () {
+Route::name('app.')->middleware('plan.app:app_participant')->group(function () {
     Route::get('/manifest.webmanifest', [PwaController::class, 'participantManifest'])->name('manifest');
     Route::get('/sw.js', [PwaController::class, 'participantServiceWorker'])->name('sw');
     Route::get('/icon/{size}.png', [PwaController::class, 'participantIcon'])->whereNumber('size')->name('icon');
@@ -315,8 +327,8 @@ Route::name('app.')->group(function () {
     Route::get('/termeni', Terms::class)->name('terms'); // DXA: adaugat (runda 60)
     Route::get('/confidentialitate', Privacy::class)->name('privacy'); // DXA: adaugat (runda 68)
     Route::get('/petreceri', ParticipantParties::class)->name('parties');
-    Route::get('/anunturi', ParticipantAnnouncements::class)->name('announcements');
-    Route::get('/anunturi/{announcement}', ParticipantAnnouncementShow::class)->name('announcement');
+    Route::get('/anunturi', ParticipantAnnouncements::class)->middleware('plan.app:announcements')->name('announcements');
+    Route::get('/anunturi/{announcement}', ParticipantAnnouncementShow::class)->middleware('plan.app:announcements')->name('announcement');
     Route::get('/petreceri/{party}', ParticipantPartyShow::class)->name('party');
     Route::get('/petreceri/{party}/calendar.ics', [PartyCalendarController::class, 'show'])->name('party.calendar'); // DXA: adaugat (runda 41)
 
@@ -351,11 +363,11 @@ Route::name('app.')->group(function () {
         Route::get('/bilete', ParticipantTickets::class)->name('tickets');
         Route::get('/bilete/toate', ParticipantHistory::class)->defaults('kind', 'tickets')->name('tickets.all');
         Route::get('/bilete/plata/{order}', ParticipantTicketPay::class)->name('tickets.pay'); // DXA: adaugat (runda 65)
-        Route::get('/portofel', ParticipantWallet::class)->name('wallet');
-        Route::get('/portofel/incarcari', ParticipantHistory::class)->defaults('kind', 'credits')->name('wallet.all');
+        Route::get('/portofel', ParticipantWallet::class)->middleware('plan.app:credits')->name('wallet');
+        Route::get('/portofel/incarcari', ParticipantHistory::class)->defaults('kind', 'credits')->middleware('plan.app:credits')->name('wallet.all');
         // DXA: adaugat (runda 51/51b). Încărcarea de credite: pagina de alegere a sumei + confirmare, apoi (fără plată simulată) pagina de plată, loc rezervat până la Stripe.
-        Route::get('/portofel/incarca', ParticipantTopup::class)->name('wallet.load');
-        Route::get('/portofel/incarca/{topup}', ParticipantTopupPay::class)->name('wallet.topup');
+        Route::get('/portofel/incarca', ParticipantTopup::class)->middleware('plan.app:credits,credit_topups')->name('wallet.load');
+        Route::get('/portofel/incarca/{topup}', ParticipantTopupPay::class)->middleware('plan.app:credits,credit_topups')->name('wallet.topup');
         Route::get('/cont/intrari', ParticipantHistory::class)->defaults('kind', 'entries')->name('entries.all');
         Route::get('/cont/consumatii', ParticipantHistory::class)->defaults('kind', 'bar')->name('bar.all');
         Route::get('/cont/poza', function () {

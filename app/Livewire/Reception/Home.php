@@ -4,6 +4,7 @@ namespace App\Livewire\Reception;
 
 use App\Livewire\Reception\Concerns\UsesReceptionParty;
 use App\Models\ReceptionSession;
+use App\Services\Plan\PlanGate;
 use App\Services\ReceptionSummary;
 use App\Support\PaymentMethods;
 use Livewire\Attributes\Layout;
@@ -32,6 +33,12 @@ class Home extends Component
             'collected' => $summary ? round(array_sum($summary->methods), 2) : 0.0,
             'tokensSellable' => PaymentMethods::tokensSellable(),
             'creditsSellable' => PaymentMethods::creditsPurchasable(),
+            // DXA: runda 80 — dalele din meniu urmează planul instalării
+            'can' => [
+                'entry' => PlanGate::allows('reception_entries'),
+                'tokens' => PlanGate::allows('reception_tokens'),
+                'reports' => PlanGate::allows('reception_reports'),
+            ],
         ]);
     }
 }

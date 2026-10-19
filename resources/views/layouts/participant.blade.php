@@ -14,6 +14,10 @@
             ['app.tickets', 'Bilete', ['app.tickets', 'app.tickets.all'], '<path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 1 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/><path d="M13 5v2M13 11v2M13 17v2"/>'],
             ['app.wallet', 'Portofel', ['app.wallet', 'app.wallet.all'], '<path d="M19 7V5a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>'],
         ];
+        // DXA: runda 80 — fără funcția „Credite” în plan, nu există portofel
+        if (! \App\Services\Plan\PlanGate::allows('credits')) {
+            $tabs = array_values(array_filter($tabs, fn ($t) => $t[0] !== 'app.wallet'));
+        }
     @endphp
     <div class="pa-shell">
         <header class="pa-top">

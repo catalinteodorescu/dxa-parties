@@ -14,9 +14,8 @@
 <link rel="icon" type="image/png" href="{{ asset('images/favicon-32.png') }}" sizes="32x32">
 <link rel="apple-touch-icon" href="{{ $pwa::iconUrl(180) }}">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preload" href="{{ asset('fonts/manrope-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{ asset('fonts/manrope.css') }}">
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @include('layouts.partials-participant-styles')

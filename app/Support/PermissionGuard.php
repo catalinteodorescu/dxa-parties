@@ -93,6 +93,7 @@ final class PermissionGuard
         'ForgotPassword',
         'Invite\\Complete',
         'Login',
+        'Owner\\Index', // runda 79: păzită de rol (owner), nu de secțiune
         'ResetPassword',
         'SetupPhone',
     ];

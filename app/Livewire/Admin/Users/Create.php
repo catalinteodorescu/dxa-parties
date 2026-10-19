@@ -6,6 +6,7 @@ use App\Contracts\SmsSender;
 use App\Livewire\Admin\Users\Concerns\EditsPermissions;
 use App\Models\Admin;
 use App\Services\ActivityLogger;
+use App\Services\Plan\PlanGate;
 use App\Support\Permissions;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
@@ -49,6 +50,13 @@ class Create extends Component
         ], [
             'phone.regex' => 'Numărul trebuie să fie de forma 07XXXXXXXX.',
         ]);
+
+        // DXA: runda 79 — limita de conturi a planului (un cont nou e „admin”)
+        if (! PlanGate::canAddAccount('admin')) {
+            $this->addError('phone', PlanGate::limitMessage('admin'));
+
+            return;
+        }
 
         if (! $this->accessAdmin && ! $this->accessBar && ! $this->accessReception) {
             $this->addError('accessAdmin', 'Alege cel puțin o aplicație.');

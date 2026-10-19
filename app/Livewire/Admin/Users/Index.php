@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Users;
 
 use App\Models\Admin;
 use App\Services\ActivityLogger;
+use App\Services\Plan\PlanGate;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -18,6 +19,7 @@ class Index extends Component
     private function authorizeFor(Admin $current, ?Admin $target, string $level): void
     {
         abort_unless($current->permits('users', $level), 403);
+        abort_if($target && $target->isOwner(), 404); // proprietarul nu e vizibil clientului (runda 79)
         abort_if($target && $target->isSuperAdmin() && ! $current->isSuperAdmin(), 403);
     }
 
@@ -34,6 +36,14 @@ class Index extends Component
         }
 
         $target = Admin::findOrFail($adminId);
+
+        // runda 79: limita de conturi a planului (la activare)
+        if ($active && ! $target->is_active && ! PlanGate::canAddAccount($target->role)) {
+            session()->flash('error', PlanGate::limitMessage($target->role));
+
+            return;
+        }
+
         $target->update(['is_active' => $active]);
 
         ActivityLogger::log(
@@ -59,6 +69,15 @@ class Index extends Component
         }
 
         $target = Admin::findOrFail($adminId);
+        abort_if($target->isOwner(), 404);
+
+        // runda 79: limita de conturi a planului (rolul nou are propria limită)
+        if ($target->is_active && $target->role !== $role && ! PlanGate::canAddAccount($role)) {
+            session()->flash('error', PlanGate::limitMessage($role));
+
+            return;
+        }
+
         $target->update(['role' => $role]);
 
         ActivityLogger::log(
@@ -161,7 +180,7 @@ class Index extends Component
     public function render()
     {
         return view('livewire.admin.users.index', [
-            'admins' => Admin::orderBy('name')->paginate(15),
+            'admins' => Admin::withoutOwner()->orderBy('name')->paginate(15),
             'currentAdmin' => Auth::guard('admin')->user(),
         ]);
     }

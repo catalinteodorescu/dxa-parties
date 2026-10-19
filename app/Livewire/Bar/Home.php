@@ -5,6 +5,7 @@ namespace App\Livewire\Bar;
 use App\Livewire\Bar\Concerns\UsesBarParty;
 use App\Models\SalesGroup;
 use App\Services\BarSummary;
+use App\Services\Plan\PlanGate;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -27,6 +28,11 @@ class Home extends Component
             'group' => $group,
             'reportSubmitted' => $group?->reportSubmitted() ?? false,
             'summary' => $group ? BarSummary::for($group) : null,
+            // DXA: runda 80 — dalele din meniu urmează planul instalării
+            'can' => [
+                'sale' => PlanGate::allows('bar_sales'),
+                'reports' => PlanGate::allows('bar_reports'),
+            ],
         ]);
     }
 }

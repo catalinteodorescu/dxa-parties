@@ -6,6 +6,7 @@ use App\Models\Participant;
 use App\Models\PushDelivery;
 use App\Models\PushNotification;
 use App\Models\PushSubscription;
+use App\Services\Plan\PlanGate;
 use App\Support\Settings\Settings;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -30,7 +31,7 @@ class Notifier
 
     public static function enabled(): bool
     {
-        return Vapid::configured();
+        return Vapid::configured() && PlanGate::allows('push_participants');   // DXA: runda 80 — și planul
     }
 
     /**

@@ -1553,7 +1553,7 @@ class Form extends Component
 
     public function render()
     {
-        $admins = Admin::orderBy('name')->get();
+        $admins = Admin::withoutOwner()->orderBy('name')->get();
 
         $contactOptions = ['' => 'Altul (completez manual)'];
         foreach ($admins as $a) {

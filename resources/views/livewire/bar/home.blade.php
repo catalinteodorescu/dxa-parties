@@ -24,6 +24,7 @@
 
         {{-- Acțiuni --}}
         <div class="space-y-2.5">
+            @if ($can['sale'])
             <a href="{{ route('bar.sale') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-primary-soft text-primary flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"/><path d="M12 11v11"/><path d="m19 3-7 8-7-8Z"/></svg>
@@ -31,9 +32,11 @@
                 <span class="flex-1"><span class="block text-base font-semibold text-ink">Vânzare</span><span class="block text-xs text-ink-soft">Produse, participant, plată</span></span>
                 <span class="text-ink-soft">›</span>
             </a>
+            @endif
 
             <hr class="!my-5 border-border">
 
+            @if ($can['sale'])
             <a href="{{ route('bar.recent') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
@@ -41,7 +44,9 @@
                 <span class="flex-1"><span class="block text-base font-semibold text-ink">Vânzări recente</span><span class="block text-xs text-ink-soft">Vezi bonurile, anulează o greșeală</span></span>
                 <span class="text-ink-soft">›</span>
             </a>
+            @endif
 
+            @if ($can['reports'])
             <a href="{{ route('bar.summary') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg>
@@ -49,7 +54,9 @@
                 <span class="flex-1"><span class="block text-base font-semibold text-ink">Rezumat</span><span class="block text-xs text-ink-soft">Vânzări, plăți cu credite, stoc consumat</span></span>
                 <span class="text-ink-soft">›</span>
             </a>
+            @endif
 
+            @if ($can['reports'])
             <a href="{{ route('bar.report') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/></svg>
@@ -57,6 +64,7 @@
                 <span class="flex-1"><span class="block text-base font-semibold text-ink">Raportare</span><span class="block text-xs text-ink-soft">{{ $reportSubmitted ? 'Trimisă, așteaptă adminul' : 'Numără casa și trimite raportul' }}</span></span>
                 <span class="text-ink-soft">›</span>
             </a>
+            @endif
         </div>
 
         {{-- Rezumat sesiune --}}

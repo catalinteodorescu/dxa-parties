@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\PushDelivery;
 use App\Models\PushNotification;
 use App\Models\PushSubscription;
+use App\Services\Plan\PlanGate;
 use App\Support\Settings\Settings;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
@@ -61,7 +62,7 @@ class StaffNotifier
 
     public static function enabled(): bool
     {
-        return Notifier::enabled();
+        return Vapid::configured() && PlanGate::allows('push_staff');   // DXA: runda 80 — funcție separată în plan
     }
 
     public static function typeEnabled(string $kind): bool

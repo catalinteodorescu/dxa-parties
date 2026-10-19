@@ -97,6 +97,7 @@
                 <div class="pa-soft" style="font-size: .82rem">Primul bilet e pe numele tău.</div>
 
                 {{-- Cod de reducere: buton care deschide formularul (deschis din start dacă e aplicat sau are eroare) --}}
+                @if (\App\Services\DiscountCodes::available())   {{-- DXA: runda 80: câmpul dispare fără funcția „Promotori și coduri” --}}
                 <div x-data="{ o: {{ $appliedCode || $codeError ? 'true' : 'false' }} }">
                     <button type="button" class="pa-link" style="font-size: .9rem; font-weight: 800" @click="o = ! o" :aria-expanded="o">Ai un cod de reducere? <span x-text="o ? '▲' : '▼'">▼</span></button>
                     <div x-show="o" x-cloak style="margin-top: .5rem">
@@ -115,6 +116,7 @@
                         @if ($codeError) <p class="pa-err">{{ $codeError }}</p> @endif
                     </div>
                 </div>
+                @endif
 
                 {{-- Sumar --}}
                 @if ($quote)

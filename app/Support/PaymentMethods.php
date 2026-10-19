@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Party;
 use App\Models\PaymentMethod;
 use App\Services\ActivityLogger;
+use App\Services\Plan\PlanGate;
 use App\Support\Settings\Settings;
 use Closure;
 use DomainException;
@@ -74,6 +75,10 @@ class PaymentMethods
     {
         $out = [];
         foreach (self::all() as $m) {
+            // DXA: runda 80 — fără funcția „Credite” în plan, metoda credit nu se mai acceptă nicăieri
+            if ($m->key === self::CREDIT && ! PlanGate::allows('credits')) {
+                continue;
+            }
             if ($m->isEnabled()) {
                 $out[$m->key] = $m->label;
             }
@@ -116,12 +121,12 @@ class PaymentMethods
     /** Tokenii se pot vinde la recepție doar în starea „Activ". */
     public static function tokensSellable(): bool
     {
-        return self::tokenMode() === self::TOKEN_ACTIVE;
+        return PlanGate::allows('reception_tokens') && self::tokenMode() === self::TOKEN_ACTIVE;
     }
 
     public static function creditsPurchasable(): bool
     {
-        return self::isEnabled(self::CREDIT) && (bool) Settings::get('credits_purchasable');
+        return PlanGate::allows('credit_topups') && self::isEnabled(self::CREDIT) && (bool) Settings::get('credits_purchasable');
     }
 
     // ---- Petrecere -------------------------------------------------------

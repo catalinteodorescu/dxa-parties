@@ -26,6 +26,7 @@
         <div class="space-y-2.5">
             <livewire:reception.quick-scan />
 
+            @if ($can['entry'])
             <a href="{{ route('receptie.entry') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-primary-soft text-primary flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
@@ -33,6 +34,7 @@
                 <span class="flex-1"><span class="block text-base font-semibold text-ink">Intrare</span><span class="block text-xs text-ink-soft">Bilete, plată, participant</span></span>
                 <span class="text-ink-soft">›</span>
             </a>
+            @endif
 
             @if ($tokensSellable)
                 <a href="{{ route('receptie.tokens') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
@@ -56,6 +58,7 @@
 
             <hr class="!my-5 border-border">
 
+            @if ($can['entry'])
             <a href="{{ route('receptie.recent') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
@@ -63,7 +66,9 @@
                 <span class="flex-1"><span class="block text-base font-semibold text-ink">Tranzacții</span><span class="block text-xs text-ink-soft">Vezi și anulează, cât sesiunea e deschisă</span></span>
                 <span class="text-ink-soft">›</span>
             </a>
+            @endif
 
+            @if ($can['reports'])
             <a href="{{ route('receptie.summary') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg>
@@ -71,7 +76,9 @@
                 <span class="flex-1"><span class="block text-base font-semibold text-ink">Rezumat</span><span class="block text-xs text-ink-soft">Intrări, încasări, tokeni și credite</span></span>
                 <span class="text-ink-soft">›</span>
             </a>
+            @endif
 
+            @if ($can['reports'])
             <a href="{{ route('receptie.report') }}" wire:navigate class="{{ $tile }} hover:bg-bg">
                 <span class="w-11 h-11 rounded-xl bg-bg text-ink-soft flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 18v-1"/><path d="M12 18v-6"/><path d="M16 18v-3"/></svg>
@@ -79,6 +86,7 @@
                 <span class="flex-1"><span class="block text-base font-semibold text-ink">Raportare</span><span class="block text-xs text-ink-soft">{{ $reportSubmitted ? 'Trimisă, așteaptă adminul' : 'Numără casa și trimite raportul' }}</span></span>
                 <span class="text-ink-soft">›</span>
             </a>
+            @endif
         </div>
 
         {{-- Rezumat sesiune --}}

@@ -6,6 +6,7 @@ use App\Contracts\SmsSender;
 use App\Models\Participant;
 use App\Models\Ticket;
 use App\Models\TicketTransfer;
+use App\Services\Plan\PlanGate;
 use App\Services\Push\Events;
 use App\Support\ParticipantAppSettings;
 use App\Support\Phone;
@@ -31,8 +32,18 @@ class TicketTransfers
 {
     public const MAX_PER_HOUR = 10;
 
+    /** DXA: runda 80 — „Trimiterea biletului altcuiva” e funcție de plan: fără ea nu apare butonul și trimiterea e refuzată. */
+    public static function enabled(): bool
+    {
+        return PlanGate::allows('ticket_sending');
+    }
+
     public static function canSend(Ticket $ticket, Participant $me): bool
     {
+        if (! self::enabled()) {
+            return false;
+        }
+
         // Runda 55: se trimite orice bilet aflat în contul meu (liber, pe numele meu sau primit de la altcineva).
         return (int) $ticket->owner_participant_id === (int) $me->id
             && $ticket->status === Ticket::VALID
@@ -64,6 +75,10 @@ class TicketTransfers
      */
     public static function send(int $ticketId, Participant $from, string $phone, SmsSender $sms): array
     {
+        if (! self::enabled()) {
+            throw new DomainException('Trimiterea biletelor nu este disponibilă.');
+        }
+
         $key = 'ticket-transfer:'.$from->id;
         if (RateLimiter::tooManyAttempts($key, self::MAX_PER_HOUR)) {
             throw new DomainException('Ai trimis prea multe bilete într-o oră. Încearcă din nou mai târziu.');

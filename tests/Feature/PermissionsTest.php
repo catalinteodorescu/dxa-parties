@@ -143,12 +143,12 @@ it('PDF-ul de raport cere și bifa „Export PDF”', function () {
 
 it('toate rutele panoului au o permisiune sau sunt scutite explicit', function () {
     $exempt = ['admin.login', 'admin.forgot-password', 'admin.invite.complete', 'admin.reset-password', 'admin.setup-phone',
-        'admin.dashboard', 'admin.account.edit', 'admin.logout'];
+        'admin.dashboard', 'admin.account.edit', 'admin.logout', 'admin.plan-locked'];
 
     $unguarded = collect(Route::getRoutes()->getRoutes())
         ->filter(fn ($r) => str_starts_with((string) $r->getName(), 'admin.') && ! in_array($r->getName(), $exempt, true))
         ->filter(fn ($r) => in_array('auth:admin', $r->gatherMiddleware(), true))
-        ->reject(fn ($r) => collect($r->gatherMiddleware())->contains(fn ($m) => is_string($m) && str_starts_with($m, 'admin.can:')))
+        ->reject(fn ($r) => collect($r->gatherMiddleware())->contains(fn ($m) => is_string($m) && (str_starts_with($m, 'admin.can:') || $m === 'owner')))
         ->map(fn ($r) => $r->getName())->values()->all();
 
     expect($unguarded)->toBe([]);

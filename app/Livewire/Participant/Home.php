@@ -5,6 +5,7 @@ namespace App\Livewire\Participant;
 use App\Livewire\Concerns\TogglesPartyInterest;
 use App\Models\Announcement;
 use App\Models\Party;
+use App\Services\Plan\PlanGate;
 use App\Support\ParticipantAppSettings;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -21,15 +22,16 @@ class Home extends Component
     public function render()
     {
         $audience = auth('participant')->check() ? 'auth' : 'all';
+        $annOn = PlanGate::allows('announcements');   // DXA: runda 80 — fără funcția „Anunțuri” dispar din carusel și din listă
 
         $carousel = collect()
             ->concat(Party::query()->visible($audience)->where('in_carousel', true)->limit(5)->get()->map(fn (Party $p) => ['kind' => 'party', 'model' => $p]))
-            ->concat(Announcement::query()->visible($audience)->where('in_carousel', true)->limit(5)->get()->map(fn (Announcement $a) => ['kind' => 'announcement', 'model' => $a]));
+            ->concat(! $annOn ? [] : Announcement::query()->visible($audience)->where('in_carousel', true)->limit(5)->get()->map(fn (Announcement $a) => ['kind' => 'announcement', 'model' => $a]));
 
         return view('livewire.participant.home', [
             'savedIds' => $this->savedIds(),
             'carousel' => $carousel->values(),
-            'announcements' => ParticipantAppSettings::homeAnnouncements() > 0
+            'announcements' => $annOn && ParticipantAppSettings::homeAnnouncements() > 0
                 ? Announcement::query()->visible($audience)->where('in_list', true)->limit(ParticipantAppSettings::homeAnnouncements())->get()
                 : collect(),
             'eyebrow' => ParticipantAppSettings::homeEyebrow(),

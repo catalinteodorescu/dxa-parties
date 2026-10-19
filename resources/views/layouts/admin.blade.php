@@ -9,9 +9,8 @@
     <link rel="icon" type="image/png" href="{{ asset('images/favicon-32.png') }}" sizes="32x32">
     <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" href="{{ asset('fonts/manrope-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ asset('fonts/manrope.css') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <x-theme-style />
@@ -22,6 +21,7 @@
     @php
         $me = auth('admin')->user();
         $can = fn (string $section, string $level = 'view') => $me ? $me->permits($section, $level) : false;
+        $locked = fn (string $section) => $me ? $me->lockedByPlan($section) : false; // runda 79: blocat doar de plan → lacăt
     @endphp
 
     <div x-data="{ sidebarOpen: false }" class="min-h-screen md:flex">
@@ -107,6 +107,8 @@
                             </svg>
                             Statistici
                         </a>
+                        @elseif ($locked('party_stats'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'party_stats'])
                         @endif
 
                         {{-- DXA: adaugat (Bilanțul serii) --}}
@@ -117,6 +119,8 @@
                             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
                             Bilanțul serii
                         </a>
+                        @elseif ($locked('reconciliation'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'reconciliation'])
                         @endif
 
                         {{-- DXA: adaugat (Coduri de reducere - promotori) --}}
@@ -127,6 +131,8 @@
                             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
                             Promotori
                         </a>
+                        @elseif ($locked('promoters'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'promoters'])
                         @endif
                     </div>
                 </div>
@@ -225,6 +231,8 @@
                             </svg>
                             Stocuri
                         </a>
+                        @elseif ($locked('stocks'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'stocks'])
                         @endif
 
                         {{-- DXA: adaugat (Bar - necesare) --}}
@@ -237,6 +245,8 @@
                             </svg>
                             Necesare
                         </a>
+                        @elseif ($locked('requisitions'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'requisitions'])
                         @endif
 
                         {{-- DXA: adaugat (Bar - raportari) --}}
@@ -250,6 +260,8 @@
                             Raportări stoc
                             @if (($staleN = \App\Models\SalesGroup::staleOpen()->count()) > 0)<span class="ml-auto"><x-tip text="{{ $staleN }} {{ $staleN === 1 ? 'sesiune de bar deschisă' : 'sesiuni de bar deschise' }} de peste 12 ore. Intră aici, la „Sesiuni deschise”, și apasă „Adu în raportare” ca s-o închizi."><span data-stale-badge class="inline-flex min-w-[1.25rem] justify-center rounded-full bg-danger text-white text-[11px] font-semibold px-1.5 py-0.5">{{ $staleN }}</span></x-tip></span>@endif
                         </a>
+                        @elseif ($locked('stock_reports'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'stock_reports'])
                         @endif
 
                         {{-- DXA: adaugat (Bar - raportări casă) --}}
@@ -273,6 +285,8 @@
                             </svg>
                             Statistici
                         </a>
+                        @elseif ($locked('bar_stats'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'bar_stats'])
                         @endif
                     </div>
                 </div>
@@ -349,6 +363,8 @@
                             </svg>
                             Statistici
                         </a>
+                        @elseif ($locked('reception_stats'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'reception_stats'])
                         @endif
                     </div>
                 </div>
@@ -411,7 +427,9 @@
                                 </svg>
                                 Credite
                             </a>
-                            @endif
+                            @elseif ($locked('credits'))
+                        @include('layouts.partials.plan-lock-item', ['section' => 'credits'])
+                        @endif
                         @endif
 
                         {{-- DXA: adaugat (runda 66): lista biletelor cumpărate din aplicație. --}}
@@ -426,7 +444,7 @@
                         </a>
                         @endif
 
-                        @if ($can('participants', 'view'))
+                        @if ($can('participants', 'view') && $me->planAllows('participants_stats'))
                         <a href="{{ route('admin.participants.stats') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.participants.stats') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -435,6 +453,8 @@
                             </svg>
                             Statistici
                         </a>
+                        @elseif ($can('participants', 'view'))
+                        @include('layouts.partials.plan-lock-item', ['feature' => 'participants_stats', 'label' => 'Statistici'])
                         @endif
                     </div>
                 </div>
@@ -543,7 +563,7 @@
                         @endif
 
                         {{-- DXA: adaugat (PWA Recepție - setări aplicație): temă, nume, logo --}}
-                        @if ($can('settings', 'view'))
+                        @if ($can('settings', 'view') && $me->planAllows('app_reception'))
                         <a href="{{ route('admin.settings.reception-app') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.settings.reception-app') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -555,7 +575,7 @@
                         @endif
 
                         {{-- DXA: adaugat (PWA Bar - setări aplicație): nume, logo, temă --}}
-                        @if ($can('settings', 'view'))
+                        @if ($can('settings', 'view') && $me->planAllows('app_bar'))
                         <a href="{{ route('admin.settings.bar-app') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.settings.bar-app') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -567,7 +587,7 @@
                         @endif
 
                         {{-- DXA: adaugat (runda 23 — setări aplicație participanți): identitate, texte, conturi, contact, legal, SMS --}}
-                        @if ($can('settings', 'view'))
+                        @if ($can('settings', 'view') && $me->planAllows('app_participant'))
                         <a href="{{ route('admin.settings.participant-app') }}" wire:navigate @click="sidebarOpen = false"
                            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
                                   {{ request()->routeIs('admin.settings.participant-app') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
@@ -578,6 +598,18 @@
                         </a>
                         @endif
                     </div>
+                </div>
+                @endif
+
+                {{-- DXA: runda 79 — doar proprietarul (furnizorul aplicației) vede linkul spre planuri și licență --}}
+                @if ($me && $me->isOwner())
+                <div class="pt-4">
+                    <a href="{{ route('admin.owner.index') }}" wire:navigate @click="sidebarOpen = false" data-owner-link
+                       class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+                              {{ request()->routeIs('admin.owner.*') ? 'bg-primary-soft text-primary' : 'text-ink-soft hover:bg-bg' }}">
+                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+                        Proprietar
+                    </a>
                 </div>
                 @endif
 

@@ -45,6 +45,12 @@ class DashboardSections
     /** DXA: runda 75 — secțiunile care, când apar prima dată (fără ordine salvată), se pun SUS, nu la final. */
     public const PINNED_TOP = ['alerts'];
 
+    /** DXA: runda 79 — secțiunea de dashboard => funcționalitatea de plan de care depinde (planul fără ea nu o arată). */
+    public const PLAN_FEATURES = [
+        'alerts' => 'dashboard_alerts',
+        'app' => 'dashboard_app',
+    ];
+
     public const SETTING = 'dashboard_sections';
 
     /**
@@ -88,6 +94,10 @@ class DashboardSections
 
                 // Un cont real: vezi secțiunea doar dacă ai acces la măcar o pagină din ea (runda 46).
                 if ($viewer instanceof Admin) {
+                    if (isset(self::PLAN_FEATURES[$s['key']]) && ! $viewer->planAllows(self::PLAN_FEATURES[$s['key']])) {
+                        return false;
+                    }
+
                     return $viewer->permitsAny(...(self::PERMISSIONS[$s['key']] ?? []));
                 }
 

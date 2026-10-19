@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Party;
 use App\Models\PartyDiscountCode;
 use App\Models\PartyEntry;
+use App\Services\Plan\PlanGate;
 use DomainException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -32,8 +33,18 @@ class DiscountCodes
         return mb_strtoupper(preg_replace('/\s+/u', '', (string) $code));
     }
 
+    /** DXA: runda 80 — codurile de reducere fac parte din „Promotori și coduri”; fără funcție, câmpul dispare și codurile nu se mai aplică. */
+    public static function available(): bool
+    {
+        return PlanGate::allows('promoters');
+    }
+
     public static function find(Party $party, ?string $code): ?PartyDiscountCode
     {
+        if (! self::available()) {
+            return null;
+        }
+
         $code = self::normalize($code);
         if ($code === '') {
             return null;

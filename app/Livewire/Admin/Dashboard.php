@@ -227,8 +227,8 @@ class Dashboard extends Component
             'draftCount' => Announcement::where('status', 'draft')->count(),
             'latestList' => $latestList,
             'latest' => $latestList->first(),
-            'adminsActive' => Admin::withAccess(Admin::APP_ADMIN)->where('is_active', true)->count(),
-            'adminsTotal' => Admin::withAccess(Admin::APP_ADMIN)->count(),
+            'adminsActive' => Admin::withoutOwner()->withAccess(Admin::APP_ADMIN)->where('is_active', true)->count(),
+            'adminsTotal' => Admin::withoutOwner()->withAccess(Admin::APP_ADMIN)->count(),
             'alerts' => in_array('alerts', $activeSections, true) ? DashboardAlerts::for($admin) : collect(), // DXA: runda 75
             'appStats' => in_array('app', $activeSections, true) ? AppDashboard::stats() : null, // DXA: runda 75
             'currentAdmin' => Auth::guard('admin')->user(),

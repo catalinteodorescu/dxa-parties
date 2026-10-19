@@ -10,9 +10,11 @@ use App\Services\CreditLedger;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\PlaceholderGateway;
 use App\Services\Payments\StripeGateway;
+use App\Services\Plan\PlanGate;
 use App\Services\Push\PushGateway;
 use App\Services\Push\WebPushGateway;
 use App\Services\Sms\AsciiSmsSender;
+use App\Services\Sms\CountingSmsSender;
 use App\Services\Sms\LogSmsSender;
 use App\Services\TokenLedger;
 use App\Support\PaymentMethods;
@@ -30,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Implementare de dezvoltare (loghează SMS-urile în loc să le trimită).
         // Se înlocuiește cu un provider real când e ales.
-        $this->app->bind(SmsSender::class, fn () => new AsciiSmsSender(new LogSmsSender));
+        $this->app->bind(SmsSender::class, fn () => new CountingSmsSender(new AsciiSmsSender(new LogSmsSender))); // DXA: runda 80 — numără SMS-urile lunii
         // DXA: adaugat (runda 51, runda 64). Plata online: Stripe dacă STRIPE_SECRET e setat, altfel pagina „plata cu cardul urmează”.
         $this->app->bind(PaymentGateway::class, fn () => filled(config('services.stripe.secret')) ? new StripeGateway : new PlaceholderGateway);
         // DXA: adaugat (runda 70). Notificări push (Web Push); testele leagă o implementare falsă.
@@ -39,6 +41,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        PlanGate::flush(); // DXA: runda 79 — starea planului se citește din nou la fiecare pornire (cerere / test)
+
         // În spatele unui proxy/tunel care oprește HTTPS (Cloudflare, load balancer) cererea ajunge la aplicație ca HTTP
         // și linkurile (CSS/JS, Livewire) ies cu http:// → blocate ca „mixed content”. Dacă APP_URL e HTTPS, forțăm HTTPS.
         if (str_starts_with((string) config('app.url'), 'https://')) {

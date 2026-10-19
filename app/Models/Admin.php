@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\Plan\PlanGate;
+use App\Support\Features;
 use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -74,14 +76,46 @@ class Admin extends Authenticatable
         ];
     }
 
+    /** Superadmin-ul și proprietarul au drepturi depline în panou (proprietarul trece și peste planul instalării). */
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'superadmin';
+        return in_array($this->role, ['superadmin', 'owner'], true);
+    }
+
+    /** DXA: runda 79. Proprietarul instalării (furnizorul): ascuns din liste, nu intră în limitele de conturi, vede pagina de proprietar. */
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    /** Conturile vizibile clientului (fără proprietar). */
+    public function scopeWithoutOwner(Builder $query): Builder
+    {
+        return $query->where('role', '!=', 'owner');
+    }
+
+    /** Planul instalării permite funcția? Proprietarul trece mereu. */
+    public function planAllows(string $feature): bool
+    {
+        return $this->isOwner() || PlanGate::allows($feature);
+    }
+
+    /** Secțiunea e blocată doar de plan (contul ar avea altfel acces)? Pentru lacătul din meniu. */
+    public function lockedByPlan(string $section, int|string $level = 'view'): bool
+    {
+        $feature = Features::forSection($section);
+
+        return $feature !== null && ! $this->planAllows($feature) && $this->permitsIgnoringPlan($section, $level);
     }
 
     /** Are contul voie în aplicația dată? Superadmin-ul are acces la toate; ceilalți după bifele lor. */
     public function canAccess(string $app): bool
     {
+        // proprietarul intră doar în panou (nu apare printre lucrătorii din Recepție/Bar și nu primește notificări de personal)
+        if ($this->isOwner()) {
+            return $app === self::APP_ADMIN;
+        }
+
         if ($this->isSuperAdmin()) {
             return true;
         }
@@ -109,6 +143,17 @@ class Admin extends Authenticatable
     /** Are cel puțin nivelul cerut („view”, „edit”, „delete” sau numărul) în secțiune? */
     public function permits(string $section, int|string $level = 'view'): bool
     {
+        $feature = Features::forSection($section);
+        if ($feature !== null && ! $this->planAllows($feature)) {
+            return false; // blocat de planul instalării (nici superadmin-ul nu trece)
+        }
+
+        return $this->permitsIgnoringPlan($section, $level);
+    }
+
+    /** Ca `permits`, dar fără planul instalării (ce ar putea face contul pe un plan care include funcția). */
+    public function permitsIgnoringPlan(string $section, int|string $level = 'view'): bool
+    {
         if ($this->isSuperAdmin()) {
             return true;
         }
@@ -121,6 +166,11 @@ class Admin extends Authenticatable
     /** Are bifa pentru o acțiune sensibilă (anulare, ajustare, export…)? */
     public function permitsAction(string $action): bool
     {
+        $feature = Features::forAction($action);
+        if ($feature !== null && ! $this->planAllows($feature)) {
+            return false; // acțiunea ține de o funcție dezactivată pe plan
+        }
+
         return $this->isSuperAdmin() || in_array($action, (array) ($this->permissions['actions'] ?? []), true);
     }
 
@@ -141,6 +191,7 @@ class Admin extends Authenticatable
     {
         $column = self::ACCESS_COLUMNS[$app] ?? throw new \InvalidArgumentException('Aplicație necunoscută.');
 
-        return $query->where(fn ($q) => $q->where('role', 'superadmin')->orWhere($column, true));
+        // runda 79: proprietarul nu e „cont cu acces” în nicio aplicație (nici ca lucrător, nici în numărători)
+        return $query->where('role', '!=', 'owner')->where(fn ($q) => $q->where('role', 'superadmin')->orWhere($column, true));
     }
 }

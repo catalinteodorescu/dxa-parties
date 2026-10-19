@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Admin;
 use App\Services\ActivityLogger;
+use App\Support\Features;
 use App\Support\Permissions;
 use Closure;
 use Illuminate\Http\Request;
@@ -20,6 +21,11 @@ class EnsureAdminHasPermission
     public function handle(Request $request, Closure $next, string $section, string $level = 'view', ?string $action = null): Response
     {
         $admin = Auth::guard('admin')->user();
+
+        // DXA: runda 79 — blocat doar de planul instalării (contul ar avea altfel acces): pagina „disponibil în Pro”, nu „nu ai permisiunea”
+        if ($admin instanceof Admin && $admin->lockedByPlan($section, $level)) {
+            return response()->view('errors.plan-locked', ['feature' => Features::forSection($section)], 403);
+        }
 
         if ($admin instanceof Admin
             && (! $admin->permits($section, $level) || ($action !== null && ! $admin->permitsAction($action)))) {

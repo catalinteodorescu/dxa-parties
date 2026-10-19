@@ -75,7 +75,7 @@ trait EditsPermissions
             return;
         }
 
-        $source = Admin::where('role', '!=', 'superadmin')->find($this->copyFrom);
+        $source = Admin::withoutOwner()->where('role', '!=', 'superadmin')->find($this->copyFrom);
 
         if (! $source) {
             $this->addError('copyFrom', 'Alege un utilizator din listă.');
@@ -90,7 +90,7 @@ trait EditsPermissions
     /** Utilizatorii de la care se pot copia permisiuni (superadmin-ii au tot, nu au ce copia). */
     protected function copySources(?int $exceptId = null)
     {
-        return Admin::where('role', '!=', 'superadmin')
+        return Admin::withoutOwner()->where('role', '!=', 'superadmin')
             ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
             ->orderByRaw('name is null')->orderBy('name')->orderBy('phone')
             ->get(['id', 'name', 'phone']);

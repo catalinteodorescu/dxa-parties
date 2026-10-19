@@ -7,6 +7,7 @@ use App\Models\LoyaltyStamp;
 use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PartyEntry;
+use App\Services\Plan\PlanGate;
 use App\Services\Push\Events;
 use App\Support\Settings\Settings;
 use DomainException;
@@ -32,7 +33,7 @@ class LoyaltyLedger
 
     public static function enabled(): bool
     {
-        return (bool) Settings::get('loyalty_enabled');
+        return PlanGate::allows('loyalty') && (bool) Settings::get('loyalty_enabled');   // DXA: runda 80 — și planul
     }
 
     public static function stampsRequired(): int
