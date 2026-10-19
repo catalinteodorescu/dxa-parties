@@ -1,0 +1,117 @@
+name: Deploy
+
+# Deploy doar la cerere: se pornește din scriptul `deploy_baile` (vezi docs/DEPLOY.md) sau manual din tab-ul Actions → Run workflow.
+# Un `git push` simplu NU face deploy. Construiește CSS/JS și urcă aplicația prin FTP; migrările rulează apoi prin ruta secretă /deploy/{cheie}.
+on:
+  workflow_dispatch:
+    inputs:
+      maintenance:
+        description: 'Pune site-ul în mentenanță cât durează urcarea fișierelor'
+        type: boolean
+        default: true
+
+# Un singur deploy odată; unul nou îl așteaptă pe cel în curs (nu îl întrerupe la mijlocul urcării).
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Avertizare dacă s-a schimbat composer.lock (vendor/ se actualizează manual)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Comparăm cu commitul ultimului deploy reușit.
+          PREV=$(gh run list --workflow deploy.yml --status success --limit 1 --json headSha -q '.[0].headSha' || true)
+          if [ -n "$PREV" ] && git cat-file -e "$PREV^{commit}" 2>/dev/null \
+             && ! git diff --quiet "$PREV" "$GITHUB_SHA" -- composer.json composer.lock; then
+            echo "::warning title=vendor/ trebuie actualizat manual::composer.json/composer.lock s-au schimbat. Construiește un vendor.zip nou (deploy/build-vendor.sh) și extrage-l pe server (vezi docs/DEPLOY.md)."
+          fi
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build assets (Vite + Tailwind)
+        run: |
+          npm ci
+          npm run build
+
+      - name: Pregătește pachetul (curăță ce nu trebuie urcat)
+        run: |
+          rm -rf bootstrap/cache/*.php storage/framework/views/*.php public/hot
+
+      - name: Marchează versiunea
+        run: echo "${GITHUB_SHA::7} $(date -u +%Y-%m-%dT%H:%M:%SZ)" > bootstrap/version.txt
+
+      - name: Mentenanță pornită (pagina 503)
+        if: ${{ inputs.maintenance }}
+        env:
+          URL: ${{ secrets.APP_URL }}/deploy/${{ secrets.DEPLOY_KEY }}?step=down
+        run: |
+          # Nu oprește deploy-ul dacă eșuează (ex. prima rulare, când ruta nu există încă pe server).
+          code=$(curl --silent --show-error --location --max-time 60 --user-agent "Mozilla/5.0 (GitHub-Actions-Deploy)" \
+            --output response.txt --write-out '%{http_code}' "$URL" || true)
+          echo "HTTP $code"; cat response.txt 2>/dev/null; echo
+          [ "$code" = "200" ] || echo "::warning title=Mentenanța nu a pornit::HTTP $code. Deploy-ul continuă fără pagina de mentenanță."
+
+      - name: Urcă fișierele prin FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          server-dir: ${{ secrets.FTP_DIR || '/' }}
+          timeout: 120000
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            node_modules/**
+            tests/**
+            .env
+            .env.*
+            .install-key
+            vendor/**
+            vendor.zip
+            storage/**
+            bootstrap/cache/**
+            public/storage
+            database/*.sqlite*
+            **/.DS_Store
+            README.md
+            docs/**
+            deploy.sh
+            deploy/**
+            CLAUDE.md
+            AGENTS.md
+
+      - name: Migrări și curățare cache pe server
+        env:
+          URL: ${{ secrets.APP_URL }}/deploy/${{ secrets.DEPLOY_KEY }}
+        run: |
+          code=$(curl --silent --show-error --location --max-time 300 --user-agent "Mozilla/5.0 (GitHub-Actions-Deploy)" \
+            --output response.txt --write-out '%{http_code}' "$URL")
+          echo "HTTP $code"
+          cat response.txt; echo
+          [ "$code" = "200" ]
+
+      # Rulează oricum (și la eșec sau anulare), ca site-ul să nu rămână în mentenanță.
+      - name: Mentenanță oprită
+        if: ${{ always() && inputs.maintenance }}
+        env:
+          URL: ${{ secrets.APP_URL }}/deploy/${{ secrets.DEPLOY_KEY }}?step=up
+        run: |
+          code=$(curl --silent --show-error --location --max-time 60 --user-agent "Mozilla/5.0 (GitHub-Actions-Deploy)" \
+            --output response.txt --write-out '%{http_code}' "$URL" || true)
+          echo "HTTP $code"; cat response.txt 2>/dev/null; echo
+          [ "$code" = "200" ] || { echo "::error title=Site-ul poate fi încă în mentenanță::Deschide ${{ secrets.APP_URL }}/deploy/<cheie>?step=up"; exit 1; }

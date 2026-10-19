@@ -42,6 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // DXA: adaugat (runda 40). Contoarele din aplicație (sendBeacon, fără token): doar numără, nu citesc nimic.
         // DXA: runda 70 — `notificari/necitite` e apelat de service worker (fără sesiune), cu endpoint-ul secret al abonării.
         // DXA: runda 64 — webhook-ul Stripe vine de la server, fără token CSRF; autenticitatea se verifică prin semnătura Stripe.
+        // Deploy: ruta /deploy/* trebuie să meargă și cât aplicația e în mentenanță (pașii „down” și „up” din workflow).
+        $middleware->preventRequestsDuringMaintenance(except: ['deploy/*']);
+
         $middleware->validateCsrfTokens(except: ['m', 'webhooks/stripe', 'notificari/necitite']);
 
         // DXA: runda 46 — permisiunea se verifică ÎNAINTE de model binding (fără permisiune → 403, nu 404 care ar trăda existența).

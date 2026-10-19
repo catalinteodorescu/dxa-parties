@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BarReportPdfController;
 use App\Http\Controllers\ContentMetricsController;
+use App\Http\Controllers\DeployController;
 use App\Http\Controllers\PartyCalendarController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\PwaController;
@@ -106,10 +107,20 @@ use App\Models\Participant;
 use App\Services\AccountExport;
 use App\Services\ActivityLogger;
 use App\Support\Features;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
+
+// Deploy la cerere (GitHub Actions): migrări + curățare cache, protejat de cheia din .env (DEPLOY_KEY). Rulează fără sesiune,
+// pentru că tabela `sessions` poate lipsi la prima migrare. Vezi docs/DEPLOY.md.
+Route::get('/deploy/{key}', DeployController::class)
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])
+    ->where('key', '[A-Za-z0-9_-]+')
+    ->name('deploy');
 
 Route::prefix('admin')->name('admin.')->group(function () {
 
