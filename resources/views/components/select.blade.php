@@ -3,6 +3,7 @@
     'placeholder' => 'Alege…',
     'live' => false,           // true = actualizează Livewire imediat (pentru filtre)
     'searchable' => null,      // null = auto (căutare de la SEARCH_THRESHOLD opțiuni); true/false = forțat
+    'large' => false,          // runda 90: aplicațiile Recepție / Bar — câmp de 48 px, listă evidentă cu rânduri înalte
 ])
 
 @php
@@ -49,7 +50,7 @@
             this.open = true;
             this.$nextTick(() => {
                 const rect = this.$refs.trigger.getBoundingClientRect();
-                const estimated = Math.min(this.options.length, 6) * 40 + (this.isSearchable ? 44 : 0) + 16;
+                const estimated = Math.min(this.options.length, 6) * {{ $large ? 56 : 40 }} + (this.isSearchable ? 44 : 0) + 16;
                 this.openUp = (window.innerHeight - rect.bottom) < estimated && rect.top > estimated;
                 if (this.isSearchable) this.$nextTick(() => this.$refs.search && this.$refs.search.focus());
             });
@@ -60,7 +61,7 @@
     {{ $attributes->except('wire:model')->merge(['class' => 'relative']) }}
 >
     <button type="button" x-ref="trigger" @click="toggle()"
-            class="w-full flex items-center justify-between gap-2 rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm focus:outline-none"
+            class="w-full flex items-center justify-between gap-2 rounded-lg border border-border bg-white px-3.5 {{ $large ? 'h-12 text-base' : 'py-2.5 text-sm' }} focus:outline-none"
             :class="open ? 'ring-2 ring-primary/40 border-primary' : ''">
         <span x-text="labelFor(value)" :class="value ? 'text-ink' : 'text-ink-soft/60'" class="min-w-0 truncate text-left"></span>
         <svg class="w-4 h-4 shrink-0 text-ink-soft transition-transform" :class="open ? 'rotate-180' : ''"
@@ -70,16 +71,16 @@
     </button>
 
     <div x-show="open" x-cloak x-transition
-         class="absolute z-20 w-full rounded-lg border border-border bg-surface shadow-lg py-1"
+         class="absolute z-20 w-full {{ $large ? 'rounded-2xl border-2 border-primary/40 shadow-xl overflow-hidden' : 'rounded-lg border border-border shadow-lg py-1' }} bg-surface"
          :class="openUp ? 'bottom-full mb-1' : 'top-full mt-1'">
         <div x-show="isSearchable" class="px-1.5 pb-1.5 mb-1 border-b border-border" @click.stop>
             <input type="text" x-model="query" x-ref="search" placeholder="Caută…"
-                   class="w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                   class="w-full rounded-md border border-border px-2.5 {{ $large ? 'h-11 text-base' : 'py-1.5 text-sm' }} focus:outline-none focus:ring-2 focus:ring-primary/40" />
         </div>
-        <div class="max-h-60 overflow-auto">
+        <div class="{{ $large ? 'max-h-72 divide-y divide-border' : 'max-h-60' }} overflow-auto">
             <template x-for="opt in filtered()" :key="opt.value">
                 <button type="button" @click="value = opt.value; close()"
-                        class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-bg"
+                        class="w-full flex items-center justify-between gap-2 px-3 {{ $large ? 'min-h-14 py-3 text-base active:bg-primary-soft' : 'py-2 text-sm' }} text-left hover:bg-bg"
                         :class="String(value) === opt.value ? 'text-primary font-medium' : 'text-ink'">
                     <span x-text="opt.label" class="truncate"></span>
                     <svg x-show="String(value) === opt.value" class="w-4 h-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -13,7 +13,7 @@
     <div class="space-y-2">
         @foreach ($payments as $i => $p)
             <div wire:key="{{ $prefix }}pay-{{ $i }}" class="flex items-center gap-2">
-                <x-select wire:model="payments.{{ $i }}.method" :options="$methods" class="flex-1 min-w-0" />
+                <x-select wire:model="payments.{{ $i }}.method" :options="$methods" :large="true" class="flex-1 min-w-0" />
                 <input type="text" inputmode="decimal" wire:model.live.debounce.300ms="payments.{{ $i }}.amount" placeholder="Sumă"
                        class="w-28 rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
                 <button type="button" wire:click="fillRemaining({{ $i }})" class="shrink-0 rounded-lg border border-primary/40 px-3 py-3 text-sm font-medium text-primary active:bg-primary-soft">Restul</button>

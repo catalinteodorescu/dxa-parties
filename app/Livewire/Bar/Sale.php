@@ -145,6 +145,14 @@ class Sale extends Component
         }
     }
 
+    /** Runda 90: cantitatea aleasă pe linia de bon (contorul se schimbă local, la server ajunge o singură dată). */
+    public function setQty(int $id, int $qty): void
+    {
+        if (isset($this->cart[$id])) {
+            $this->cart[$id] = max(1, min(self::MAX_QTY, $qty));
+        }
+    }
+
     public function removeItem(int $id): void
     {
         unset($this->cart[$id]);

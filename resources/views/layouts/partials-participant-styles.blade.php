@@ -1,7 +1,8 @@
 {{-- DXA: adaugat (Aplicația participanților). Stilul aplicației (întunecat, gradient, „sticlă”), autonom: nu depinde de tema panoului admin. Clase cu prefix `pa-`. --}}
 <style>
     :root { --pa-bg: #120810; --pa-ink: #F7EFEA; --pa-soft: #B9A9A6; --pa-amber: #FFB36B; --pa-glass: rgba(255,255,255,.07); --pa-line: rgba(255,255,255,.14); }
-    html { background: var(--pa-bg); color-scheme: dark; }
+    html { background: var(--pa-bg); color-scheme: dark; overscroll-behavior-y: none; }   /* runda 90: fără „elastic” iOS la tragerea în jos */
+    body.pa-body { overscroll-behavior-y: none; }
     body.pa-body { margin: 0; min-height: 100vh; color: var(--pa-ink); font-family: 'Manrope', system-ui, sans-serif; -webkit-font-smoothing: antialiased;
         background: radial-gradient(120% 45% at 0% 0%, rgba(221,100,65,.35), transparent 60%), radial-gradient(90% 40% at 100% 25%, rgba(224,72,154,.26), transparent 60%), radial-gradient(90% 40% at 50% 100%, rgba(124,77,188,.28), transparent 70%), var(--pa-bg);
         background-attachment: fixed; }
@@ -143,9 +144,10 @@
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
     /* DXA: adaugat (runda 61). Loader între ecrane (inel degrade care se rotește) + indicatorul de swipe înapoi. */
-    .app-loader { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; background: rgba(18,8,16,.82); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+    .app-loader { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; background: transparent; opacity: 0; pointer-events: none; transition: opacity .18s ease; }
     .app-loader.on { opacity: 1; pointer-events: auto; }
-    .app-ring { position: relative; width: 4.6rem; height: 4.6rem; }
+    /* runda 90: fără voal pe tot ecranul (părea că „sare” pagina); inelul stă pe un disc întunecat, în centru */
+    .app-ring { position: relative; width: 4.6rem; height: 4.6rem; border-radius: 50%; box-shadow: 0 0 0 1.1rem rgba(18,8,16,.92), 0 8px 30px rgba(0,0,0,.45); background: rgba(18,8,16,.92); }
     .app-ring i { position: absolute; display: block; border-radius: 50%; }
     .app-ring-arc { inset: 0; background: conic-gradient(from 0deg, transparent 0 12%, #FFB36B, #E0489A, #7C4DBC 88%, transparent 94%);
         -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%); mask: radial-gradient(circle, transparent 62%, #000 64%); animation: app-rot 1.1s linear infinite; }

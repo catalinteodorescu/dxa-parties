@@ -47,7 +47,7 @@
                     </div>
                 @endif
 
-                <x-select wire:model="pick" :live="true" :options="$productOptions" placeholder="Alege un produs…" :searchable="true" />
+                <x-select wire:model="pick" :live="true" :options="$productOptions" placeholder="Alege un produs…" :searchable="true" :large="true" />
 
                 {{-- DXA: runda 72. Produse epuizate: marcate din bar, valabile doar la această petrecere --}}
                 <div x-data="{ soldOutOpen: false }" data-sold-out>
@@ -70,15 +70,19 @@
                         @foreach ($cart as $id => $qty)
                             @php $item = $cartItems->get((int) $id); @endphp
                             @continue(! $item)
-                            <div wire:key="cart-{{ $id }}" class="flex items-center gap-2 px-3 py-2.5">
+                            <div wire:key="cart-{{ $id }}" class="flex items-center gap-2 px-3 py-2.5"
+                                 x-data="{ q: {{ (int) $qty }}, price: {{ (float) $item->price }}, t: null,
+                                           fmt(n) { return n.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
+                                           set(n) { this.q = Math.max(1, Math.min({{ 99 }}, n)); clearTimeout(this.t); this.t = setTimeout(() => { this.t = null; $wire.setQty({{ $id }}, this.q); }, 300); } }"
+                                 x-init="$watch('$wire.cart', (c) => { if (t === null && c && c[{{ $id }}]) { q = parseInt(c[{{ $id }}], 10); } })">
                                 <div class="min-w-0 flex-1">
                                     <div class="text-sm font-medium text-ink truncate">{{ $item->name }}</div>
-                                    <div class="text-xs text-ink-soft">{{ $money($item->price) }} lei × {{ $qty }} = {{ $money($qty * (float) $item->price) }} lei</div>
+                                    <div class="text-xs text-ink-soft">{{ $money($item->price) }} lei × <span x-text="q">{{ $qty }}</span> = <span x-text="fmt(q * price)">{{ $money($qty * (float) $item->price) }}</span> lei</div>
                                 </div>
                                 <div class="inline-flex items-center gap-1.5 shrink-0">
-                                    <x-btn variant="neutral" size="icon-lg" outline wire:click="stepQty({{ $id }}, -1)" aria-label="Mai puțin" :disabled="$qty <= 1">−</x-btn>
-                                    <span class="w-8 text-center text-base font-semibold text-ink">{{ $qty }}</span>
-                                    <x-btn variant="neutral" size="icon-lg" outline wire:click="stepQty({{ $id }}, 1)" aria-label="Mai mult">+</x-btn>
+                                    <x-btn variant="neutral" size="icon-lg" outline x-on:click="set(q - 1)" x-bind:disabled="q <= 1" aria-label="Mai puțin">−</x-btn>
+                                    <span class="w-8 text-center text-base font-semibold text-ink" x-text="q" data-cart-qty>{{ $qty }}</span>
+                                    <x-btn variant="neutral" size="icon-lg" outline x-on:click="set(q + 1)" x-bind:disabled="q >= 99" aria-label="Mai mult">+</x-btn>
                                     <x-btn variant="danger" size="icon-lg" outline aria-label="Șterge" wire:click="removeItem({{ $id }})"><x-icon-trash class="w-5 h-5" /></x-btn>
                                 </div>
                             </div>
@@ -114,7 +118,7 @@
                 <div class="space-y-2">
                     @foreach ($payments as $i => $p)
                         <div wire:key="pay-{{ $i }}" class="flex items-center gap-2">
-                            <x-select wire:model="payments.{{ $i }}.method" :live="true" :options="$methods" class="flex-1 min-w-0" />
+                            <x-select wire:model="payments.{{ $i }}.method" :live="true" :options="$methods" :large="true" class="flex-1 min-w-0" />
                             @if (($p['method'] ?? '') === 'token')
                                 <input type="number" min="0" step="1" inputmode="numeric" wire:model.live.debounce.300ms="payments.{{ $i }}.tokens" placeholder="Tokeni" class="w-28 {{ $input }}">
                             @else

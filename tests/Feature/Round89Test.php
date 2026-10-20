@@ -25,7 +25,7 @@ it('ștergerea are iconița coș de gunoi la liniile de bon, metodele de plată,
 });
 
 it('la bar „−” e dezactivat când produsul ajunge la 1 (se scoate doar cu coșul de gunoi)', function () {
-    expect(r89View('livewire/bar/sale'))->toContain('wire:click="stepQty({{ $id }}, -1)"')->toContain(':disabled="$qty <= 1"');
+    expect(r89View('livewire/bar/sale'))->toContain('x-on:click="set(q - 1)"')->toContain('x-bind:disabled="q <= 1"');
 });
 
 it('tooltip-ul nu mai apare pe ecrane tactile (ieșea din ecran și făcea scroll orizontal)', function () {
