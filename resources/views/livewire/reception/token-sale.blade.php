@@ -23,16 +23,19 @@
         <div class="rounded-2xl border border-border bg-surface p-4 space-y-5">
             <div>
                 <label class="block text-sm font-medium text-ink mb-1.5">Număr de tokeni</label>
-                <div class="flex flex-wrap items-center gap-2">
-                    <x-btn variant="neutral" size="md" wire:click="stepTokens(-1)" aria-label="Mai puțin">−</x-btn>
-                    <input type="number" min="1" max="1000" wire:model.live.debounce.300ms="tokens" inputmode="numeric"
-                           class="w-24 text-center rounded-lg border border-border bg-white px-3 py-2 text-base font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-                    <x-btn variant="neutral" size="md" wire:click="stepTokens(1)" aria-label="Mai mult">+</x-btn>
+                <div class="flex flex-wrap items-center gap-2" wire:key="tokens-{{ (int) $tokens }}"
+                     x-data="{ q: {{ max(1, (int) $tokens) }}, max: {{ \App\Services\TokenLedger::MAX_SALE }}, t: null,
+                               set(n) { n = parseInt(n, 10); if (isNaN(n)) { n = 1; } this.q = Math.max(1, Math.min(this.max, n)); clearTimeout(this.t); this.t = setTimeout(() => { this.t = null; $wire.set('tokens', this.q); }, 300); } }"
+                     x-init="$watch('$wire.tokens', (v) => { if (t === null) { q = Math.max(1, parseInt(v, 10) || 1); } })">
+                    <x-btn variant="neutral" size="icon-lg" x-on:click="set(q - 1)" x-bind:disabled="q <= 1" aria-label="Mai puțin">−</x-btn>
+                    <input type="number" min="1" max="1000" x-bind:value="q" x-on:change="set($event.target.value)" inputmode="numeric" data-tokens
+                           class="w-24 h-12 text-center rounded-lg border border-border bg-white px-3 text-xl font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+                    <x-btn variant="neutral" size="icon-lg" x-on:click="set(q + 1)" x-bind:disabled="q >= max" aria-label="Mai mult">+</x-btn>
                 </div>
                 <div class="mt-2 flex flex-wrap gap-2">
                     @foreach ([5, 10, 20, 50] as $n)
                         <button type="button" wire:key="qty-{{ $n }}" wire:click="setTokens({{ $n }})"
-                                class="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-bg">{{ $n }}</button>
+                                class="rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-bg active:bg-bg">{{ $n }}</button>
                     @endforeach
                 </div>
             </div>
@@ -52,7 +55,7 @@
                 <x-alert type="error">{{ $error }}</x-alert>
             @endif
 
-            <x-btn variant="primary" wire:click="sell" wire:loading.attr="disabled" wire:target="sell" class="w-full">Vinde tokenii</x-btn>
+            <x-btn variant="primary" wire:click="sell" wire:loading.attr="disabled" wire:target="sell" class="w-full h-14! text-base!">Vinde tokenii</x-btn>
         </div>
     @endif
 

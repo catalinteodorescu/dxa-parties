@@ -58,7 +58,7 @@
                         @foreach ($allItems as $m)
                             @php $out = in_array($m->id, $soldOutIds, true); @endphp
                             <button type="button" wire:key="so-{{ $m->id }}" wire:click="toggleSoldOut({{ $m->id }})" data-sold-out-toggle="{{ $m->id }}"
-                                    class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors {{ $out ? 'border-danger bg-danger/10 text-danger' : 'border-border bg-surface text-ink-soft hover:text-ink' }}">
+                                    class="rounded-full border px-4 py-2.5 text-sm font-medium transition-colors {{ $out ? 'border-danger bg-danger/10 text-danger' : 'border-border bg-surface text-ink-soft hover:text-ink' }}">
                                 {{ $m->name }}@if ($out) · epuizat @endif
                             </button>
                         @endforeach
@@ -76,10 +76,10 @@
                                     <div class="text-xs text-ink-soft">{{ $money($item->price) }} lei × {{ $qty }} = {{ $money($qty * (float) $item->price) }} lei</div>
                                 </div>
                                 <div class="inline-flex items-center gap-1.5 shrink-0">
-                                    <x-btn variant="neutral" size="icon" outline wire:click="stepQty({{ $id }}, -1)" aria-label="Mai puțin">−</x-btn>
-                                    <span class="w-7 text-center text-sm font-semibold text-ink">{{ $qty }}</span>
-                                    <x-btn variant="neutral" size="icon" outline wire:click="stepQty({{ $id }}, 1)" aria-label="Mai mult">+</x-btn>
-                                    <x-btn variant="danger" size="icon" outline tooltip="Scoate" wire:click="removeItem({{ $id }})">×</x-btn>
+                                    <x-btn variant="neutral" size="icon-lg" outline wire:click="stepQty({{ $id }}, -1)" aria-label="Mai puțin" :disabled="$qty <= 1">−</x-btn>
+                                    <span class="w-8 text-center text-base font-semibold text-ink">{{ $qty }}</span>
+                                    <x-btn variant="neutral" size="icon-lg" outline wire:click="stepQty({{ $id }}, 1)" aria-label="Mai mult">+</x-btn>
+                                    <x-btn variant="danger" size="icon-lg" outline aria-label="Șterge" wire:click="removeItem({{ $id }})"><x-icon-trash class="w-5 h-5" /></x-btn>
                                 </div>
                             </div>
                         @endforeach
@@ -107,7 +107,7 @@
                 <div class="flex flex-wrap gap-2 mb-3">
                     @foreach ($topMethods as $key => $label)
                         <button type="button" wire:key="payall-{{ $key }}" wire:click="payAll('{{ $key }}')"
-                                class="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-bg">Tot cu {{ $label }}</button>
+                                class="rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-bg active:bg-bg">Tot cu {{ $label }}</button>
                     @endforeach
                 </div>
 
@@ -120,9 +120,9 @@
                             @else
                                 <input type="text" inputmode="decimal" wire:model.live.debounce.300ms="payments.{{ $i }}.amount" placeholder="Sumă" class="w-28 {{ $input }}">
                             @endif
-                            <button type="button" wire:click="fillRemaining({{ $i }})" class="shrink-0 text-xs font-medium text-primary hover:underline">Restul</button>
+                            <button type="button" wire:click="fillRemaining({{ $i }})" class="shrink-0 rounded-lg border border-primary/40 px-3 py-3 text-sm font-medium text-primary active:bg-primary-soft">Restul</button>
                             @if (count($payments) > 1)
-                                <x-btn variant="danger" size="icon" outline tooltip="Scoate" wire:click="removePayment({{ $i }})">×</x-btn>
+                                <x-btn variant="danger" size="icon-lg" outline aria-label="Șterge" wire:click="removePayment({{ $i }})"><x-icon-trash class="w-5 h-5" /></x-btn>
                             @endif
                         </div>
                         @if (($p['method'] ?? '') === 'token' && $tokenRate > 0)
@@ -132,7 +132,7 @@
                 </div>
 
                 <div class="mt-2 flex items-center justify-between gap-3">
-                    <button type="button" wire:click="addPayment" class="text-sm text-primary hover:underline">+ Altă metodă</button>
+                    <button type="button" wire:click="addPayment" class="rounded-lg border border-primary/40 px-4 py-3 text-sm font-medium text-primary active:bg-primary-soft">+ Altă metodă</button>
                     @if ($total <= 0)
                         <span class="text-sm text-ink-soft">Adaugă produse</span>
                     @elseif (abs($rest) < 0.005)
@@ -151,7 +151,7 @@
                 <x-alert type="error">{{ $error }}</x-alert>
             @endif
 
-            <x-btn variant="primary" wire:click="sell" wire:loading.attr="disabled" wire:target="sell" class="w-full">Înregistrează vânzarea</x-btn>
+            <x-btn variant="primary" wire:click="sell" wire:loading.attr="disabled" wire:target="sell" class="w-full h-14! text-base!">Înregistrează vânzarea</x-btn>
         </div>
     @endif
 

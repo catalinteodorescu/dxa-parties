@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\SmsSender;
 use App\Models\Participant;
 use App\Models\Ticket;
+use App\Support\ParticipantApp;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -82,7 +83,7 @@ class AccountDeletion
             $n = count($ticketIds);
 
             try {
-                $sms->send($phone, 'DXA: contul tău a fost șters, dar '.($n === 1 ? 'biletul tău rămâne valabil' : 'cele '.$n.' bilete ale tale rămân valabile').'. Le vezi aici: '.route('app.deleted-tickets', ['code' => self::ticketsCode($participant)]));
+                $sms->send($phone, ParticipantApp::name().': contul tău a fost șters, dar '.($n === 1 ? 'biletul tău rămâne valabil' : 'cele '.$n.' bilete ale tale rămân valabile').'. Le vezi aici: '.route('app.deleted-tickets', ['code' => self::ticketsCode($participant)]));
             } catch (Throwable $e) {
                 report($e);
             }

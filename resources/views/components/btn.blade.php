@@ -32,7 +32,9 @@
     $sizes = [
         'md'   => 'h-9 px-3.5 text-sm gap-1.5',
         'sm'   => 'h-8 px-3 text-xs gap-1',
+        'lg'   => 'h-12 px-5 text-base gap-2',   // runda 89: aplicațiile Recepție / Bar (țintă de atingere mare)
         'icon' => 'h-7 w-7',
+        'icon-lg' => 'h-12 w-12 text-xl',        // runda 89
     ];
 
     $classes = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed '
@@ -41,7 +43,7 @@
 @endphp
 
 @if ($tooltip)
-    <span class="relative inline-flex" x-data="{ tip: false }"
+    <span class="relative inline-flex" x-data="{ tip: false, canHover: window.matchMedia('(hover: hover)').matches }"
           @mouseenter="tip = true" @mouseleave="tip = false"
           @focusin="tip = true" @focusout="tip = false">
         @if ($href)
@@ -50,7 +52,7 @@
             <button {{ $attributes->merge(['type' => 'button', 'class' => $classes]) }}>{{ $slot }}</button>
         @endif
 
-        <span x-show="tip" x-cloak x-transition.opacity
+        <span x-show="tip && canHover" x-cloak x-transition.opacity
               class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 whitespace-nowrap rounded-md bg-ink text-white text-xs px-2 py-1 shadow-lg">
             {{ $tooltip }}
             <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-ink"></span>

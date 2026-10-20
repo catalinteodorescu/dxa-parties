@@ -21,6 +21,9 @@
 <style id="app-theme">:root{ {{ $pwa::inlineStyle() }} }</style>
 {{-- DXA: adaugat (runda 71). Zoom blocat în Recepție / Bar: fără dublu-tap zoom, iar câmpurile de 16px nu mai declanșează zoom-ul iOS la focus. --}}
 <style>
+    /* runda 88: la tragerea în jos nu mai rămâne alb sus (fundalul paginii = culoarea antetului), iar „elasticul” iOS e oprit */
+    html { background: var(--color-primary); overscroll-behavior-y: none; }
+    body { overscroll-behavior-y: none; }
     html, body { touch-action: manipulation; }
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }
     textarea { resize: none; }

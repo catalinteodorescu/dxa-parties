@@ -18,7 +18,7 @@
                         <div class="mt-1 text-xs {{ $r['due'] > 0 ? 'text-ink' : 'text-success' }}">{{ $r['due'] > 0 ? 'De încasat '.$fmtLei($r['due']).' lei' : 'Intră gratuit' }}</div>
                     @endif
                 </div>
-                <button type="button" wire:click="removeTicket({{ $t->id }})" class="shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-lg text-ink-soft hover:bg-bg" aria-label="Scoate biletul">×</button>
+                <button type="button" wire:click="removeTicket({{ $t->id }})" class="shrink-0 h-11 w-11 inline-flex items-center justify-center rounded-lg text-danger hover:bg-bg" aria-label="Șterge biletul"><x-icon-trash class="w-5 h-5" /></button>
             </div>
         @endforeach
         @if ((int) $count > $rows->count())

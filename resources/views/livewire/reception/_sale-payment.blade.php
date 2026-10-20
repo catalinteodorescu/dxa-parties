@@ -6,7 +6,7 @@
     <div class="flex flex-wrap gap-2 mb-3">
         @foreach ($topMethods as $key => $label)
             <button type="button" wire:key="{{ $prefix }}payall-{{ $key }}" wire:click="payAll('{{ $key }}')"
-                    class="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-bg">Tot cu {{ $label }}</button>
+                    class="rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-bg active:bg-bg">Tot cu {{ $label }}</button>
         @endforeach
     </div>
 
@@ -16,16 +16,16 @@
                 <x-select wire:model="payments.{{ $i }}.method" :options="$methods" class="flex-1 min-w-0" />
                 <input type="text" inputmode="decimal" wire:model.live.debounce.300ms="payments.{{ $i }}.amount" placeholder="Sumă"
                        class="w-28 rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
-                <button type="button" wire:click="fillRemaining({{ $i }})" class="shrink-0 text-xs font-medium text-primary hover:underline">Restul</button>
+                <button type="button" wire:click="fillRemaining({{ $i }})" class="shrink-0 rounded-lg border border-primary/40 px-3 py-3 text-sm font-medium text-primary active:bg-primary-soft">Restul</button>
                 @if (count($payments) > 1)
-                    <x-btn variant="danger" size="icon" outline tooltip="Scoate" wire:click="removePayment({{ $i }})">×</x-btn>
+                    <x-btn variant="danger" size="icon-lg" outline aria-label="Șterge" wire:click="removePayment({{ $i }})"><x-icon-trash class="w-5 h-5" /></x-btn>
                 @endif
             </div>
         @endforeach
     </div>
 
     <div class="mt-2 flex items-center justify-between gap-3">
-        <button type="button" wire:click="addPayment" class="text-sm text-primary hover:underline">+ Altă metodă</button>
+        <button type="button" wire:click="addPayment" class="rounded-lg border border-primary/40 px-4 py-3 text-sm font-medium text-primary active:bg-primary-soft">+ Altă metodă</button>
         @if (abs($rest) < 0.005)
             <span class="text-sm font-medium text-success">Încasat complet</span>
         @elseif ($paid <= 0)

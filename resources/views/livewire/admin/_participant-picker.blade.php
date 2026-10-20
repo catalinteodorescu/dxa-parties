@@ -30,8 +30,13 @@
                             <div class="text-sm font-medium text-ink truncate">{{ $cp->name }}</div>
                             <div class="text-xs text-ink-soft">{{ $cp->phone }}@if ($inApp) @if ($creditsLabel($cp)) · <span class="font-medium text-success">{{ $creditsLabel($cp) }}</span>@endif @else · {{ $participantVisits[$cp->id] ?? 0 }} intrări @endif</div>
                         </div>
-                        <button type="button" wire:click="removeParticipant({{ $cp->id }})" aria-label="Scoate participantul"
-                                class="shrink-0 h-7 w-7 rounded-full text-ink-soft hover:bg-border">×</button>
+                        @if ($inApp)
+                            <button type="button" wire:click="removeParticipant({{ $cp->id }})" aria-label="Șterge participantul"
+                                    class="shrink-0 h-11 w-11 -m-1 inline-flex items-center justify-center rounded-lg text-danger active:bg-border"><x-icon-trash class="w-5 h-5" /></button>
+                        @else
+                            <button type="button" wire:click="removeParticipant({{ $cp->id }})" aria-label="Scoate participantul"
+                                    class="shrink-0 h-7 w-7 rounded-full text-ink-soft hover:bg-border">×</button>
+                        @endif
                     </div>
 
                     {{-- Mențiunile, pe rând nou --}}
@@ -53,34 +58,51 @@
 
     <div class="flex items-center gap-2">
         <input type="text" wire:model.live.debounce.300ms="participantSearch" placeholder="Caută după telefon sau nume"
-               class="flex-1 min-w-0 rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
+               class="flex-1 min-w-0 rounded-lg border border-border bg-white px-3.5 {{ $inApp ? 'h-12 text-base' : 'py-2.5 text-sm' }} text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
         @if ($scannable ?? false)
             @include('livewire.reception._scanner')
         @endif
         @if ($allowNew)
-            <x-btn variant="neutral" size="icon" outline tooltip="Participant nou" wire:click="toggleNewParticipant" class="shrink-0">
+            <x-btn variant="neutral" :size="$inApp ? 'icon-lg' : 'icon'" outline tooltip="Participant nou" wire:click="toggleNewParticipant" class="shrink-0">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             </x-btn>
         @endif
     </div>
 
     @if ($participantResults->isNotEmpty())
-        <div class="mt-2 space-y-1.5">
-            @foreach ($participantResults as $pr)
-                <button type="button" wire:key="found-{{ $pr->id }}" wire:click="addParticipant({{ $pr->id }})"
-                        class="w-full flex items-center justify-between gap-3 rounded-lg border {{ ($participantLoyaltyReady[$pr->id] ?? false) ? 'border-warning bg-warning/10' : 'border-border bg-surface' }} px-3 py-2 text-left text-sm hover:bg-bg">
-                    <span class="min-w-0 truncate"><span class="font-medium text-ink">{{ $pr->name }}</span> <span class="text-ink-soft">{{ $pr->phone }}</span></span>
-                    <span class="shrink-0 text-xs {{ ($participantLoyaltyReady[$pr->id] ?? false) ? 'text-warning font-medium' : 'text-ink-soft' }}">
-                        @if ($participantLoyaltyReady[$pr->id] ?? false) 🎁 intrare gratis @endif
-                        @if ($inApp)
-                            @if ($creditsLabel($pr)) <span class="font-medium text-success">{{ $creditsLabel($pr) }}</span> @endif
-                        @else
+        @if ($inApp)
+            {{-- Runda 89: în aplicații rezultatele sunt un panou evident, cu rânduri înalte (țintă de atingere mare) --}}
+            <div class="mt-3 overflow-hidden rounded-2xl border-2 border-primary/40 bg-surface shadow-md divide-y divide-border">
+                <div class="bg-primary-soft px-4 py-2 text-xs font-semibold uppercase tracking-wide text-primary">Alege participantul</div>
+                @foreach ($participantResults as $pr)
+                    @php $ready = $participantLoyaltyReady[$pr->id] ?? false; @endphp
+                    <button type="button" wire:key="found-{{ $pr->id }}" wire:click="addParticipant({{ $pr->id }})"
+                            class="w-full min-h-16 flex items-center justify-between gap-3 px-4 py-3 text-left active:bg-primary-soft {{ $ready ? 'bg-warning/10' : '' }}">
+                        <span class="min-w-0">
+                            <span class="block truncate text-base font-semibold text-ink">{{ $pr->name }}</span>
+                            <span class="block text-sm text-ink-soft">{{ $pr->phone }}</span>
+                        </span>
+                        <span class="shrink-0 text-right text-xs {{ $ready ? 'text-warning font-medium' : 'text-ink-soft' }}">
+                            @if ($ready) 🎁 intrare gratis @endif
+                            @if ($creditsLabel($pr)) <span class="block font-medium text-success">{{ $creditsLabel($pr) }}</span> @endif
+                        </span>
+                    </button>
+                @endforeach
+            </div>
+        @else
+            <div class="mt-2 space-y-1.5">
+                @foreach ($participantResults as $pr)
+                    <button type="button" wire:key="found-{{ $pr->id }}" wire:click="addParticipant({{ $pr->id }})"
+                            class="w-full flex items-center justify-between gap-3 rounded-lg border {{ ($participantLoyaltyReady[$pr->id] ?? false) ? 'border-warning bg-warning/10' : 'border-border bg-surface' }} px-3 py-2 text-left text-sm hover:bg-bg">
+                        <span class="min-w-0 truncate"><span class="font-medium text-ink">{{ $pr->name }}</span> <span class="text-ink-soft">{{ $pr->phone }}</span></span>
+                        <span class="shrink-0 text-xs {{ ($participantLoyaltyReady[$pr->id] ?? false) ? 'text-warning font-medium' : 'text-ink-soft' }}">
+                            @if ($participantLoyaltyReady[$pr->id] ?? false) 🎁 intrare gratis @endif
                             {{ $participantVisits[$pr->id] ?? 0 }} intrări
-                        @endif
-                    </span>
-                </button>
-            @endforeach
-        </div>
+                        </span>
+                    </button>
+                @endforeach
+            </div>
+        @endif
     @elseif (mb_strlen(trim($participantSearch)) >= 2)
         <p class="mt-2 text-xs text-ink-soft">Niciun participant găsit.</p>
     @endif

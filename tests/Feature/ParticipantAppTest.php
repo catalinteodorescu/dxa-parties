@@ -778,7 +778,7 @@ it('setări: SMS-urile folosesc șabloanele editate (cu {cod}, {minute}, {aplica
 
     // Fără {cod} șablonul ar face codul inutil: se folosește cel implicit.
     Settings::set('app_sms_activation', 'Bună!');
-    expect(ParticipantAppSettings::smsActivation('123456'))->toContain('123456')->toContain('DXA');
+    expect(ParticipantAppSettings::smsActivation('123456'))->toContain('123456')->toContain(ParticipantApp::name())->not->toContain('DXA:');
 
     Settings::set('app_sms_reset', 'Parola ta: {link}');
     expect(ParticipantAppSettings::smsReset('https://x.ro/r'))->toBe('Parola ta: https://x.ro/r');

@@ -7,6 +7,8 @@ use App\Models\Admin;
 use App\Models\Participant;
 use App\Models\Party;
 use App\Models\PushNotification;
+use App\Support\BarApp;
+use App\Support\ReceptionApp;
 use App\Support\Settings\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -39,10 +41,20 @@ it('pagina 503 cade pe logo-ul implicit când nu există logo încărcat', funct
     expect(view('errors.503')->render())->toContain('data:image/png;base64,');
 });
 
-it('loaderul din Recepție / Bar e clopoțelul, nu paharul', function () {
-    $html = view('layouts.partials-reception-loader')->render();
+it('loaderul: clopoțel la Recepție, pahar la Bar, card mic fără voal pe tot ecranul', function () {
+    $recepție = view('layouts.partials-reception-loader', ['pwa' => ReceptionApp::class])->render();
+    $bar = view('layouts.partials-reception-loader', ['pwa' => BarApp::class])->render();
 
-    expect($html)->toContain('rc-bell')->not->toContain('rc-glass');
+    expect($recepție)->toContain('class="rc-bell ')->not->toContain('class="rc-glass ')
+        ->and($bar)->toContain('class="rc-glass ')->not->toContain('class="rc-bell ')
+        ->and($bar)->not->toContain('backdrop-blur')->toContain('pointer-events-none');
+});
+
+it('butoanele de înregistrare a vânzării sunt înalte, iar fundalul de sus nu mai rămâne alb la tragere', function () {
+    foreach (['reception/entry', 'bar/sale', 'reception/token-sale', 'reception/credit-sale'] as $v) {
+        expect(file_get_contents(resource_path("views/livewire/{$v}.blade.php")))->toContain('h-14!');
+    }
+    expect(file_get_contents(resource_path('views/layouts/partials-reception-head.blade.php')))->toContain('overscroll-behavior-y: none')->toContain('html { background: var(--color-primary)');
 });
 
 it('deconectarea cu sesiune expirată ajunge la login-ul zonei corecte, nu în aplicația participanților', function () {

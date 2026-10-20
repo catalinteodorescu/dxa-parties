@@ -4,7 +4,7 @@
         <span class="text-xs text-ink-soft">Cumpără:</span>
         @foreach ($quickPicks as $qp)
             <button type="button" wire:key="quick-{{ $qp->id }}" wire:click="pickQuickParticipant({{ $qp->id }})"
-                    class="inline-flex items-center rounded-full border border-primary/30 bg-primary-soft text-primary text-sm font-medium px-3 py-1.5 hover:bg-primary/20">
+                    class="inline-flex items-center rounded-full border border-primary/30 bg-primary-soft text-primary text-sm font-medium px-4 py-2.5 hover:bg-primary/20">
                 {{ $qp->name }}
             </button>
         @endforeach

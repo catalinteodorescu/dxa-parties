@@ -25,7 +25,7 @@
                            class="w-24 text-center rounded-lg border border-border bg-white px-3 py-2 text-base font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary">
                     @foreach ([20, 50, 100, 200] as $n)
                         <button type="button" wire:key="camt-{{ $n }}" wire:click="setAmount({{ $n }})"
-                                class="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-bg">{{ $n }} lei</button>
+                                class="rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-bg active:bg-bg">{{ $n }} lei</button>
                     @endforeach
                 </div>
             </div>
@@ -47,7 +47,7 @@
                 <x-alert type="error">{{ $error }}</x-alert>
             @endif
 
-            <x-btn variant="primary" wire:click="sell" wire:loading.attr="disabled" wire:target="sell" class="w-full">Vinde credite</x-btn>
+            <x-btn variant="primary" wire:click="sell" wire:loading.attr="disabled" wire:target="sell" class="w-full h-14! text-base!">Vinde credite</x-btn>
         </div>
     @endif
 

@@ -207,7 +207,7 @@ it('ecranul de petrecere se deschide, iar antetul nu are link către panoul admi
     $this->withSession(['receptie.party_id' => $p->id])->get(route('receptie.home'))
         ->assertOk()
         ->assertDontSee(route('admin.dashboard'), false)
-        ->assertSee('rc-bell', false)->assertDontSee('rc-glass', false);
+        ->assertSee('class="rc-bell ', false)->assertDontSee('class="rc-glass ', false);
 });
 
 it('Acasă arată rezumatul sesiunii deschise și mesaj gol când nu e nimic înregistrat', function () {
