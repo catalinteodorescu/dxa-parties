@@ -83,10 +83,13 @@
 
                 <div class="pa-between">
                     <div style="font-weight: 800">{{ $comboDef ? 'Număr de seturi' : 'Număr de bilete' }}@if ($comboDef) <span class="pa-soft" style="font-weight: 600; font-size: .8rem">· {{ $count }} bilete</span> @endif</div>
-                    <div style="display: flex; align-items: center; gap: .9rem">
-                        <button type="button" class="pa-btn pa-btn-ghost pa-btn-sm" style="min-width: 2.75rem; padding: 0" wire:click="dec" aria-label="Mai puține" @if ($qty <= 1) disabled @endif>−</button>
-                        <b style="font-size: 1.3rem; min-width: 1.5rem; text-align: center">{{ $qty }}</b>
-                        <button type="button" class="pa-btn pa-btn-ghost pa-btn-sm" style="min-width: 2.75rem; padding: 0" wire:click="inc" aria-label="Mai multe" @if ($qty >= $maxQty) disabled @endif>+</button>
+                    {{-- Runda 87: numărul se schimbă pe loc (Alpine); serverul recalculează prețul o singură dată, la 350 ms după ultima apăsare. Cheia de mai jos resetează contorul când se schimbă tipul / combo-ul / limita. --}}
+                    <div style="display: flex; align-items: center; gap: .9rem" wire:key="qty-{{ $ticketName }}-{{ $combo }}-{{ $maxQty }}"
+                         x-data="{ q: {{ (int) $qty }}, max: {{ (int) $maxQty }}, t: null,
+                                   set(n) { this.q = Math.max(1, Math.min(this.max, n)); clearTimeout(this.t); this.t = setTimeout(() => $wire.setQty(this.q), 350); } }">
+                        <button type="button" class="pa-btn pa-btn-ghost pa-btn-sm" style="min-width: 2.75rem; padding: 0" x-on:click="set(q - 1)" aria-label="Mai puține" x-bind:disabled="q <= 1" @if ($qty <= 1) disabled @endif>−</button>
+                        <b style="font-size: 1.3rem; min-width: 1.5rem; text-align: center" x-text="q" data-qty>{{ $qty }}</b>
+                        <button type="button" class="pa-btn pa-btn-ghost pa-btn-sm" style="min-width: 2.75rem; padding: 0" x-on:click="set(q + 1)" aria-label="Mai multe" x-bind:disabled="q >= max" @if ($qty >= $maxQty) disabled @endif>+</button>
                     </div>
                 </div>
 

@@ -6,6 +6,13 @@
             root.dataset.state = name;
             root.querySelectorAll('[data-show]').forEach((el) => { el.style.display = el.dataset.show.split(' ').includes(name) ? '' : 'none'; });
             const m = $('[data-msg]'); if (m) m.textContent = msg || '';
+            // Runda 87: cu `data-hide-on="on"` (aplicația participanților) cardul dispare după activare; până se știe starea, rămâne ascuns.
+            if (root.dataset.hideOn) {
+                clearTimeout(root._hideTimer);
+                if (name !== root.dataset.hideOn) { root.style.display = ''; }
+                else if (msg) { root._hideTimer = setTimeout(() => { root.style.display = 'none'; }, 1800); }
+                else { root.style.display = 'none'; }
+            }
             root.dispatchEvent(new CustomEvent('push-state', { bubbles: true, detail: name }));
         };
         const post = (url, body) => fetch(url, {

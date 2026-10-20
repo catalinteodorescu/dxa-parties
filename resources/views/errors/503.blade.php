@@ -37,7 +37,15 @@
 </head>
 <body>
     <main>
-        <img class="logo" src="/images/logo-default.png" alt="{{ config('app.name') }}" width="708" height="332">
+        @php
+        // Logo-ul curent al organizatorului, inclus în pagină (la mentenanță rutele /storage nu răspund). Fără bază de date disponibilă: logo-ul implicit.
+        try {
+            $logo = \App\Support\Branding::logoDataUri('on_light');
+        } catch (\Throwable) {
+            $logo = null;
+        }
+    @endphp
+    <img class="logo" src="{{ $logo ?: '/images/logo-default.png' }}" alt="{{ config('app.name') }}">
 
         <div class="card" role="status">
             <svg class="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

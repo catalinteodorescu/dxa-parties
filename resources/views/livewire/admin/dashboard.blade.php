@@ -27,7 +27,7 @@
     @endphp
 
     <div>
-        <h2 class="text-lg font-semibold text-ink">Bun venit, test  {{ $currentAdmin->name }}.</h2>
+        <h2 class="text-lg font-semibold text-ink">Bun venit, {{ $currentAdmin->name }}.</h2>
         <p class="mt-1 text-sm text-ink-soft">Privire de ansamblu asupra activității.</p>
     </div>
 

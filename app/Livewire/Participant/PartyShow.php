@@ -92,6 +92,12 @@ class PartyShow extends Component
         return $def ? intdiv($max, $def['size']) : $max;
     }
 
+    /** Runda 87: numărul ales în aplicație (contorul se schimbă local, la server ajunge o singură dată). */
+    public function setQty(int $qty): void
+    {
+        $this->qty = max(1, min($qty, max(1, $this->maxQtyFor(Party::findOrFail($this->partyId)))));
+    }
+
     public function inc(): void
     {
         $party = Party::findOrFail($this->partyId);

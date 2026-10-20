@@ -5,6 +5,8 @@
     body.pa-body { margin: 0; min-height: 100vh; color: var(--pa-ink); font-family: 'Manrope', system-ui, sans-serif; -webkit-font-smoothing: antialiased;
         background: radial-gradient(120% 45% at 0% 0%, rgba(221,100,65,.35), transparent 60%), radial-gradient(90% 40% at 100% 25%, rgba(224,72,154,.26), transparent 60%), radial-gradient(90% 40% at 50% 100%, rgba(124,77,188,.28), transparent 70%), var(--pa-bg);
         background-attachment: fixed; }
+    .pa-dim { opacity: .45; }
+    html, body { touch-action: manipulation; }   /* runda 87: fără zoom la dublu-tap (apăsări rapide pe +/−) */
     .pa-shell { max-width: 30rem; margin: 0 auto; padding: 0 1.25rem calc(7rem + env(safe-area-inset-bottom)); }
     .pa-top { display: flex; align-items: center; justify-content: space-between; padding: calc(1rem + env(safe-area-inset-top)) 0 .5rem; }
     .pa-top img { height: 2.4rem; width: auto; display: block; }

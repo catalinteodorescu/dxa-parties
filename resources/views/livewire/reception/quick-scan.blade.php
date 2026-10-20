@@ -93,7 +93,7 @@
     {{-- Ecran plin; fundalul devine verde / roșu cât timp e afișat un rezultat --}}
     <div x-show="open" x-cloak style="display: none" class="fixed inset-0 z-[70] flex flex-col bg-surface"
          :style="fb ? 'background:' + (fb.ok ? '#16a34a' : '#dc2626') : ''">
-        <div class="flex items-center justify-between gap-3 px-4 py-3">
+        <div class="flex items-center justify-between gap-3 px-4 pb-3" style="padding-top: calc(env(safe-area-inset-top) + .75rem)">
             <h3 class="text-base font-semibold" :class="fb ? 'text-white' : 'text-ink'">Scanează</h3>
             <div class="flex items-center gap-3">
                 <span x-show="counter.in > 0" x-cloak style="display: none" data-scan-counter class="text-sm font-medium" :class="fb ? 'text-white/90' : 'text-ink-soft'"

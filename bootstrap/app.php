@@ -30,6 +30,12 @@ return Application::configure(basePath: dirname(__DIR__))
             $request->is('receptie', 'receptie/*') => route('receptie.login'),
             $request->is('bar', 'bar/*') => route('bar.login'),
             $request->is('admin', 'admin/*') => route('admin.login'),
+            // Runda 87: deconectarea comună (/sesiune/logout) cu sesiunea deja expirată ajungea în aplicația participanților.
+            $request->is('sesiune/logout') => route(match ($request->input('to')) {
+                'receptie' => 'receptie.login',
+                'bar' => 'bar.login',
+                default => 'admin.login',
+            }),
             default => route('app.login'),
         });
         $middleware->redirectUsersTo(fn (Request $request) => match (true) {

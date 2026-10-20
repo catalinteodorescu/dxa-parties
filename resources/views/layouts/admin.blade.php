@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ \App\Support\Branding::name() }} — Panou admin</title>
+    <style>html, body { touch-action: manipulation; }   /* runda 87: fără zoom la dublu-tap */</style>
 
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
     <link rel="icon" type="image/png" href="{{ asset('images/favicon-32.png') }}" sizes="32x32">

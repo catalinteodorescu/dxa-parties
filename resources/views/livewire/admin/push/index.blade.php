@@ -42,7 +42,7 @@
                         </div>
                         <div class="shrink-0 text-right text-xs text-ink-soft">
                             <div>{{ $n->created_at?->format('d.m.Y H:i') }}</div>
-                            <div>{{ $n->delivered_count }}/{{ $n->deliveries_count }} livrate</div>
+                            <div>@if ($n->deliveries_count > 0){{ $n->delivered_count }}/{{ $n->deliveries_count }} livrate @else Dispozitiv dezabonat @endif</div>
                         </div>
                     </div>
                 </div>

@@ -76,7 +76,7 @@ it('serveste manifestul PWA cu scope-ul /receptie/ si iconitele dinamice', funct
     $json = $this->get(route('receptie.manifest'))->assertOk()->json();
 
     expect($json['start_url'])->toBe('/receptie/')
-        ->and($json['scope'])->toBe('/receptie/')
+        ->and($json['scope'])->toBe('/')
         ->and($json['display'])->toBe('standalone')
         ->and($json['name'])->toBe('Recepție')
         ->and(collect($json['icons'])->pluck('sizes')->all())->toBe(['192x192', '512x512'])
@@ -207,7 +207,7 @@ it('ecranul de petrecere se deschide, iar antetul nu are link către panoul admi
     $this->withSession(['receptie.party_id' => $p->id])->get(route('receptie.home'))
         ->assertOk()
         ->assertDontSee(route('admin.dashboard'), false)
-        ->assertSee('rc-glass', false);
+        ->assertSee('rc-bell', false)->assertDontSee('rc-glass', false);
 });
 
 it('Acasă arată rezumatul sesiunii deschise și mesaj gol când nu e nimic înregistrat', function () {

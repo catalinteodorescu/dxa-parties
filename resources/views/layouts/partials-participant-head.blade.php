@@ -1,7 +1,7 @@
 {{-- DXA: adaugat (Aplicația participanților). Head comun al layout-urilor aplicației (manifest la rădăcină, temă întunecată, service worker). --}}
 @php $pwa = \App\Support\ParticipantApp::class; @endphp
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#120810">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">

@@ -60,7 +60,7 @@
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
     </x-btn>
 
-    <div x-show="open" x-cloak style="display: none" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+    <div x-show="open" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-4" style="display: none; padding-top: calc(env(safe-area-inset-top) + 1rem); padding-bottom: calc(env(safe-area-inset-bottom) + 1rem)">
         <div class="absolute inset-0 bg-ink/60" x-on:click="stop()"></div>
         <div class="relative w-full max-w-sm rounded-2xl bg-surface border border-border shadow-lg p-5 transition-colors"
              :style="fb ? 'background:' + (fb.ok ? '#16a34a' : '#dc2626') + '; border-color: transparent' : ''">

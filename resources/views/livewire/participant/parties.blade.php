@@ -5,12 +5,13 @@
     </div>
 
     {{-- DXA: adaugat (runda 40). Toate | Favorite (petrecerile cu inimă). --}}
-    <div class="pa-tabs" role="tablist" aria-label="Lista de petreceri">
-        <button type="button" role="tab" class="{{ $onlySaved ? '' : 'on' }}" aria-selected="{{ $onlySaved ? 'false' : 'true' }}" wire:click="showView('all')" data-view="all">Toate</button>
-        <button type="button" role="tab" class="{{ $onlySaved ? 'on' : '' }}" aria-selected="{{ $onlySaved ? 'true' : 'false' }}" wire:click="showView('saved')" data-view="saved">Favorite</button>
+    {{-- Runda 87: fila aleasă se aprinde imediat (Alpine), fără să aștepte răspunsul serverului; lista se estompează cât se încarcă. --}}
+    <div class="pa-tabs" role="tablist" aria-label="Lista de petreceri" x-data="{ v: '{{ $onlySaved ? 'saved' : 'all' }}', authed: {{ auth('participant')->check() ? 'true' : 'false' }} }">
+        <button type="button" role="tab" class="{{ $onlySaved ? '' : 'on' }}" x-bind:class="{ on: v === 'all' }" aria-selected="{{ $onlySaved ? 'false' : 'true' }}" x-on:click="v = 'all'; $wire.showView('all')" data-view="all">Toate</button>
+        <button type="button" role="tab" class="{{ $onlySaved ? 'on' : '' }}" x-bind:class="{ on: v === 'saved' }" aria-selected="{{ $onlySaved ? 'true' : 'false' }}" x-on:click="if (authed) { v = 'saved'; } $wire.showView('saved')" data-view="saved">Favorite</button>
     </div>
 
-    <section class="pa-section" style="margin-top: 1.1rem">
+    <section class="pa-section" style="margin-top: 1.1rem; transition: opacity .15s" wire:loading.class="pa-dim" wire:target="showView">
         <h2 class="pa-h2">Următoare</h2>
         @forelse ($parties as $party)
             @include('livewire.participant._party-row', ['party' => $party])
