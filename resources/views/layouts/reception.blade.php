@@ -19,6 +19,19 @@
                     <span class="truncate max-w-[6.5rem] sm:max-w-none text-sm text-white/80" data-active-worker>{{ auth('admin')->user()->name }}</span>
                     {{-- DXA: adaugat (runda 71). Schimbare rapidă între lucrători (nume + PIN) --}}
                     @livewire(\App\Livewire\Reception\SwitchWorker::class, ['prefix' => $pwa::ROUTE_PREFIX], key('switch-worker'))
+                    @if (\App\Services\Plan\PlanGate::allows('push_staff'))
+                        @php
+                            $inboxApp = $pwa::ROUTE_PREFIX === 'bar' ? 'bar' : 'reception';
+                            $unreadNotes = \App\Services\Push\Inbox::unread(\App\Services\Push\Inbox::forStaff((int) (\App\Http\Middleware\ApplyAppWorker::loginId() ?? auth('admin')->id()), $inboxApp));
+                        @endphp
+                        {{-- Runda 91: clopoțelul „Notificări”, cu numărul de necitite --}}
+                        <a href="{{ route($pwa::ROUTE_PREFIX.'.notifications') }}" wire:navigate title="Notificări" aria-label="Notificări" data-bell
+                           class="relative rounded-lg h-9 w-9 inline-flex items-center justify-center bg-white/15 hover:bg-white/25 transition-colors">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                            <span class="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full bg-white text-primary text-[10px] font-bold flex items-center justify-center leading-none"
+                                  data-inbox-badge data-url="{{ route($pwa::ROUTE_PREFIX.'.notifications.count', [], false) }}" @if ($unreadNotes < 1) style="display: none" @endif>{{ $unreadNotes > 99 ? '99+' : $unreadNotes }}</span>
+                        </a>
+                    @endif
                     <form action="{{ route('session.logout') }}" method="POST">
                         @csrf
                         <input type="hidden" name="to" value="{{ $pwa::ROUTE_PREFIX }}">
@@ -42,6 +55,7 @@
     @include('layouts.partials-reception-device')
 
     @include('layouts.partials-push-init')
+    @include('layouts.partials-inbox-badge')
     @livewireScripts
     <script>
         if ('serviceWorker' in navigator) {

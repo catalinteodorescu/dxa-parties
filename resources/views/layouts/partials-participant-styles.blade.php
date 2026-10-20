@@ -10,6 +10,9 @@
     html, body { touch-action: manipulation; }   /* runda 87: fără zoom la dublu-tap (apăsări rapide pe +/−) */
     .pa-shell { max-width: 30rem; margin: 0 auto; padding: 0 1.25rem calc(7rem + env(safe-area-inset-bottom)); }
     .pa-top { display: flex; align-items: center; justify-content: space-between; padding: calc(1rem + env(safe-area-inset-top)) 0 .5rem; }
+    .pa-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--pa-glass); border: 1px solid var(--pa-line); color: var(--pa-ink); }
+    .pa-bell svg { width: 1.2rem; height: 1.2rem; }
+    .pa-bell-n { position: absolute; top: -.25rem; right: -.25rem; min-width: 1.15rem; height: 1.15rem; padding: 0 .3rem; border-radius: 9999px; background: var(--pa-amber); color: #120810; font-size: .68rem; font-weight: 800; display: flex; align-items: center; justify-content: center; line-height: 1; }
     .pa-top img { height: 2.4rem; width: auto; display: block; }
     .pa-a { color: inherit; text-decoration: none; }
     /* Placeholder pentru anunțurile fără imagine (runda 29) */

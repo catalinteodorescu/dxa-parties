@@ -3,18 +3,19 @@
 use App\Http\Controllers\BarReportPdfController;
 use App\Http\Controllers\ContentMetricsController;
 use App\Http\Controllers\DeployController;
+use App\Http\Controllers\InboxController;
 use App\Http\Controllers\PartyCalendarController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\StaffPushController;
-use App\Http\Controllers\StripeWebhookController;
-use App\Http\Middleware\ApplyAuthZone; // DXA: adaugat (Bar - statistici agregate)
+use App\Http\Controllers\StripeWebhookController; // DXA: adaugat (Bar - statistici agregate)
+use App\Http\Middleware\ApplyAuthZone;
 use App\Livewire\Admin\Account\Edit as AccountEdit;
 use App\Livewire\Admin\Announcements\Form as AnnouncementForm;
 use App\Livewire\Admin\Announcements\Index as AnnouncementsIndex;
 use App\Livewire\Admin\Bar\Stats as BarStatsPage;
-use App\Livewire\Admin\BarApp\AppSettings as BarAppSettings;
-use App\Livewire\Admin\BarReports\Index as BarReportsIndex; // DXA: adaugat (PWA Bar - setări aplicație) // DXA: adaugat (Credite - pagina Credite)
+use App\Livewire\Admin\BarApp\AppSettings as BarAppSettings; // DXA: adaugat (PWA Bar - setări aplicație) // DXA: adaugat (Credite - pagina Credite)
+use App\Livewire\Admin\BarReports\Index as BarReportsIndex;
 use App\Livewire\Admin\BarReports\Show as BarReportShow;
 use App\Livewire\Admin\Credits\Index as CreditsIndex;
 use App\Livewire\Admin\Credits\Topups as CreditsTopups;
@@ -24,48 +25,49 @@ use App\Livewire\Admin\Invite\Complete as InviteComplete;
 use App\Livewire\Admin\Legal\Index as LegalIndex;
 use App\Livewire\Admin\Login;
 use App\Livewire\Admin\Logs\Index as LogsIndex;
-use App\Livewire\Admin\Loyalty\Cards as LoyaltyCardsPage;
-use App\Livewire\Admin\MenuItems\Categories as MenuCategoriesPage;          // DXA: adaugat (Card de fidelitate - pagina Carduri)
-use App\Livewire\Admin\MenuItems\Form as MenuItemForm;
-use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
-use App\Livewire\Admin\Owner\Index;
-use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;          // DXA: adaugat (Meniu bar - produse)
-use App\Livewire\Admin\Participants\Index as ParticipantsIndex;         // DXA: adaugat (Petreceri)
-use App\Livewire\Admin\Participants\Show as ParticipantsShow;     // DXA: adaugat (Petreceri)
-use App\Livewire\Admin\Participants\Stats as ParticipantsStats;   // DXA: adaugat (Participanți - statistici)
-use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;       // DXA: adaugat (Petreceri - view single)
-use App\Livewire\Admin\Parties\Form as PartyForm;
-use App\Livewire\Admin\Parties\Index as PartiesIndex;     // DXA: adaugat (Petreceri - statistici)
-use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage; // DXA: adaugat (Petreceri - statistici agregate)
-use App\Livewire\Admin\Parties\Show as PartiesShow;
-use App\Livewire\Admin\Parties\Stats as PartiesStats; // DXA: adaugat (Coduri de reducere - promotori)
-use App\Livewire\Admin\Promoters\Index as PromotersIndex; // DXA: adaugat (Setari)
-use App\Livewire\Admin\Push\Index as PushIndex;
-use App\Livewire\Admin\Reception\Form as ReceptionForm;       // DXA: adaugat (Bar - raportari)
-use App\Livewire\Admin\Reception\Index as ReceptionIndex;  // DXA: adaugat (Receptie - statistici agregate)
-use App\Livewire\Admin\Reception\Stats as ReceptionStatsPage;    // DXA: adaugat (runda 23)
-use App\Livewire\Admin\Reception\Tokens as ReceptionTokens;    // DXA: adaugat (Bar - raportari)
-use App\Livewire\Admin\ReceptionApp\AppSettings as ReceptionAppSettings;      // DXA: adaugat (Participanți)
-use App\Livewire\Admin\ReceptionReports\Form as ReceptionReportForm;        // DXA: adaugat (Participanți)
-use App\Livewire\Admin\ReceptionReports\Index as ReceptionReportsIndex;              // DXA: adaugat (Recepție - intrări = adăugare)
-use App\Livewire\Admin\Reconciliation\Index as ReconciliationIndex;            // DXA: adaugat (Recepție - intrări = listă)
-use App\Livewire\Admin\ResetPassword;          // DXA: adaugat (Recepție - tokeni)
-use App\Livewire\Admin\Sales\Form as SaleForm;    // DXA: adaugat (Recepție - raportări)
-use App\Livewire\Admin\Sales\Index as SalesIndex; // DXA: adaugat (Recepție - raportări)
-use App\Livewire\Admin\Settings\Index as SettingsIndex;                         // DXA: adaugat (Bar - vanzari)
-use App\Livewire\Admin\SetupPhone;                      // DXA: adaugat (Bar - vanzari)
-use App\Livewire\Admin\StockReports\Form as StockReportForm;   // DXA: adaugat (Bar - necesare)
-use App\Livewire\Admin\StockReports\Index as StockReportsIndex; // DXA: adaugat (Bar - necesare)
-use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm; // DXA: adaugat (Bar - stocuri)
+use App\Livewire\Admin\Loyalty\Cards as LoyaltyCardsPage;          // DXA: adaugat (Card de fidelitate - pagina Carduri)
+use App\Livewire\Admin\MenuItems\Categories as MenuCategoriesPage;
+use App\Livewire\Admin\MenuItems\Form as MenuItemForm; // DXA: adaugat (PWA Recepție - setări aplicație)             // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\MenuItems\Index as MenuItemsIndex;
+use App\Livewire\Admin\Owner\Index;          // DXA: adaugat (Meniu bar - produse)
+use App\Livewire\Admin\ParticipantApp\AppSettings as ParticipantAppSettingsPage;         // DXA: adaugat (Petreceri)
+use App\Livewire\Admin\Participants\Index as ParticipantsIndex;     // DXA: adaugat (Petreceri)
+use App\Livewire\Admin\Participants\Show as ParticipantsShow;   // DXA: adaugat (Participanți - statistici)
+use App\Livewire\Admin\Participants\Stats as ParticipantsStats;       // DXA: adaugat (Petreceri - view single)
+use App\Livewire\Admin\Parties\Attendees as PartyAttendeesPage;
+use App\Livewire\Admin\Parties\Form as PartyForm;     // DXA: adaugat (Petreceri - statistici)
+use App\Livewire\Admin\Parties\Index as PartiesIndex; // DXA: adaugat (Petreceri - statistici agregate)
+use App\Livewire\Admin\Parties\Overview as PartiesOverviewPage;
+use App\Livewire\Admin\Parties\Show as PartiesShow; // DXA: adaugat (Coduri de reducere - promotori)
+use App\Livewire\Admin\Parties\Stats as PartiesStats; // DXA: adaugat (Setari)
+use App\Livewire\Admin\Promoters\Index as PromotersIndex;
+use App\Livewire\Admin\Push\Index as PushIndex;       // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\Reception\Form as ReceptionForm;  // DXA: adaugat (Receptie - statistici agregate)
+use App\Livewire\Admin\Reception\Index as ReceptionIndex;    // DXA: adaugat (runda 23)
+use App\Livewire\Admin\Reception\Stats as ReceptionStatsPage;    // DXA: adaugat (Bar - raportari)
+use App\Livewire\Admin\Reception\Tokens as ReceptionTokens;      // DXA: adaugat (Participanți)
+use App\Livewire\Admin\ReceptionApp\AppSettings as ReceptionAppSettings;        // DXA: adaugat (Participanți)
+use App\Livewire\Admin\ReceptionReports\Form as ReceptionReportForm;              // DXA: adaugat (Recepție - intrări = adăugare)
+use App\Livewire\Admin\ReceptionReports\Index as ReceptionReportsIndex;            // DXA: adaugat (Recepție - intrări = listă)
+use App\Livewire\Admin\Reconciliation\Index as ReconciliationIndex;          // DXA: adaugat (Recepție - tokeni)
+use App\Livewire\Admin\ResetPassword;    // DXA: adaugat (Recepție - raportări)
+use App\Livewire\Admin\Sales\Form as SaleForm; // DXA: adaugat (Recepție - raportări)
+use App\Livewire\Admin\Sales\Index as SalesIndex;                         // DXA: adaugat (Bar - vanzari)
+use App\Livewire\Admin\Settings\Index as SettingsIndex;                      // DXA: adaugat (Bar - vanzari)
+use App\Livewire\Admin\SetupPhone;   // DXA: adaugat (Bar - necesare)
+use App\Livewire\Admin\StockReports\Form as StockReportForm; // DXA: adaugat (Bar - necesare)
+use App\Livewire\Admin\StockReports\Index as StockReportsIndex; // DXA: adaugat (Bar - stocuri)
+use App\Livewire\Admin\StockRequisitions\Form as StockRequisitionForm;
 use App\Livewire\Admin\StockRequisitions\Index as StockRequisitionsIndex;
 use App\Livewire\Admin\Stocks\Index as StockItemsIndex;
 use App\Livewire\Admin\Tickets\Index as TicketsIndex;
-use App\Livewire\Admin\Tickets\Show as TicketsShow;
-use App\Livewire\Admin\Users\Create as UsersCreate; // DXA: adaugat (PWA Bar)
+use App\Livewire\Admin\Tickets\Show as TicketsShow; // DXA: adaugat (PWA Bar)
+use App\Livewire\Admin\Users\Create as UsersCreate;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Admin\Users\Permissions as UsersPermissions;
 use App\Livewire\Bar\Home as BarHome;
 use App\Livewire\Bar\Login as BarLogin;
+use App\Livewire\Bar\Notifications as BarNotifications;
 use App\Livewire\Bar\PartyPicker as BarPartyPicker;
 use App\Livewire\Bar\Recent as BarRecent;
 use App\Livewire\Bar\Report as BarReportPage;
@@ -80,8 +82,9 @@ use App\Livewire\Participant\ForgotPassword as ParticipantForgotPassword;
 use App\Livewire\Participant\History as ParticipantHistory;
 use App\Livewire\Participant\Home as ParticipantHome;
 use App\Livewire\Participant\Login as ParticipantLogin;
-use App\Livewire\Participant\Parties as ParticipantParties; // DXA: adaugat (PWA Recepție)
-use App\Livewire\Participant\PartyShow as ParticipantPartyShow;
+use App\Livewire\Participant\Notifications as ParticipantNotifications;
+use App\Livewire\Participant\Parties as ParticipantParties;
+use App\Livewire\Participant\PartyShow as ParticipantPartyShow; // DXA: adaugat (PWA Recepție)
 use App\Livewire\Participant\Privacy;
 use App\Livewire\Participant\Register as ParticipantRegister;
 use App\Livewire\Participant\ResetPassword as ParticipantResetPassword;
@@ -89,8 +92,8 @@ use App\Livewire\Participant\Terms;
 use App\Livewire\Participant\TicketLink as ParticipantTicketLink;
 use App\Livewire\Participant\TicketPay as ParticipantTicketPay;
 use App\Livewire\Participant\Tickets as ParticipantTickets;
-use App\Livewire\Participant\TicketShortLink as ParticipantTicketShortLink; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
-use App\Livewire\Participant\Topup as ParticipantTopup;
+use App\Livewire\Participant\TicketShortLink as ParticipantTicketShortLink;
+use App\Livewire\Participant\Topup as ParticipantTopup; // DXA: adaugat (PWA Recepție) // DXA: adaugat (PWA Recepție)
 use App\Livewire\Participant\TopupPay as ParticipantTopupPay;
 use App\Livewire\Participant\Verify as ParticipantVerify;
 use App\Livewire\Participant\Wallet as ParticipantWallet;
@@ -98,6 +101,7 @@ use App\Livewire\Reception\CreditSale as ReceptieCreditSale;
 use App\Livewire\Reception\Entry as ReceptieEntry;
 use App\Livewire\Reception\Home as ReceptieHome;
 use App\Livewire\Reception\Login as ReceptieLogin;
+use App\Livewire\Reception\Notifications as ReceptieNotifications;
 use App\Livewire\Reception\PartyPicker as ReceptiePartyPicker;
 use App\Livewire\Reception\Recent as ReceptieRecent;
 use App\Livewire\Reception\Report as ReceptieReport;
@@ -278,6 +282,8 @@ Route::prefix('receptie')->middleware(['admin.zone:reception', 'plan.app:app_rec
         Route::get('/tranzactii', ReceptieRecent::class)->middleware('plan.app:reception_entries')->name('recent');
         Route::get('/rezumat', ReceptieSummary::class)->middleware('plan.app:reception_reports')->name('summary'); // DXA: runda 72
         Route::get('/raportare', ReceptieReport::class)->middleware('plan.app:reception_reports')->name('report');
+        Route::get('/notificari', ReceptieNotifications::class)->middleware('plan.app:push_staff')->name('notifications'); // Runda 91
+        Route::get('/notificari/numar', [InboxController::class, 'staff'])->defaults('app', 'reception')->middleware('throttle:60,1')->name('notifications.count');
         Route::post('/notificari/abonare', [StaffPushController::class, 'subscribe'])->defaults('app', 'reception')->middleware('throttle:30,1')->name('push.subscribe'); // DXA: runda 77
         Route::post('/notificari/dezabonare', [StaffPushController::class, 'unsubscribe'])->defaults('app', 'reception')->name('push.unsubscribe');
         Route::post('/notificari/test', [StaffPushController::class, 'test'])->defaults('app', 'reception')->middleware('throttle:10,1')->name('push.test');
@@ -301,6 +307,8 @@ Route::prefix('bar')->middleware(['admin.zone:bar', 'plan.app:app_bar'])->name('
         Route::get('/vanzari', BarRecent::class)->middleware('plan.app:bar_sales')->name('recent');
         Route::get('/rezumat', BarSummaryPage::class)->middleware('plan.app:bar_reports')->name('summary'); // DXA: runda 72
         Route::get('/raportare', BarReportPage::class)->middleware('plan.app:bar_reports')->name('report');
+        Route::get('/notificari', BarNotifications::class)->middleware('plan.app:push_staff')->name('notifications'); // Runda 91
+        Route::get('/notificari/numar', [InboxController::class, 'staff'])->defaults('app', 'bar')->middleware('throttle:60,1')->name('notifications.count');
         Route::post('/notificari/abonare', [StaffPushController::class, 'subscribe'])->defaults('app', 'bar')->middleware('throttle:30,1')->name('push.subscribe'); // DXA: runda 77
         Route::post('/notificari/dezabonare', [StaffPushController::class, 'unsubscribe'])->defaults('app', 'bar')->name('push.unsubscribe');
         Route::post('/notificari/test', [StaffPushController::class, 'test'])->defaults('app', 'bar')->middleware('throttle:10,1')->name('push.test');
@@ -359,6 +367,9 @@ Route::name('app.')->middleware('plan.app:app_participant')->group(function () {
 
     Route::middleware(['auth:participant', 'participant.active'])->group(function () {
         Route::get('/cont', ParticipantAccount::class)->name('account');
+        // Runda 91. Pagina „Notificări” + numărul de necitite (clopoțelul din antet).
+        Route::get('/notificari', ParticipantNotifications::class)->middleware('plan.app:push_participants')->name('notifications');
+        Route::get('/notificari/numar', [InboxController::class, 'participant'])->middleware('throttle:60,1')->name('notifications.count');
         // DXA: adaugat (runda 70). Notificări push: abonare, dezabonare, test.
         Route::post('/notificari/abonare', [PushController::class, 'subscribe'])->middleware('throttle:30,1')->name('push.subscribe');
         Route::post('/notificari/dezabonare', [PushController::class, 'unsubscribe'])->middleware('throttle:30,1')->name('push.unsubscribe');

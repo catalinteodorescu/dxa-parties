@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Push\StaffNotifier;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -46,6 +47,6 @@ class PushNotification extends Model
 
     public function kindLabel(): string
     {
-        return self::KIND_LABELS[$this->kind] ?? $this->kind;
+        return self::KIND_LABELS[$this->kind] ?? (StaffNotifier::TYPES[$this->kind][1] ?? $this->kind);
     }
 }

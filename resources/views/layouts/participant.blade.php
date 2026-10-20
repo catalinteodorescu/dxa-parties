@@ -24,13 +24,23 @@
             <a href="{{ route('app.home') }}" wire:navigate class="pa-a" aria-label="{{ \App\Support\ParticipantApp::name() }}">
                 <img src="{{ \App\Support\ParticipantApp::logoUrl() }}" alt="{{ \App\Support\ParticipantApp::name() }}">
             </a>
-            @if ($me)
-                <a href="{{ route('app.account') }}" wire:navigate class="pa-a" aria-label="Contul meu ({{ $me->name }})">
-                    @include('livewire.participant._avatar', ['who' => $me, 'size' => 'sm'])
-                </a>
-            @else
-                <a href="{{ route('app.login') }}" wire:navigate class="pa-btn pa-btn-sm">Intră în cont</a>
-            @endif
+            <div style="display: flex; align-items: center; gap: .6rem">
+                @if ($me && \App\Services\Plan\PlanGate::allows('push_participants'))
+                    @php $unreadNotes = \App\Services\Push\Inbox::unread(\App\Services\Push\Inbox::forParticipant($me->id)); @endphp
+                    {{-- Runda 91: clopoțelul „Notificări”, cu numărul de necitite --}}
+                    <a href="{{ route('app.notifications') }}" wire:navigate class="pa-a pa-bell" aria-label="Notificări" data-bell>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                        <b class="pa-bell-n" data-inbox-badge data-url="{{ route('app.notifications.count', [], false) }}" @if ($unreadNotes < 1) style="display: none" @endif>{{ $unreadNotes > 99 ? '99+' : $unreadNotes }}</b>
+                    </a>
+                @endif
+                @if ($me)
+                    <a href="{{ route('app.account') }}" wire:navigate class="pa-a" aria-label="Contul meu ({{ $me->name }})">
+                        @include('livewire.participant._avatar', ['who' => $me, 'size' => 'sm'])
+                    </a>
+                @else
+                    <a href="{{ route('app.login') }}" wire:navigate class="pa-btn pa-btn-sm">Intră în cont</a>
+                @endif
+            </div>
         </header>
 
         @if ($me)
@@ -100,6 +110,7 @@
 
     @include('layouts.partials-participant-motion')
     @include('layouts.partials-participant-track')
+    @include('layouts.partials-inbox-badge')
     @livewireScripts
     @include('layouts.partials-participant-sw')
 </body>
